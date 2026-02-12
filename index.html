@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -109,6 +110,46 @@
             color: #666;
             font-size: 12px;
             margin-top: 10px;
+        }
+        
+        .filters {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .filter-group label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+        
+        .filter-group select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: white;
+            font-size: 14px;
+            color: #333;
+            cursor: pointer;
+            min-width: 150px;
+        }
+        
+        .filter-group select:hover {
+            border-color: #4CAF50;
+        }
+        
+        .filter-group select:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
         }
         
         .stats {
@@ -225,6 +266,24 @@
             <div class="last-updated" id="lastUpdated"></div>
         </div>
         
+        <div class="card">
+            <h2>Filters</h2>
+            <div class="filters">
+                <div class="filter-group">
+                    <label for="yearFilter">Year:</label>
+                    <select id="yearFilter" onchange="applyFilters()">
+                        <option value="all">All Years</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="monthFilter">Month:</label>
+                    <select id="monthFilter" onchange="applyFilters()">
+                        <option value="all">All Months</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
         <div class="loading-message" id="loadingMessage">Loading data from Google Sheets...</div>
         <div class="error-message" id="errorMessage"></div>
         <div class="success-message" id="successMessage"></div>
@@ -281,9 +340,66 @@
         
         let categoryChart = null;
         let allTransactions = [];
+        let filteredTransactions = [];
 
         // Categories to exclude from monthly budget (yearly budget items)
         const EXCLUDED_CATEGORIES = ['Fundos (depósitos)', 'Fundos (Retiradas)'];
+        
+        function populateFilters() {
+            // Get unique years and months from data
+            const years = new Set();
+            const months = new Set();
+            
+            allTransactions.forEach(transaction => {
+                if (transaction.year) years.add(transaction.year);
+                if (transaction.month) months.add(transaction.month);
+            });
+            
+            // Sort years and months
+            const sortedYears = Array.from(years).sort((a, b) => b - a); // Descending
+            const sortedMonths = Array.from(months).sort();
+            
+            // Populate year dropdown
+            const yearFilter = document.getElementById('yearFilter');
+            yearFilter.innerHTML = '<option value="all">All Years</option>';
+            sortedYears.forEach(year => {
+                yearFilter.innerHTML += `<option value="${year}">${year}</option>`;
+            });
+            
+            // Populate month dropdown
+            const monthFilter = document.getElementById('monthFilter');
+            monthFilter.innerHTML = '<option value="all">All Months</option>';
+            sortedMonths.forEach(month => {
+                monthFilter.innerHTML += `<option value="${month}">${month}</option>`;
+            });
+            
+            // Set default to most recent year and month if available
+            if (sortedYears.length > 0) {
+                yearFilter.value = sortedYears[0];
+            }
+            if (sortedMonths.length > 0) {
+                // Try to find current month or use first month
+                const currentMonth = sortedMonths[sortedMonths.length - 1];
+                monthFilter.value = currentMonth;
+            }
+        }
+        
+        function applyFilters() {
+            const selectedYear = document.getElementById('yearFilter').value;
+            const selectedMonth = document.getElementById('monthFilter').value;
+            
+            // Filter transactions based on selected year and month
+            filteredTransactions = allTransactions.filter(transaction => {
+                const yearMatch = selectedYear === 'all' || transaction.year.toString() === selectedYear;
+                const monthMatch = selectedMonth === 'all' || transaction.month === selectedMonth;
+                return yearMatch && monthMatch;
+            });
+            
+            // Update visualizations with filtered data
+            createChart(filteredTransactions);
+            
+            console.log(`Filtered: ${filteredTransactions.length} of ${allTransactions.length} transactions`);
+        }
 
         function showMessage(type, message) {
             // Hide all messages first
@@ -338,18 +454,19 @@
                 // Each row has a 'c' array with cell values
                 const cells = row.c;
                 
-                // Skip empty rows
-                if (!cells || cells.length < 7) return;
+                // Skip empty rows (now we need 8 columns: Year + original 7)
+                if (!cells || cells.length < 8) return;
                 
-                // Extract values (cells can be null, so use optional chaining)
+                // Extract values with new column structure (Year is now column A/index 0)
                 const transaction = {
-                    month: cells[0]?.v || '',
-                    date: cells[1]?.f || cells[1]?.v || '',  // Use formatted date (f) if available
-                    account: cells[2]?.v || '',
-                    description: cells[3]?.v || '',
-                    amount: cells[4]?.v || 0,
-                    category: cells[5]?.v || '',
-                    notes: cells[6]?.v || ''
+                    year: cells[0]?.v || '',           // Column A: Year
+                    month: cells[1]?.v || '',          // Column B: month
+                    date: cells[2]?.f || cells[2]?.v || '',  // Column C: Date
+                    account: cells[3]?.v || '',        // Column D: account
+                    description: cells[4]?.v || '',    // Column E: description
+                    amount: cells[5]?.v || 0,          // Column F: amount
+                    category: cells[6]?.v || '',       // Column G: category
+                    notes: cells[7]?.v || ''           // Column H: notes
                 };
                 
                 transactions.push(transaction);
@@ -549,8 +666,12 @@
                 // Store globally
                 allTransactions = transactions;
                 
-                // Create visualizations
-                createChart(transactions);
+                // Populate filter dropdowns
+                populateFilters();
+                
+                // Apply filters (will use default selections)
+                applyFilters();
+                
                 updateLastUpdated();
                 
                 // Save to localStorage for offline viewing
@@ -569,7 +690,9 @@
                 if (savedData) {
                     console.log('Loading cached data from localStorage');
                     const data = JSON.parse(savedData);
-                    createChart(data);
+                    allTransactions = data;
+                    populateFilters();
+                    applyFilters();
                     
                     const lastUpdated = localStorage.getItem('lastUpdated');
                     if (lastUpdated) {
@@ -595,7 +718,9 @@
             if (savedData) {
                 console.log('Loading cached data from localStorage');
                 const data = JSON.parse(savedData);
-                createChart(data);
+                allTransactions = data;
+                populateFilters();
+                applyFilters();
                 
                 if (lastUpdated) {
                     document.getElementById('lastUpdated').textContent = 
