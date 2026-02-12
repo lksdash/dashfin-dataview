@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Finance Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        
+        .refresh-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        
+        .refresh-btn:hover {
+            background-color: #45a049;
+        }
+        
+        .refresh-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .card {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .card h2 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 400px;
+        }
+        
+        .error-message {
+            background-color: #f44336;
+            color: white;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .success-message {
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .loading-message {
+            background-color: #2196F3;
+            color: white;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .last-updated {
+            color: #666;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-box {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            color: #333;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .stat-value.positive {
+            color: #4CAF50;
+        }
+        
+        .stat-value.negative {
+            color: #f44336;
+        }
+        
+        .category-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .category-table th {
+            background-color: #f5f5f5;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #4CAF50;
+        }
+        
+        .category-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .category-table tr:hover {
+            background-color: #f9f9f9;
+        }
+        
+        .category-table .category-name {
+            color: #333;
+        }
+        
+        .category-table .category-amount {
+            text-align: right;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .category-table .category-percentage {
+            text-align: right;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 20px;
+            }
+            
+            .card {
+                padding: 15px;
+            }
+            
+            .chart-container {
+                height: 300px;
+            }
+            
+            .stat-value {
+                font-size: 20px;
+            }
+            
+            .category-table th,
+            .category-table td {
+                padding: 8px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💰 Personal Finance Dashboard</h1>
+            <p>Connected to Google Sheets</p>
+            <button class="refresh-btn" id="refreshBtn" onclick="loadData()">🔄 Refresh Data</button>
+            <div class="last-updated" id="lastUpdated"></div>
+        </div>
+        
+        <div class="loading-message" id="loadingMessage">Loading data from Google Sheets...</div>
+        <div class="error-message" id="errorMessage"></div>
+        <div class="success-message" id="successMessage"></div>
+        
+        <div class="stats">
+            <div class="stat-box">
+                <div class="stat-label">Total Income</div>
+                <div class="stat-value positive" id="totalIncome">$0.00</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Total Expenses</div>
+                <div class="stat-value negative" id="totalExpenses">$0.00</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Net</div>
+                <div class="stat-value" id="netValue">$0.00</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Transactions</div>
+                <div class="stat-value" id="totalTransactions">0</div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>Spending by Category</h2>
+            <div class="chart-container">
+                <canvas id="categoryChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>Category Breakdown</h2>
+            <table class="category-table">
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th style="text-align: right;">Amount</th>
+                        <th style="text-align: right;">% of Total</th>
+                    </tr>
+                </thead>
+                <tbody id="categoryTableBody">
+                    <!-- Table rows will be inserted here by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURATION - Your Google Sheet details
+        const SHEET_ID = '1rhO_nnuE_m2JkCGEmLFh26o9LO-9y16q_rOxjZpyKm4';
+        const SHEET_NAME = 'finance_db';
+        // Use JSON format - works better from hosted pages
+        const API_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${SHEET_NAME}`;
+        
+        let categoryChart = null;
+        let allTransactions = [];
+
+        // Categories to exclude from monthly budget (yearly budget items)
+        const EXCLUDED_CATEGORIES = ['Fundos (depósitos)', 'Fundos (Retiradas)'];
+
+        function showMessage(type, message) {
+            // Hide all messages first
+            document.getElementById('loadingMessage').style.display = 'none';
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'none';
+            
+            // Show the appropriate message
+            const messageDiv = document.getElementById(type + 'Message');
+            messageDiv.textContent = message;
+            messageDiv.style.display = 'block';
+            
+            // Auto-hide success and error messages after 5 seconds
+            if (type !== 'loading') {
+                setTimeout(() => {
+                    messageDiv.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        function parseGoogleSheetsJSON(responseText) {
+            // The response looks like: /*O_o*/\ngoogle.visualization.Query.setResponse({...});
+            // We need to extract just the JSON part
+            
+            // Find the start of the JSON object
+            const jsonStart = responseText.indexOf('{');
+            const jsonEnd = responseText.lastIndexOf('}');
+            
+            if (jsonStart === -1 || jsonEnd === -1) {
+                throw new Error('Invalid response format from Google Sheets');
+            }
+            
+            // Extract the JSON part
+            const jsonString = responseText.substring(jsonStart, jsonEnd + 1);
+            
+            // Parse the JSON
+            const data = JSON.parse(jsonString);
+            
+            return data;
+        }
+        
+        function convertGoogleSheetsData(googleData) {
+            // Check if we got valid data
+            if (!googleData.table || !googleData.table.rows) {
+                throw new Error('No data found in the response');
+            }
+            
+            const rows = googleData.table.rows;
+            const transactions = [];
+            
+            rows.forEach(row => {
+                // Each row has a 'c' array with cell values
+                const cells = row.c;
+                
+                // Skip empty rows
+                if (!cells || cells.length < 7) return;
+                
+                // Extract values (cells can be null, so use optional chaining)
+                const transaction = {
+                    month: cells[0]?.v || '',
+                    date: cells[1]?.f || cells[1]?.v || '',  // Use formatted date (f) if available
+                    account: cells[2]?.v || '',
+                    description: cells[3]?.v || '',
+                    amount: cells[4]?.v || 0,
+                    category: cells[5]?.v || '',
+                    notes: cells[6]?.v || ''
+                };
+                
+                transactions.push(transaction);
+            });
+            
+            return transactions;
+        }
+
+        async function fetchGoogleSheetData() {
+            try {
+                showMessage('loading', 'Fetching data from Google Sheets...');
+                
+                const response = await fetch(API_URL);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const responseText = await response.text();
+                
+                // Parse the Google Sheets JSON response
+                const googleData = parseGoogleSheetsJSON(responseText);
+                
+                // Check if the response is valid
+                if (googleData.status !== 'ok') {
+                    throw new Error('Google Sheets API returned an error: ' + (googleData.errors?.[0]?.detailed_message || googleData.status));
+                }
+                
+                // Convert to our format
+                const transactions = convertGoogleSheetsData(googleData);
+                
+                if (transactions.length === 0) {
+                    throw new Error('No transactions found in the spreadsheet');
+                }
+                
+                return transactions;
+                
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                throw error;
+            }
+        }
+
+        function processData(data) {
+            // Calculate totals
+            let totalIncome = 0;
+            let totalExpenses = 0;
+            const categoryTotals = {};
+            
+            data.forEach(item => {
+                // Skip excluded categories
+                if (EXCLUDED_CATEGORIES.includes(item.category)) {
+                    return;
+                }
+                
+                if (item.amount < 0) {
+                    // Income (negative amounts)
+                    totalIncome += Math.abs(item.amount);
+                } else {
+                    // Expenses (positive amounts)
+                    totalExpenses += item.amount;
+                    
+                    // Group by category
+                    if (!categoryTotals[item.category]) {
+                        categoryTotals[item.category] = 0;
+                    }
+                    categoryTotals[item.category] += item.amount;
+                }
+            });
+            
+            // Update stat boxes
+            document.getElementById('totalIncome').textContent = '$' + totalIncome.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('totalExpenses').textContent = '$' + totalExpenses.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            
+            const net = totalIncome - totalExpenses;
+            const netElement = document.getElementById('netValue');
+            netElement.textContent = '$' + net.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            netElement.className = 'stat-value ' + (net >= 0 ? 'positive' : 'negative');
+            
+            document.getElementById('totalTransactions').textContent = data.length;
+            
+            // Convert to array and sort by amount (descending)
+            const sortedCategories = Object.entries(categoryTotals)
+                .sort((a, b) => b[1] - a[1])
+                .map(([category, total]) => ({
+                    category: category,
+                    total: total
+                }));
+            
+            // Populate the category table
+            const tableBody = document.getElementById('categoryTableBody');
+            tableBody.innerHTML = ''; // Clear existing rows
+            
+            sortedCategories.forEach((item, index) => {
+                const percentage = (item.total / totalExpenses) * 100;
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="category-name">${item.category}</td>
+                    <td class="category-amount">$${item.total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td class="category-percentage">${percentage.toFixed(1)}%</td>
+                `;
+                tableBody.appendChild(row);
+            });
+            
+            return sortedCategories;
+        }
+
+        function createChart(data) {
+            const ctx = document.getElementById('categoryChart').getContext('2d');
+            
+            // Destroy existing chart if it exists
+            if (categoryChart) {
+                categoryChart.destroy();
+            }
+            
+            const processedData = processData(data);
+            const labels = processedData.map(item => item.category);
+            const amounts = processedData.map(item => item.total);
+            
+            // Generate colors - nicer palette
+            const colors = [
+                '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+                '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384',
+                '#E7E9ED', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'
+            ];
+            
+            categoryChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Total Spent ($)',
+                        data: amounts,
+                        backgroundColor: colors.slice(0, labels.length),
+                        borderWidth: 1,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return '$' + context.parsed.y.toLocaleString('en-US', {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2
+                                    });
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45,
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateLastUpdated() {
+            const now = new Date();
+            document.getElementById('lastUpdated').textContent = 
+                'Last updated: ' + now.toLocaleString();
+        }
+
+        async function loadData() {
+            const refreshBtn = document.getElementById('refreshBtn');
+            
+            try {
+                // Disable button while loading
+                refreshBtn.disabled = true;
+                refreshBtn.textContent = '⏳ Loading...';
+                
+                // Fetch data from Google Sheets
+                const transactions = await fetchGoogleSheetData();
+                
+                // Store globally
+                allTransactions = transactions;
+                
+                // Create visualizations
+                createChart(transactions);
+                updateLastUpdated();
+                
+                // Save to localStorage for offline viewing
+                localStorage.setItem('financeData', JSON.stringify(transactions));
+                localStorage.setItem('lastUpdated', new Date().toISOString());
+                
+                showMessage('success', `✅ Successfully loaded ${transactions.length} transactions from Google Sheets`);
+                console.log('✅ Data loaded successfully:', transactions.length, 'transactions');
+                
+            } catch (error) {
+                showMessage('error', '❌ Error loading data: ' + error.message);
+                console.error('Error:', error);
+                
+                // Try to load from localStorage as fallback
+                const savedData = localStorage.getItem('financeData');
+                if (savedData) {
+                    console.log('Loading cached data from localStorage');
+                    const data = JSON.parse(savedData);
+                    createChart(data);
+                    
+                    const lastUpdated = localStorage.getItem('lastUpdated');
+                    if (lastUpdated) {
+                        document.getElementById('lastUpdated').textContent = 
+                            'Last updated: ' + new Date(lastUpdated).toLocaleString() + ' (cached)';
+                    }
+                    
+                    showMessage('error', '⚠️ Could not fetch new data. Showing cached data instead.');
+                }
+            } finally {
+                // Re-enable button
+                refreshBtn.disabled = false;
+                refreshBtn.textContent = '🔄 Refresh Data';
+            }
+        }
+
+        // Load data when page loads
+        window.onload = function() {
+            // Try to load from localStorage first (for offline viewing)
+            const savedData = localStorage.getItem('financeData');
+            const lastUpdated = localStorage.getItem('lastUpdated');
+            
+            if (savedData) {
+                console.log('Loading cached data from localStorage');
+                const data = JSON.parse(savedData);
+                createChart(data);
+                
+                if (lastUpdated) {
+                    document.getElementById('lastUpdated').textContent = 
+                        'Last updated: ' + new Date(lastUpdated).toLocaleString() + ' (cached)';
+                }
+                
+                // Then fetch fresh data in the background
+                loadData();
+            } else {
+                // If no cached data, fetch immediately
+                loadData();
+            }
+        };
+    </script>
+</body>
+</html>
