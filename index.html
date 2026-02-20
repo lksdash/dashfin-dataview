@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Personal Finance Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * {
             margin: 0;
@@ -295,13 +294,140 @@
                 font-size: 14px;
             }
         }
+        
+        .budget-table-container {
+            overflow-x: auto;
+        }
+        
+        .budget-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        .budget-table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .budget-table th {
+            padding: 12px;
+            font-weight: 600;
+            text-align: left;
+            font-size: 14px;
+        }
+        
+        .budget-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .budget-table tbody tr:hover {
+            background-color: #f7fafc;
+        }
+        
+        .budget-table tbody tr.over-budget {
+            background-color: #fff5f5;
+        }
+        
+        .budget-table tbody tr.over-budget:hover {
+            background-color: #fed7d7;
+        }
+        
+        .budget-category {
+            font-weight: 500;
+            color: #2d3748;
+        }
+        
+        .budget-amount, .spent-amount, .remaining-amount {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        
+        .remaining-amount.positive {
+            color: #38a169;
+            font-weight: 600;
+        }
+        
+        .remaining-amount.negative {
+            color: #e53e3e;
+            font-weight: 600;
+        }
+        
+        .budget-progress {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .progress-bar-container {
+            flex: 1;
+            height: 24px;
+            background-color: #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 8px;
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .progress-bar.low {
+            background: linear-gradient(90deg, #48bb78, #38a169);
+        }
+        
+        .progress-bar.medium {
+            background: linear-gradient(90deg, #ecc94b, #d69e2e);
+        }
+        
+        .progress-bar.high {
+            background: linear-gradient(90deg, #f56565, #e53e3e);
+        }
+        
+        .progress-percentage {
+            min-width: 45px;
+            text-align: right;
+            font-size: 13px;
+            font-weight: 600;
+            color: #4a5568;
+        }
+        
+        .no-budget-message {
+            color: #a0aec0;
+            font-style: italic;
+            font-size: 13px;
+        }
+        
+        @media (max-width: 768px) {
+            .budget-table {
+                font-size: 12px;
+            }
+            
+            .budget-table th,
+            .budget-table td {
+                padding: 8px 6px;
+            }
+            
+            .progress-bar-container {
+                min-width: 80px;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>💰 Personal Finance Dashboard</h1>
-            <p>Connected to Google Sheets</p>
+            <p id="modeIndicator">Connected to Google Sheets</p>
             <button class="refresh-btn" id="refreshBtn" onclick="loadData()">🔄 Refresh Data</button>
             <div class="last-updated" id="lastUpdated"></div>
         </div>
@@ -350,63 +476,76 @@
                 <div class="stat-label">Transactions</div>
                 <div class="stat-value" id="totalTransactions">0</div>
             </div>
-        </div>
-        
-        <div class="card">
-            <div class="collapsible-header" onclick="toggleCollapse('chartSection')">
-                <h2>Spending by Category</h2>
-                <span class="collapse-icon" id="chartSection-icon">▼</span>
+            <div class="stat-box">
+                <div class="stat-label">Fundos (depósitos)</div>
+                <div class="stat-value positive" id="fundosDepositos">$0.00</div>
             </div>
-            <div class="collapsible-content" id="chartSection">
-                <div class="chart-container">
-                    <canvas id="categoryChart"></canvas>
-                </div>
+            <div class="stat-box">
+                <div class="stat-label">Fundos (Retiradas)</div>
+                <div class="stat-value negative" id="fundosRetiradas">$0.00</div>
             </div>
         </div>
-        
+
         <div class="card">
-            <div class="collapsible-header" onclick="toggleCollapse('tableSection')">
-                <h2>Category Breakdown</h2>
-                <span class="collapse-icon" id="tableSection-icon">▼</span>
-            </div>
-            <div class="collapsible-content" id="tableSection">
-                <table class="category-table">
+            <h2>📊 Budget Overview</h2>
+            <div class="budget-table-container">
+                <table class="budget-table">
                     <thead>
                         <tr>
                             <th>Category</th>
-                            <th style="text-align: right;">Amount</th>
-                            <th style="text-align: right;">% of Total</th>
+                            <th style="text-align: right;">Budget</th>
+                            <th style="text-align: right;">Spent</th>
+                            <th style="text-align: center;">Progress</th>
+                            <th style="text-align: right;">Remaining</th>
                         </tr>
                     </thead>
-                    <tbody id="categoryTableBody">
-                        <!-- Table rows will be inserted here by JavaScript -->
+                    <tbody id="budgetTableBody">
+                        <!-- Budget rows will be inserted here -->
                     </tbody>
                 </table>
             </div>
         </div>
+        
     </div>
 
     <script>
-        // CONFIGURATION - Your Google Sheet details
+        // ============================================
+        // CONFIGURATION - DEV MODE
+        // ============================================
+        // Set to true for local testing with hardcoded data
+        // Set to false for production (GitHub) to use Google Sheets API
+        const DEV_MODE = true;
+        
+        // ============================================
+        // GOOGLE SHEETS CONFIGURATION
+        // ============================================
         const SHEET_ID = '1rhO_nnuE_m2JkCGEmLFh26o9LO-9y16q_rOxjZpyKm4';
         const SHEET_NAME = 'finance_db';
+        const BUDGET_SHEET_NAME = 'budget_db';
         // Use JSON format - works better from hosted pages
         const API_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${SHEET_NAME}`;
+        const BUDGET_API_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${BUDGET_SHEET_NAME}`;
         
-        let categoryChart = null;
+        // ============================================
+        // TEST DATA - FOR DEV MODE ONLY
+        // ============================================
+        // To update this test data:
+        // Option A: Upload your CSV file and ask Claude to update it
+        // Option B: Run the convert-csv.py script (see separate file)
+        //
+        // IMPORTANT: This data should match your production data structure
+        // including the new "year" column as column A (index 0)
+        // ============================================
+        const TEST_DATA = [{"year":"2025","month":"01-January","date":"Jan-2","account":"BMO - Checking","description":"CDW Canada","amount":-2675.55,"category":"Entradas","notes":""},{"year":"2025","month":"01-January","date":"Jan-2","account":"BMO - Credit Card","description":"Tim Hortons","amount":5.02,"category":"Saídas","notes":""},{"year":"2025","month":"01-January","date":"Jan-2","account":"BMO - Credit Card","description":"Dollarama","amount":2.5,"category":"Luke","notes":"brinquedo limpeza ouvido"},{"year":"2025","month":"01-January","date":"Jan-2","account":"TG - Credit Card","description":"Little House of Deli","amount":6.6,"category":"Saídas","notes":"café da manha office"},{"year":"2025","month":"01-January","date":"Jan-2","account":"TG - Credit Card","description":"Uber","amount":16.29,"category":"Office","notes":"ida 2/1 pra estaçao"},{"year":"2025","month":"01-January","date":"Jan-2","account":"TG - Credit Card","description":"Jack Astors","amount":52.16,"category":"Saídas","notes":"jantar Leticia"},{"year":"2025","month":"01-January","date":"Jan-2","account":"TG - Credit Card","description":"Apple.com","amount":15.24,"category":"Lila","notes":"Intent App"},{"year":"2025","month":"01-January","date":"Jan-3","account":"BMO - Checking","description":"Condominio Elvira","amount":124.2,"category":"Básicos","notes":"Remitly"},{"year":"2025","month":"01-January","date":"Jan-3","account":"BMO - Checking","description":"Utilities","amount":215.72,"category":"Básicos","notes":""},{"year":"2025","month":"01-January","date":"Jan-3","account":"BMO - Credit Card","description":"Tim Hortons","amount":12.27,"category":"Saídas","notes":""},{"year":"2025","month":"01-January","date":"Jan-3","account":"BMO - Credit Card","description":"Walmart","amount":180.29,"category":"Groceries","notes":""},{"year":"2025","month":"01-January","date":"Jan-3","account":"BMO - Credit Card","description":"Walmart","amount":158.19,"category":"Fundos (Retiradas)","notes":"roomba novo"},{"year":"2025","month":"01-January","date":"Jan-3","account":"TG - Credit Card","description":"JJs convenience","amount":31.34,"category":"Groceries","notes":""},{"year":"2025","month":"01-January","date":"Jan-3","account":"TG - Credit Card","description":"Text expander","amount":6.93,"category":"Lila","notes":""},{"year":"2025","month":"01-January","date":"Jan-4","account":"BMO - Credit Card","description":"Offworld","amount":128.01,"category":"Fundos (Retiradas)","notes":"MELHOR FIM DE SEMANA DO MUNDO"},{"year":"2025","month":"01-January","date":"Jan-4","account":"BMO - Credit Card","description":"REC ROOM","amount":71.26,"category":"Fundos (Retiradas)","notes":"MELHOR FIM DE SEMANA DO MUNDO"},{"year":"2025","month":"01-January","date":"Jan-4","account":"BMO - Credit Card","description":"REC ROOM","amount":31.64,"category":"Fundos (Retiradas)","notes":"MELHOR FIM DE SEMANA DO MUNDO"},{"year":"2025","month":"01-January","date":"Jan-4","account":"BMO - Credit Card","description":"North of Brooklyn","amount":28.62,"category":"Fundos (Retiradas)","notes":"MELHOR FIM DE SEMANA DO MUNDO"},{"year":"2025","month":"01-January","date":"Jan-4","account":"BMO - Credit Card","description":"Expedia","amount":293.38,"category":"Fundos (Retiradas)","notes":"MELHOR FIM DE SEMANA DO MUNDO"},{"year":"2025","month":"01-January","date":"Jan-4","account":"BMO - Credit Card","description":"Presto","amount":10.0,"category":"Carro","notes":""},{"year":"2025","month":"01-January","date":"Jan-4","account":"BMO - Credit Card","description":"Instacart","amount":92.98,"category":"Groceries","notes":"snacks pra festa tio Mu e tia Lou"},{"year":"2025","month":"01-January","date":"Jan-4","account":"TG - Credit Card","description":"Uber Eats","amount":36.78,"category":"Fundos (Retiradas)","notes":""},{"year":"2025","month":"01-January","date":"Jan-5","account":"BMO - Credit Card","description":"Tim Hortons","amount":6.37,"category":"Saídas","notes":""},{"year":"2025","month":"01-January","date":"Jan-5","account":"BMO - Credit Card","description":"City Park","amount":19.0,"category":"Carro","notes":"MELHOR FIM DE SEMANA DO MUNDO"},{"year":"2025","month":"01-January","date":"Jan-5","account":"BMO - Credit Card","description":"Canadian Tire Gas Bar","amount":22.82,"category":"Carro","notes":"abastecer carro alugado"},{"year":"2025","month":"01-January","date":"Jan-5","account":"BMO - Credit Card","description":"OMNI Hotels","amount":15.0,"category":"Saídas","notes":"resto dos drinks do hotel"},{"year":"2025","month":"01-January","date":"Jan-5","account":"BMO - Credit Card","description":"Paramount","amount":52.9,"category":"Fundos (Retiradas)","notes":""},{"year":"2025","month":"01-January","date":"Jan-5","account":"BMO - Credit Card","description":"second Cup","amount":14.85,"category":"Fundos (Retiradas)","notes":""},{"year":"2025","month":"01-January","date":"Jan-5","account":"BMO - Credit Card","description":"Casto Panetonne","amount":26.55,"category":"Fundos (Retiradas)","notes":""},{"year":"2025","month":"01-January","date":"Jan-5","account":"BMO - Credit Card","description":"Eataly","amount":50.22,"category":"Groceries","notes":""},{"year":"2025","month":"01-January","date":"Jan-6","account":"BMO - Credit Card","description":"Esso Circle","amount":70.11,"category":"Carro","notes":""},{"year":"2025","month":"01-January","date":"Jan-6","account":"BMO - Credit Card","description":"Enterprise","amount":159.28,"category":"Fundos (Retiradas)","notes":"aluguel carro"},{"year":"2025","month":"01-January","date":"Jan-6","account":"BMO - Credit Card","description":"Alltate","amount":171.45,"category":"Básicos","notes":""},{"year":"2025","month":"01-January","date":"Jan-6","account":"TG - Checking","description":"Bruno TV","amount":40.0,"category":"Básicos","notes":""},{"year":"2025","month":"01-January","date":"Jan-7","account":"BMO - Checking","description":"Kinder Daycare","amount":220.0,"category":"Básicos","notes":""},{"year":"2025","month":"01-January","date":"Jan-7","account":"TG - Credit Card","description":"Subway","amount":15.37,"category":"Saídas","notes":""},{"year":"2025","month":"01-January","date":"Jan-8","account":"BMO - Checking","description":"TD Loan","amount":133.7,"category":"Básicos","notes":""},{"year":"2025","month":"01-January","date":"Jan-9","account":"BMO - Credit Card","description":"Chick Fil A","amount":42.76,"category":"Saídas","notes":""},{"year":"2025","month":"01-January","date":"Jan-9","account":"BMO - Credit Card","description":"Canadian Tire Blue Mountain","amount":23.79,"category":"Casa","notes":""},{"year":"2025","month":"01-January","date":"Jan-9","account":"BMO - Credit Card","description":"Tim Hortons","amount":35.4,"category":"Saídas","notes":"almoço blue mountain"},{"year":"2025","month":"01-January","date":"Jan-9","account":"BMO - Credit Card","description":"Tim Hortons","amount":4.78,"category":"Saídas","notes":""},{"year":"2025","month":"01-January","date":"Jan-9","account":"TG - Checking","description":"Apex Systems","amount":-962.85,"category":"Entradas","notes":""},{"year":"2025","month":"01-January","date":"Jan-9","account":"TG - Credit Card","description":"Bath and Body Works","amount":30.27,"category":"Lila","notes":""},{"year":"2025","month":"01-January","date":"Jan-9","account":"TG - Credit Card","description":"Marshalls","amount":59.41,"category":"Casa","notes":"nao achei a nota :("},{"year":"2025","month":"01-January","date":"Jan-10","account":"BMO - Checking","description":"Canada Life","amount":-112.0,"category":"Terapia","notes":""},{"year":"2025","month":"01-January","date":"Jan-10","account":"BMO - Checking","description":"Rogers","amount":100.56,"category":"Básicos","notes":""},{"year":"2025","month":"01-January","date":"Jan-10","account":"BMO - Checking","description":"Fido Mobile","amount":61.02,"category":"Básicos","notes":"acho que cel Lila"},{"year":"2025","month":"01-January","date":"Jan-10","account":"BMO - Credit Card","description":"RA Compass the Aud","amount":19.77,"category":"Le","notes":"Jogo de Hockey com o Mu - Comida"},{"year":"2025","month":"01-January","date":"Jan-10","account":"BMO - Credit Card","description":"RA Compass the Aud","amount":8.26,"category":"Le","notes":"Jogo de Hockey com o Mu - Comida"},{"year":"2025","month":"01-January","date":"Jan-10","account":"BMO - Credit Card","description":"Air Canada","amount":713.17,"category":"Fundos (Retiradas)","notes":"Viagem Chicago - Passagem Errada (colocar em viagens)"},{"year":"2025","month":"01-January","date":"Jan-10","account":"TG - Credit Card","description":"Apple","amount":4.51,"category":"Lila","notes":""},{"year":"2025","month":"01-January","date":"Jan-10","account":"TG - Credit Card","description":"Victoria Secrets","amount":58.21,"category":"Lila","notes":"lingerie"},{"year":"2025","month":"01-January","date":"Jan-11","account":"BMO - Credit Card","description":"Costco","amount":20.33,"category":"Le","notes":"vitamina mu"},{"year":"2025","month":"01-January","date":"Jan-11","account":"BMO - Credit Card","description":"Costco 1/2","amount":57.6,"category":"Le","notes":"coisas do Mu"},{"year":"2025","month":"01-January","date":"Jan-11","account":"BMO - Credit Card","description":"Costco 2/2","amount":137.24,"category":"Groceries","notes":""},{"year":"2025","month":"01-January","date":"Jan-11","account":"BMO - Credit Card","description":"Internation Toronto QC","amount":9.04,"category":"Le","notes":""},{"year":"2025","month":"01-January","date":"Jan-11","account":"BMO - Credit Card","description":"Hertz 1/2 Le","amount":113.4,"category":"Le","notes":"aluguel do Tesla"},{"year":"2025","month":"01-January","date":"Jan-11","account":"BMO - Credit Card","description":"Hertz 1/2 Mu","amount":113.4,"category":"Le","notes":"aluguel do Tesla"},{"year":"2025","month":"01-January","date":"Jan-11","account":"BMO - Credit Card","description":"Fido Mobile","amount":38.42,"category":"Básicos","notes":"cel Leandro"},{"year":"2025","month":"01-January","date":"Jan-11","account":"TG - Credit Card","description":"Uber","amount":8.86,"category":"Saídas","notes":""},{"year":"2025","month":"01-January","date":"Jan-11","account":"TG - Credit Card","description":"Uber eats","amount":78.64,"category":"Saídas","notes":""},{"year":"2025","month":"01-January","date":"Jan-11","account":"TG - Credit Card","description":"AP Bakery","amount":13.0,"category":"Groceries","notes":"pão duro da puerra"},{"year":"2025","month":"01-January","date":"Jan-11","account":"TG - Credit Card","description":"Winners 1/2","amount":22.58,"category":"Lila","notes":"lingerie"},{"year":"2025","month":"01-January","date":"Jan-11","account":"TG - Credit Card","description":"Winners 2/2","amount":10.16,"category":"Max - Básicos","notes":"shampoozinho"},{"year":"2025","month":"01-January","date":"Jan-11","account":"TG - Credit Card","description":"Indigo Kitchener","amount":31.13,"category":"Fundos (Retiradas)","notes":"presente Debs"},{"year":"2025","month":"01-January","date":"Jan-12","account":"BMO - Credit Card","description":"Walmart 1/2","amount":9.97,"category":"Olivia","notes":"play doh"},{"year":"2025","month":"01-January","date":"Jan-12","account":"BMO - Credit Card","description":"Walmart 2/2","amount":11.92,"category":"Groceries","notes":""},{"year":"2025","month":"01-January","date":"Jan-12","account":"BMO - Credit Card","description":"Dairy Queen","amount":11.98,"category":"Saídas","notes":""},{"year":"2025","month":"01-January","date":"Jan-12","account":"BMO - Credit Card","description":"Starbucks coffee","amount":4.95,"category":"Saídas","notes":""},{"year":"2025","month":"01-January","date":"Jan-12","account":"BMO - Credit Card","description":"SocialSelf Albany NY","amount":54.78,"category":"Le","notes":"curso small talk (pedi reembolso 52.04)"},{"year":"2025","month":"01-January","date":"Jan-12","account":"BMO - Credit Card","description":"Costco","amount":128.4,"category":"Groceries","notes":""},{"year":"2025","month":"01-January","date":"Jan-12","account":"BMO - Credit Card","description":"Walmart 1/2","amount":34.97,"category":"Olivia - Básicos","notes":""},{"year":"2025","month":"01-January","date":"Jan-12","account":"BMO - Credit Card","description":"Walmart 2/2","amount":80.34,"category":"Groceries","notes":""},{"year":"2025","month":"01-January","date":"Jan-12","account":"BMO - Credit Card","description":"Amazon Prime","amount":11.29,"category":"Básicos","notes":""},{"year":"2025","month":"01-January","date":"Jan-12","account":"BMO - Credit Card","description":"Amazon","amount":29.97,"category":"Luke","notes":"magnetic book"},{"year":"2025","month":"01-January","date":"Jan-12","account":"BMO - Credit Card","description":"Amazon 1/2","amount":45.19,"category":"Fundos (Retiradas)","notes":"secador presente Lou"},{"year":"2025","month":"01-January","date":"Jan-12","account":"BMO - Credit Card","description":"Amazon 2/2","amount":11.38,"category":"Luke","notes":"tape book"},{"year":"2025","month":"01-January","date":"Jan-12","account":"TG - Credit Card","description":"Spotify","amount":23.72,"category":"Básicos","notes":""},{"year":"2025","month":"01-January","date":"Jan-12","account":"TG - Credit Card","description":"H&M","amount":50.84,"category":"Lila","notes":"vou devolver acho senão Lila"},{"year":"2025","month":"01-January","date":"Jan-12","account":"TG - Credit Card","description":"H&M","amount":-50.84,"category":"Lila","notes":"Devolvido?"},{"year":"2025","month":"01-January","date":"Jan-12","account":"TG - Credit Card","description":"Shoppers","amount":57.73,"category":"Lila","notes":"hidratante nervoso"},{"year":"2025","month":"01-January","date":"Jan-13","account":"BMO - Credit Card","description":"Google","amount":3.15,"category":"Le","notes":""},{"year":"2025","month":"01-January","date":"Jan-14","account":"BMO - Credit Card","description":"Cambridge Audiology","amount":90.0,"category":"Terapia","notes":"terapia ouvido Luke"},{"year":"2025","month":"01-January","date":"Jan-14","account":"BMO - Credit Card","description":"Tim Hortons","amount":5.01,"category":"Saídas","notes":""},{"year":"2025","month":"01-January","date":"Jan-14","account":"BMO - Credit Card","description":"Shell","amount":70.85,"category":"Carro","notes":""},{"year":"2025","month":"01-January","date":"Jan-14","account":"BMO - Credit Card","description":"Dollarama","amount":9.5,"category":"Luke","notes":"presente pós limpeza ouvido"},{"year":"2025","month":"01-January","date":"Jan-14","account":"BMO - Credit Card","description":"Netflix","amount":5.09,"category":"Básicos","notes":""},{"year":"2025","month":"01-January","date":"Jan-14","account":"BMO - Credit Card","description":"Canadian brewery","amount":60.11,"category":"Le","notes":"ou coloca nas saídas? leandro.kasan@gmail.com"},{"year":"2025","month":"01-January","date":"Jan-14","account":"TG - Checking","description":"Carbon Rebate","amount":-280.0,"category":"Fundos (depósitos)","notes":""},{"year":"2025","month":"01-January","date":"Jan-14","account":"TG - Credit Card","description":"Zehrs","amount":81.22,"category":"Groceries","notes":""},{"year":"2025","month":"01-January","date":"Jan-15","account":"BMO - Checking","description":"PayPal","amount":11.15,"category":"Le","notes":"leandro.kasan@gmail.com o que é essa cobrança?"},{"year":"2025","month":"01-January","date":"Jan-15","account":"BMO - Credit Card","description":"Smile Tiger","amount":7.88,"category":"Saídas","notes":""},{"year":"2025","month":"01-January","date":"Jan-15","account":"BMO - Credit Card","description":"Uber Canada","amount":19.38,"category":"Le","notes":""},{"year":"2025","month":"01-January","date":"Jan-15","account":"BMO - Credit Card","description":"Uber Canada","amount":3.29,"category":"Office","notes":""},{"year":"2025","month":"01-January","date":"Jan-15","account":"BMO - Credit Card","description":"Uber Canada","amount":21.94,"category":"Le","notes":""},{"year":"2025","month":"01-January","date":"Jan-15","account":"BMO - Credit Card","description":"Presto","amount":55.0,"category":"Office","notes":""},{"year":"2025","month":"01-January","date":"Jan-16","account":"BMO - Checking","description":"Canada Life","amount":-90.0,"category":"Terapia","notes":""},{"year":"2025","month":"01-January","date":"Jan-16","account":"BMO - Credit Card","description":"Air Canada","amount":779.63,"category":"Le","notes":"Viagem Chicago - passagem 2"},{"year":"2025","month":"01-January","date":"Jan-16","account":"BMO - Credit Card","description":"Uber Canada","amount":20.61,"category":"Le","notes":""},{"year":"2025","month":"01-January","date":"Jan-16","account":"BMO - Credit Card","description":"Presto","amount":20.0,"category":"Office","notes":""},{"year":"2025","month":"01-January","date":"Jan-16","account":"BMO - Credit Card","description":"Lyft","amount":15.85,"category":"Office","notes":""},{"year":"2025","month":"01-January","date":"Jan-16","account":"BMO - Credit Card","description":"Disney Plus","amount":18.07,"category":"Básicos","notes":""},{"year":"2025","month":"01-January","date":"Jan-16","account":"TG - Checking","description":"Apex Systems","amount":-955.87,"category":"Entradas","notes":""},{"year":"2025","month":"01-January","date":"Jan-16","account":"TG - Credit Card","description":"Apple.com","amount":28.24,"category":"Carro","notes":"app go track"},{"year":"2025","month":"01-January","date":"Jan-17","account":"BMO - Checking","description":"CDW Canada","amount":-2675.55,"category":"Entradas","notes":""},{"year":"2025","month":"01-January","date":"Jan-17","account":"TG - Checking","description":"Child Benefit","amount":-628.08,"category":"Entradas","notes":""},{"year":"2025","month":"01-January","date":"Jan-17","account":"BMO - Credit Card","description":"KFC Conestoga Mall","amount":11.78,"category":"Saídas","notes":"jantar crianças"},{"year":"2025","month":"01-January","date":"Jan-17","account":"BMO - Credit Card","description":"Mac Sushi","amount":26.87,"category":"Saídas","notes":""},{"year":"2025","month":"01-January","date":"Jan-17","account":"BMO - Credit Card","description":"RW&CO","amount":149.28,"category":"Fundos (Retiradas)","notes":"Work wear"},{"year":"2025","month":"01-January","date":"Jan-17","account":"BMO - Credit Card","description":"Internation Toronto QC","amount":30.51,"category":"Le","notes":"Viagem Chicago"},{"year":"2025","month":"01-January","date":"Jan-17","account":"TG - Credit Card","description":"Public Kitchen","amount":78.0,"category":"Saídas","notes":"jantar cas meninas"},{"year":"2025","month":"01-January","date":"Jan-17","account":"TG - Credit Card","description":"Indigo Kitchener","amount":47.85,"category":"Fundos (Retiradas)","notes":"presente renan"},{"year":"2025","month":"01-January","date":"Jan-18","account":"BMO - Credit Card","description":"Air Canada Comm","amount":36.75,"category":"Le","notes":""},{"year":"2025","month":"01-January","date":"Jan-18","account":"BMO - Credit Card","description":"Walmart","amount":162.89,"category":"Groceries","notes":""},{"year":"2025","month":"01-January","date":"Jan-18","account":"BMO - Credit Card","description":"Petro Canada","amount":74.97,"category":"Carro","notes":""},{"year":"2025","month":"01-January","date":"Jan-18","account":"BMO - Credit Card","description":"Amazon","amount":17.73,"category":"Max - Básicos","notes":"pedido da amazon é 31, mas nao to contando a fonte da babá que tem que devolver"},{"year":"2025","month":"01-January","date":"Jan-18","account":"BMO - Credit Card","description":"Waterloo Region After Care","amount":224.0,"category":"Básicos","notes":"440 total (Dez + Jan)"},{"year":"2025","month":"01-January","date":"Jan-18","account":"TG - Credit Card","description":"Walmart","amount":31.61,"category":"Groceries","notes":""},{"year":"2025","month":"01-January","date":"Jan-18","account":"TG - Credit Card","description":"Zehrs","amount":96.31,"category":"Groceries","notes":""},{"year":"2025","month":"01-January","date":"Jan-18","account":"TG - Credit Card","description":"TST Tahinis","amount":21.98,"category":"Saídas","notes":""},{"year":"2025","month":"01-January","date":"Jan-18","account":"TG - Credit Card","description":"OMG Tapas","amount":126.71,"category":"Saídas","notes":"aniver do Renan"},{"year":"2025","month":"01-January","date":"Jan-18","account":"TG - Credit Card","description":"Umi teriyaki","amount":8.75,"category":"Saídas","notes":""},{"year":"2025","month":"01-January","date":"Jan-19","account":"BMO - Credit Card","description":"Girl and The Goat","amount":73.43,"category":"Le","notes":"Viagem Chicago"},{"year":"2025","month":"01-January","date":"Jan-19","account":"BMO - Credit Card","description":"Mcdonalds","amount":1.25,"category":"Saídas","notes":""},{"year":"2025","month":"01-January","date":"Jan-19","account":"BMO - Credit Card","description":"Marks","amount":33.89,"category":"Fundos (Retiradas)","notes":"Work Wear"},{"year":"2025","month":"01-January","date":"Jan-19","account":"BMO - Credit Card","description":"Cibo Market","amount":9.98,"category":"Le","notes":""},{"year":"2025","month":"01-January","date":"Jan-19","account":"BMO - Credit Card","description":"Relay Toronto","amount":4.85,"category":"Le","notes":"Viagem Chicago"},{"year":"2025","month":"01-January","date":"Jan-19","account":"BMO - Credit Card","description":"Cookie Cutters","amount":18.91,"category":"Olivia","notes":"bang trim"},{"year":"2025","month":"01-January","date":"Jan-19","account":"TG - Credit Card","description":"Shoppers","amount":9.99,"category":"Groceries","notes":"ovinhos de chocolate"},{"year":"2025","month":"01-January","date":"Jan-19","account":"TG - Credit Card","description":"Marshalls","amount":21.49,"category":"Olivia","notes":"garrafa de água"},{"year":"2025","month":"01-January","date":"Jan-19","account":"TG - Credit Card","description":"Shoppers","amount":527.61,"category":"Básicos","notes":""},{"year":"2025","month":"01-January","date":"Jan-20","account":"BMO - Checking","description":"Canada Life","amount":-28.0,"category":"Terapia","notes":""},{"year":"2025","month":"01-January","date":"Jan-20","account":"BMO - Checking","description":"Kinder Daycare","amount":220.0,"category":"Básicos","notes":""},{"year":"2025","month":"01-January","date":"Jan-20","account":"BMO - Credit Card","description":"Alla Vita Chicago","amount":93.68,"category":"Le","notes":"Viagem Chicago"},{"year":"2025","month":"01-January","date":"Jan-20","account":"BMO - Credit Card","description":"Amazon","amount":40.66,"category":"Groceries","notes":"tinta de cabelo"},{"year":"2025","month":"01-January","date":"Jan-20","account":"BMO - Credit Card","description":"Uber Trip","amount":66.61,"category":"Le","notes":"Viagem Chicago"},{"year":"2025","month":"01-January","date":"Jan-20","account":"BMO - Credit Card","description":"Amazon","amount":34.58,"category":"Max - Básicos","notes":"comidínea"},{"year":"2025","month":"01-January","date":"Jan-20","account":"BMO - Credit Card","description":"Amazon","amount":22.59,"category":"Olivia - Básicos","notes":"wet wipes"},{"year":"2025","month":"01-January","date":"Jan-20","account":"BMO - Credit Card","description":"Amazon","amount":11.15,"category":"Groceries","notes":"creme pé"},{"year":"2025","month":"01-January","date":"Jan-20","account":"TG - Checking","description":"Plan Canada","amount":74.0,"category":"Básicos","notes":""},{"year":"2025","month":"01-January","date":"Jan-21","account":"BMO - Credit Card","description":"Target","amount":37.18,"category":"Luke","notes":"Presentes"},{"year":"2025","month":"01-January","date":"Jan-21","account":"BMO - Credit Card","description":"Uber","amount":14.72,"category":"Le","notes":"Viagem Chicago"},{"year":"2025","month":"01-January","date":"Jan-22","account":"BMO - Checking","description":"TD Loan","amount":133.7,"category":"Básicos","notes":""},{"year":"2025","month":"01-January","date":"Jan-22","account":"BMO - Credit Card","description":"Tengoku","amount":88.94,"category":"Le","notes":"Viagem Chicago"},{"year":"2025","month":"01-January","date":"Jan-22","account":"BMO - Credit Card","description":"Parlor Pizza","amount":11.96,"category":"Le","notes":"Viagem Chicago"},{"year":"2025","month":"01-January","date":"Jan-22","account":"BMO - Credit Card","description":"Uberone","amount":11.29,"category":"Le","notes":"devo colocar esse no básicos? vem cobrança todo mes"},{"year":"2025","month":"01-January","date":"Jan-22","account":"BMO - Credit Card","description":"Instacart","amount":77.61,"category":"Groceries","notes":""},{"year":"2025","month":"01-January","date":"Jan-22","account":"BMO - Credit Card","description":"360 Chicago","amount":58.03,"category":"Le","notes":"pode colocar em saídas se quiser"},{"year":"2025","month":"01-January","date":"Jan-22","account":"TG - Credit Card","description":"Chick Fil A","amount":24.58,"category":"Saídas","notes":""},{"year":"2025","month":"01-January","date":"Jan-22","account":"BMO - Credit Card","description":"Hampton INN","amount":1211.62,"category":"Le","notes":"hotel Chicago"},{"year":"2025","month":"01-January","date":"Jan-23","account":"BMO - Credit Card","description":"Bossa Nova","amount":122.01,"category":"Saídas","notes":""},{"year":"2025","month":"01-January","date":"Jan-23","account":"BMO - Credit Card","description":"Uber Trip","amount":84.55,"category":"Le","notes":"Viagem Chicago"},{"year":"2025","month":"01-January","date":"Jan-23","account":"TG - Checking","description":"Apex Systems","amount":-955.86,"category":"Entradas","notes":""},{"year":"2025","month":"01-January","date":"Jan-24","account":"TG - Checking","description":"Interac Fabiana","amount":22.0,"category":"Casa","notes":"livro Fabi"},{"year":"2025","month":"01-January","date":"Jan-24","account":"BMO - Credit Card","description":"Esso Circle","amount":74.15,"category":"Carro","notes":""},{"year":"2025","month":"01-January","date":"Jan-24","account":"BMO - Credit Card","description":"LCBO","amount":27.45,"category":"Groceries","notes":""},{"year":"2025","month":"01-January","date":"Jan-24","account":"BMO - Credit Card","description":"Amazon 1/2","amount":81.35,"category":"Lila","notes":"devolver"},{"year":"2025","month":"01-January","date":"Jan-24","account":"BMO - Credit Card","description":"Amazon 1/2","amount":-81.35,"category":"Lila","notes":"Devolvido"},{"year":"2025","month":"01-January","date":"Jan-24","account":"BMO - Credit Card","description":"Amazon 2/2","amount":16.94,"category":"Remédios","notes":"rolinho gelado"},{"year":"2025","month":"01-January","date":"Jan-24","account":"TG - Credit Card","description":"Etsy","amount":13.17,"category":"Lila","notes":""},{"year":"2025","month":"01-January","date":"Jan-24","account":"TG - Credit Card","description":"Shoppers","amount":77.94,"category":"Lila","notes":"cosméticos"},{"year":"2025","month":"01-January","date":"Jan-25","account":"BMO - Credit Card","description":"Walmart","amount":18.84,"category":"Groceries","notes":"creme Olivia"},{"year":"2025","month":"01-January","date":"Jan-25","account":"BMO - Credit Card","description":"Tommy's gun","amount":37.97,"category":"Luke","notes":"corte de cabelo"},{"year":"2025","month":"01-January","date":"Jan-25","account":"BMO - Credit Card","description":"Walmart 1/3","amount":37.25,"category":"Vitaminas","notes":""},{"year":"2025","month":"01-January","date":"Jan-25","account":"BMO - Credit Card","description":"walmart 2/3","amount":34.96,"category":"Olivia - Básicos","notes":""},{"year":"2025","month":"01-January","date":"Jan-25","account":"BMO - Credit Card","description":"Walmart 3/3","amount":100.83,"category":"Groceries","notes":""},{"year":"2025","month":"01-January","date":"Jan-25","account":"BMO - Credit Card","description":"Amazon","amount":63.26,"category":"Fundos (Retiradas)","notes":"brusinhas"},{"year":"2025","month":"01-January","date":"Jan-25","account":"TG - Credit Card","description":"Umi teriyaki","amount":39.62,"category":"Saídas","notes":""},{"year":"2025","month":"01-January","date":"Jan-25","account":"TG - Credit Card","description":"Cafe O","amount":9.2,"category":"Saídas","notes":""},{"year":"2025","month":"01-January","date":"Jan-25","account":"TG - Credit Card","description":"JJs convenience","amount":79.12,"category":"Groceries","notes":""},{"year":"2025","month":"01-January","date":"Jan-25","account":"TG - Credit Card","description":"Marshalls 1/3","amount":33.88,"category":"Vitaminas","notes":"vitamina pra cabeça"},{"year":"2025","month":"01-January","date":"Jan-25","account":"TG - Credit Card","description":"Marshalls 2/3","amount":28.79,"category":"Groceries","notes":""},{"year":"2025","month":"01-January","date":"Jan-25","account":"TG - Credit Card","description":"Marshalls 3/3","amount":28.23,"category":"Casa","notes":"organizer, self snacker"},{"year":"2025","month":"01-January","date":"Jan-25","account":"TG - Credit Card","description":"Ikea","amount":11.76,"category":"Casa","notes":""},{"year":"2025","month":"01-January","date":"Jan-25","account":"TG - Credit Card","description":"Ikea","amount":45.41,"category":"Saídas","notes":"jantar Ikea"},{"year":"2025","month":"01-January","date":"Jan-26","account":"BMO - Credit Card","description":"Starbucks coffee","amount":5.95,"category":"Saídas","notes":""},{"year":"2025","month":"01-January","date":"Jan-26","account":"BMO - Credit Card","description":"Valet Car","amount":20.33,"category":"Carro","notes":""},{"year":"2025","month":"01-January","date":"Jan-26","account":"BMO - Credit Card","description":"Skip the dishes","amount":22.79,"category":"Saídas","notes":""},{"year":"2025","month":"01-January","date":"Jan-26","account":"TG - Credit Card","description":"Liven","amount":29.48,"category":"Lila","notes":"psico app"},{"year":"2025","month":"01-January","date":"Jan-27","account":"BMO - Credit Card","description":"SocialSelf Albany NY","amount":-52.04,"category":"Le","notes":""},{"year":"2025","month":"01-January","date":"Jan-27","account":"BMO - Credit Card","description":"Walmart 1/2","amount":30.0,"category":"Remédios","notes":""},{"year":"2025","month":"01-January","date":"Jan-27","account":"BMO - Credit Card","description":"Walmart 2/2","amount":27.46,"category":"Groceries","notes":""},{"year":"2025","month":"01-January","date":"Jan-29","account":"BMO - Credit Card","description":"KW Kitchener Tickets","amount":93.7,"category":"Fundos (Retiradas)","notes":""},{"year":"2025","month":"01-January","date":"Jan-29","account":"BMO - Credit Card","description":"Tim hortons","amount":4.18,"category":"Saídas","notes":""},{"year":"2025","month":"01-January","date":"Jan-29","account":"BMO - Credit Card","description":"Starbucks coffee","amount":5.95,"category":"Saídas","notes":""},{"year":"2025","month":"01-January","date":"Jan-29","account":"BMO - Credit Card","description":"Petro Canada","amount":72.56,"category":"Carro","notes":""},{"year":"2025","month":"01-January","date":"Jan-29","account":"BMO - Credit Card","description":"Instacart","amount":126.0,"category":"Groceries","notes":""},{"year":"2025","month":"01-January","date":"Jan-29","account":"BMO - Credit Card","description":"Better Care Mental","amount":140.0,"category":"Terapia","notes":""},{"year":"2025","month":"01-January","date":"Jan-29","account":"BMO - Credit Card","description":"Amazon","amount":254.82,"category":"Fundos (Retiradas)","notes":""},{"year":"2025","month":"01-January","date":"Jan-29","account":"BMO - Credit Card","description":"Amazon","amount":31.62,"category":"Casa","notes":"tinta impressora"},{"year":"2025","month":"01-January","date":"Jan-30","account":"BMO - Checking","description":"Kitchener Wilmot","amount":115.78,"category":"Básicos","notes":""},{"year":"2025","month":"01-January","date":"Jan-30","account":"BMO - Credit Card","description":"Wendy's","amount":37.06,"category":"Saídas","notes":""},{"year":"2025","month":"01-January","date":"Jan-30","account":"BMO - Credit Card","description":"Open AI","amount":33.52,"category":"Básicos","notes":""},{"year":"2025","month":"01-January","date":"Jan-30","account":"TG - Checking","description":"Apex Systems","amount":-955.85,"category":"Entradas","notes":""},{"year":"2025","month":"01-January","date":"Jan-30","account":"TG - Credit Card","description":"Uber","amount":18.27,"category":"Office","notes":"uber ida"},{"year":"2025","month":"01-January","date":"Jan-30","account":"TG - Credit Card","description":"Uber","amount":18.58,"category":"Office","notes":"uber volta"},{"year":"2025","month":"01-January","date":"Jan-31","account":"","description":"Deposito Mu","amount":-402.52,"category":"Le","notes":"Feito em Real / Pix"},{"year":"2025","month":"01-January","date":"Jan-31","account":"BMO - Checking","description":"CDW Canada","amount":-2624.58,"category":"Entradas","notes":""},{"year":"2025","month":"01-January","date":"Jan-31","account":"BMO - Checking","description":"CDW Canada","amount":-2395.48,"category":"Le","notes":""},{"year":"2025","month":"01-January","date":"Jan-31","account":"BMO - Credit Card","description":"RA Compass the Aud","amount":13.23,"category":"Saídas","notes":""},{"year":"2025","month":"01-January","date":"Jan-31","account":"BMO - Credit Card","description":"Farm Boy","amount":14.99,"category":"Saídas","notes":"sushi"},{"year":"2025","month":"01-January","date":"Jan-31","account":"TG - Credit Card","description":"Subway","amount":13.39,"category":"Saídas","notes":""},{"year":"2025","month":"01-January","date":"Jan-31","account":"BMO - Checking","description":"Ontario Check - Le","amount":-200.0,"category":"Fundos (depósitos)","notes":""},{"year":"2025","month":"01-January","date":"Feb-10","account":"BMO - Checking","description":"Colin","amount":-300.0,"category":"Entradas","notes":""},{"year":"2025","month":"01-January","date":"Dec-2","account":"TG - Checking","description":"Apex Systems","amount":-968.64,"category":"Entradas","notes":""},{"year":"2025","month":"01-January","date":"Dec-10","account":"TG - Credit Card","description":"Active Kitchener","amount":84.75,"category":"Fundos (Retiradas)","notes":"hockey Luke"},{"year":"2025","month":"01-January","date":"Dec-10","account":"TG - Credit Card","description":"Active Kitchener","amount":78.0,"category":"Fundos (Retiradas)","notes":"Art therapy"},{"year":"2025","month":"01-January","date":"Dec-31","account":"TG - Checking","description":"NSLSC","amount":88.99,"category":"Básicos","notes":""},{"year":"2025","month":"01-January","date":"Dec-31","account":"TG - Checking","description":"Shaf","amount":2450.0,"category":"Básicos","notes":""},{"year":"2026","month":"01-January","date":"Dec-31","account":"TG - Checking","description":"APEX Systems (Pagamento de Jan 2 2026)","amount":-1205.6,"category":"Entradas","notes":""},{"year":"2026","month":"01-January","date":"Dec-31","account":"BMO - Credit Card","description":"All State home Jan","amount":82.94,"category":"Básicos","notes":""},{"year":"2026","month":"01-January","date":"Jan-1","account":"BMO - Credit Card","description":"Arabesque","amount":95.12,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"01-January","date":"Jan-1","account":"BMO - Credit Card","description":"YMCA","amount":228.0,"category":"Básicos","notes":""},{"year":"2026","month":"01-January","date":"Jan-1","account":"TG - Checking","description":"Rent","amount":2950.0,"category":"Básicos","notes":""},{"year":"2026","month":"01-January","date":"Jan-1","account":"TG - Credit Card","description":"Good Earth","amount":12.09,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"01-January","date":"Jan-2","account":"BMO - Checking","description":"CDW Canada","amount":-2750.03,"category":"Entradas","notes":""},{"year":"2026","month":"01-January","date":"Jan-2","account":"BMO - Credit Card","description":"Performance Card Rebate","amount":-40.0,"category":"[TBD]","notes":"Ver onde colocar"},{"year":"2026","month":"01-January","date":"Jan-2","account":"BMO - Credit Card","description":"Good Earth","amount":11.47,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"01-January","date":"Jan-2","account":"BMO - Credit Card","description":"Bell","amount":108.48,"category":"Básicos","notes":""},{"year":"2026","month":"01-January","date":"Jan-2","account":"BMO - Credit Card","description":"Oculus","amount":12.42,"category":"Le","notes":""},{"year":"2026","month":"01-January","date":"Jan-2","account":"TG - Checking","description":"Good Life","amount":45.19,"category":"Básicos","notes":""},{"year":"2026","month":"01-January","date":"Jan-2","account":"TG - Credit Card","description":"Longo's","amount":72.16,"category":"Groceries","notes":""},{"year":"2026","month":"01-January","date":"Jan-2","account":"TG - Credit Card","description":"Tahinis","amount":14.68,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"01-January","date":"Jan-2","account":"TG - Credit Card","description":"Good Earth","amount":4.81,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"01-January","date":"Jan-3","account":"BMO - Credit Card","description":"McDonalds","amount":12.6,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"01-January","date":"Jan-3","account":"BMO - Credit Card","description":"Circle K","amount":67.37,"category":"Carro","notes":""},{"year":"2026","month":"01-January","date":"Jan-3","account":"BMO - Credit Card","description":"A&W","amount":36.58,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"01-January","date":"Jan-3","account":"BMO - Credit Card","description":"Amazon","amount":25.82,"category":"Groceries","notes":"Baking Chips with Stevia"},{"year":"2026","month":"01-January","date":"Jan-3","account":"BMO - Credit Card","description":"Amazon","amount":29.37,"category":"Lila","notes":"toca Lila"},{"year":"2026","month":"01-January","date":"Jan-3","account":"BMO - Credit Card","description":"Amazon","amount":23.09,"category":"Luke/Olivia","notes":"Balaclava"},{"year":"2026","month":"01-January","date":"Jan-3","account":"BMO - Credit Card","description":"Amazon Luna","amount":14.68,"category":"Le","notes":""},{"year":"2026","month":"01-January","date":"Jan-3","account":"BMO - Credit Card","description":"Lego Land","amount":116.95,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"01-January","date":"Jan-3","account":"TG - Credit Card","description":"Villa Madina","amount":20.16,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"01-January","date":"Jan-3","account":"TG - Credit Card","description":"Lego Land LDC","amount":6.16,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"01-January","date":"Jan-3","account":"TG - Credit Card","description":"Contrave","amount":175.03,"category":"Básicos","notes":""},{"year":"2026","month":"01-January","date":"Jan-4","account":"BMO - Credit Card","description":"Osmows","amount":16.37,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"01-January","date":"Jan-4","account":"BMO - Credit Card","description":"McDonalds","amount":2.92,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"01-January","date":"Jan-4","account":"BMO - Credit Card","description":"CAnadian Tire","amount":20.32,"category":"Casa","notes":"boxes"},{"year":"2026","month":"01-January","date":"Jan-4","account":"BMO - Credit Card","description":"Wal Mart","amount":118.42,"category":"Groceries","notes":""},{"year":"2026","month":"01-January","date":"Jan-4","account":"BMO - Credit Card","description":"Verona Pizza","amount":15.98,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"01-January","date":"Jan-4","account":"BMO - Credit Card","description":"Dollarama","amount":5.65,"category":"Casa","notes":""},{"year":"2026","month":"01-January","date":"Jan-4","account":"TG - Credit Card","description":"Textxpandr","amount":6.59,"category":"Office","notes":""},{"year":"2026","month":"01-January","date":"Jan-4","account":"TG - Credit Card","description":"Rookie Ace kitchener","amount":141.25,"category":"Fundos (Retiradas)","notes":"Aula Pickeball? Fundo Fitness"},{"year":"2026","month":"01-January","date":"Jan-5","account":"BMO - Checking","description":"Utilities","amount":312.84,"category":"Básicos","notes":""},{"year":"2026","month":"01-January","date":"Jan-5","account":"BMO - Checking","description":"Kinder Day Care","amount":220.0,"category":"Básicos","notes":""},{"year":"2026","month":"01-January","date":"Jan-5","account":"BMO - Credit Card","description":"Amazon $33.77","amount":15.81,"category":"Casa","notes":"Water hardness test kit"},{"year":"2026","month":"01-January","date":"Jan-5","account":"BMO - Credit Card","description":"Amazon $33.77","amount":17.96,"category":"Le","notes":"Paint by numbers"},{"year":"2026","month":"01-January","date":"Jan-6","account":"R$ - Brasil","description":"Justine Pix (Enviado pela Lou","amount":184.17,"category":"Básicos","notes":""},{"year":"2026","month":"01-January","date":"Jan-6","account":"BMO - Credit Card","description":"All State Car","amount":178.12,"category":"Básicos","notes":""},{"year":"2026","month":"01-January","date":"Jan-6","account":"BMO - Credit Card","description":"Tosa Max","amount":115.66,"category":"Fundos (Retiradas)","notes":"Tosa Max"},{"year":"2026","month":"01-January","date":"Jan-6","account":"BMO - Credit Card","description":"Envio Docs Passaportes","amount":28.82,"category":"Fundos (Retiradas)","notes":"Docs - Passaportes"},{"year":"2026","month":"01-January","date":"Jan-6","account":"BMO - Credit Card","description":"Oculus","amount":13.55,"category":"Le","notes":""},{"year":"2026","month":"01-January","date":"Jan-6","account":"TG - Checking","description":"Bruno TV","amount":40.0,"category":"Básicos","notes":""},{"year":"2026","month":"01-January","date":"Jan-7","account":"BMO - Checking","description":"TD Loan","amount":133.7,"category":"Básicos","notes":""},{"year":"2026","month":"01-January","date":"Jan-7","account":"BMO - Checking","description":"Kitchener Wilmo","amount":126.27,"category":"Básicos","notes":""},{"year":"2026","month":"01-January","date":"Jan-7","account":"BMO - Credit Card","description":"Costco Instacart","amount":247.55,"category":"Groceries","notes":""},{"year":"2026","month":"01-January","date":"Jan-8","account":"BMO - Credit Card","description":"McDonalds","amount":25.73,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"01-January","date":"Jan-8","account":"BMO - Credit Card","description":"Osmows","amount":12.42,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"01-January","date":"Jan-8","account":"BMO - Credit Card","description":"Revive Car Wash","amount":45.19,"category":"Carro","notes":""},{"year":"2026","month":"01-January","date":"Jan-8","account":"TG - Checking","description":"APEX Systems ","amount":-1010.6,"category":"Entradas","notes":""},{"year":"2026","month":"01-January","date":"Jan-9","account":"BMO - Credit Card","description":"Food Basics","amount":48.93,"category":"Groceries","notes":""},{"year":"2026","month":"01-January","date":"Jan-9","account":"BMO - Credit Card","description":"Amazon $108.78","amount":66.61,"category":"Luke/Olivia","notes":"Olivia Roupa Ballet"},{"year":"2026","month":"01-January","date":"Jan-9","account":"BMO - Credit Card","description":"Amazon $108.78","amount":42.17,"category":"Casa","notes":"Filtro chuveiro"},{"year":"2026","month":"01-January","date":"Jan-10","account":"BMO - Credit Card","description":"McDonalds","amount":2.92,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"01-January","date":"Jan-10","account":"BMO - Credit Card","description":"Verona Pizza","amount":36.15,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"01-January","date":"Jan-10","account":"TG - Credit Card","description":"RCSS $149.13","amount":83.61,"category":"Groceries","notes":""},{"year":"2026","month":"01-January","date":"Jan-10","account":"TG - Credit Card","description":"RCSS $149.13","amount":18.07,"category":"Remédios","notes":""},{"year":"2026","month":"01-January","date":"Jan-10","account":"TG - Credit Card","description":"RCSS $149.13","amount":30.51,"category":"Luke/Olivia","notes":""},{"year":"2026","month":"01-January","date":"Jan-10","account":"TG - Credit Card","description":"RCSS $149.13","amount":16.94,"category":"Lila","notes":""},{"year":"2026","month":"01-January","date":"Jan-10","account":"TG - Credit Card","description":"Tahinis","amount":15.81,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"01-January","date":"Jan-10","account":"TG - Credit Card","description":"Apple bill","amount":4.51,"category":"Lila","notes":""},{"year":"2026","month":"01-January","date":"Jan-11","account":"BMO - Credit Card","description":"Nova Era Bakery","amount":30.02,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"01-January","date":"Jan-11","account":"BMO - Credit Card","description":"Wal Mart","amount":175.38,"category":"Groceries","notes":""},{"year":"2026","month":"01-January","date":"Jan-11","account":"BMO - Credit Card","description":"Canadian Tire","amount":100.73,"category":"Casa","notes":"Shelves + Boxes"},{"year":"2026","month":"01-January","date":"Jan-11","account":"TG - Credit Card","description":"Longo's","amount":38.79,"category":"Groceries","notes":""},{"year":"2026","month":"01-January","date":"Jan-12","account":"BMO - Credit Card","description":"Amazon $114.08","amount":60.08,"category":"Lila","notes":"Hair Dryer - Colocando aqui agora, mas depois conversamos pra ver se precisa mudar"},{"year":"2026","month":"01-January","date":"Jan-12","account":"BMO - Credit Card","description":"Amazon $114.08","amount":24.86,"category":"Lila","notes":"Oversized t-shirt"},{"year":"2026","month":"01-January","date":"Jan-12","account":"BMO - Credit Card","description":"Amazon $114.08","amount":29.14,"category":"Groceries","notes":"Protein Bars"},{"year":"2026","month":"01-January","date":"Jan-12","account":"BMO - Credit Card","description":"Google One","amount":3.15,"category":"Le","notes":""},{"year":"2026","month":"01-January","date":"Jan-12","account":"BMO - Credit Card","description":"Amazon Prime","amount":11.29,"category":"Básicos","notes":""},{"year":"2026","month":"01-January","date":"Jan-12","account":"BMO - Credit Card","description":"Tim Hortons","amount":1.67,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"01-January","date":"Jan-12","account":"BMO - Credit Card","description":"Canadian Tire $18.39","amount":10.0,"category":"Groceries","notes":"salt"},{"year":"2026","month":"01-January","date":"Jan-12","account":"BMO - Credit Card","description":"Canadian Tire $18.39","amount":8.39,"category":"Carro","notes":"wiper liquid"},{"year":"2026","month":"01-January","date":"Jan-12","account":"TG - Credit Card","description":"Spotify","amount":23.72,"category":"Básicos","notes":""},{"year":"2026","month":"01-January","date":"Jan-13","account":"BMO - Credit Card","description":"Kitchener Mobil Gas","amount":49.84,"category":"Carro","notes":""},{"year":"2026","month":"01-January","date":"Jan-13","account":"BMO - Credit Card","description":"Osmows","amount":21.45,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"01-January","date":"Jan-13","account":"BMO - Credit Card","description":"DK Automative","amount":1078.43,"category":"Fundos (Retiradas)","notes":"Carro Freios e suspensao"},{"year":"2026","month":"01-January","date":"Jan-13","account":"BMO - Credit Card","description":"Uber - Carro","amount":23.03,"category":"Fundos (Retiradas)","notes":"Carro Uber Mecanico"},{"year":"2026","month":"01-January","date":"Jan-13","account":"BMO - Credit Card","description":"Uber - Office","amount":19.53,"category":"Office","notes":""},{"year":"2026","month":"01-January","date":"Jan-13","account":"BMO - Credit Card","description":"Presto - Office","amount":35.0,"category":"Office","notes":""},{"year":"2026","month":"01-January","date":"Jan-13","account":"BMO - Credit Card","description":"Google one","amount":3.15,"category":"Le","notes":""},{"year":"2026","month":"01-January","date":"Jan-13","account":"BMO - Credit Card","description":"YMCA","amount":13.14,"category":"Básicos","notes":""},{"year":"2026","month":"01-January","date":"Jan-13","account":"BMO - Credit Card","description":"Daily Ritual Cafe","amount":28.57,"category":"Office","notes":"Cafe Viagem Toronto"},{"year":"2026","month":"01-January","date":"Jan-13","account":"TG - Checking","description":"PayPal ??","amount":40.04,"category":"[TBD]","notes":""},{"year":"2026","month":"01-January","date":"Jan-14","account":"BMO - Credit Card","description":"Netflix","amount":5.55,"category":"Básicos","notes":""},{"year":"2026","month":"01-January","date":"Jan-14","account":"TG - Credit Card","description":"Food Basics","amount":29.22,"category":"Groceries","notes":""},{"year":"2026","month":"01-January","date":"Jan-15","account":"BMO - Checking","description":"PayPal (office?)","amount":16.21,"category":"Le","notes":""},{"year":"2026","month":"01-January","date":"Jan-15","account":"BMO - Credit Card","description":"Tim Hortons","amount":9.92,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"01-January","date":"Jan-15","account":"BMO - Credit Card","description":"Shoppers","amount":14.69,"category":"Luke/Olivia","notes":"Bichinhos (Ruffy and chetah"},{"year":"2026","month":"01-January","date":"Jan-15","account":"BMO - Credit Card","description":"Uber","amount":19.45,"category":"Office","notes":""},{"year":"2026","month":"01-January","date":"Jan-15","account":"TG - Checking","description":"Good Life","amount":45.19,"category":"Básicos","notes":""},{"year":"2026","month":"01-January","date":"Jan-15","account":"TG - Checking","description":"Apex Systems","amount":-1231.83,"category":"Entradas","notes":""},{"year":"2026","month":"01-January","date":"Jan-15","account":"TG - Credit Card","description":"Sickkids","amount":25.0,"category":"Básicos","notes":""},{"year":"2026","month":"01-January","date":"Jan-15","account":"TG - Credit Card","description":"Tahinis","amount":17.61,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"01-January","date":"Jan-16","account":"BMO - Checking","description":"CDW Canada","amount":-2750.03,"category":"Entradas","notes":""},{"year":"2026","month":"01-January","date":"Jan-16","account":"BMO - Credit Card","description":"Disney+","amount":19.2,"category":"Básicos","notes":""},{"year":"2026","month":"01-January","date":"Jan-16","account":"BMO - Credit Card","description":"McDonalds","amount":25.73,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"01-January","date":"Jan-16","account":"BMO - Credit Card","description":"Good earth","amount":25.62,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"01-January","date":"Jan-16","account":"TG - Checking","description":"PayPal ??","amount":11.45,"category":"[TBD]","notes":""},{"year":"2026","month":"01-January","date":"Jan-17","account":"BMO - Credit Card","description":"McDonalds","amount":2.92,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"01-January","date":"Jan-17","account":"BMO - Credit Card","description":"Fireside Restaurant","amount":85.86,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"01-January","date":"Jan-17","account":"BMO - Credit Card","description":"Koodoo Le","amount":44.07,"category":"Básicos","notes":""},{"year":"2026","month":"01-January","date":"Jan-17","account":"BMO - Credit Card","description":"Wal Mart","amount":205.76,"category":"Groceries","notes":""},{"year":"2026","month":"01-January","date":"Jan-18","account":"BMO - Credit Card","description":"Tim Hortons","amount":9.71,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"01-January","date":"Jan-18","account":"BMO - Credit Card","description":"Cineplex","amount":72.04,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"01-January","date":"Jan-18","account":"TG - Credit Card","description":"Apple Bill $50.83","amount":25.0,"category":"Office","notes":"Go Train App"},{"year":"2026","month":"01-January","date":"Jan-18","account":"TG - Credit Card","description":"Marshalls Homesense $94.05","amount":11.29,"category":"Lila","notes":""},{"year":"2026","month":"01-January","date":"Jan-18","account":"TG - Credit Card","description":"Shoppers $93.02","amount":7.91,"category":"Remédios","notes":""},{"year":"2026","month":"01-January","date":"Jan-18","account":"TG - Credit Card","description":"Shoppers $93.02","amount":8.48,"category":"Luke/Olivia","notes":""},{"year":"2026","month":"01-January","date":"Jan-18","account":"TG - Credit Card","description":"Shoppers $93.02","amount":42.35,"category":"Groceries","notes":""},{"year":"2026","month":"01-January","date":"Jan-18","account":"TG - Credit Card","description":"Shoppers $93.02","amount":34.28,"category":"Lila","notes":""},{"year":"2026","month":"01-January","date":"Jan-18","account":"TG - Credit Card","description":"Longos","amount":35.01,"category":"Groceries","notes":""},{"year":"2026","month":"01-January","date":"Jan-18","account":"TG - Credit Card","description":"Longos","amount":80.19,"category":"Groceries","notes":""},{"year":"2026","month":"01-January","date":"Jan-18","account":"TG - Credit Card","description":"Good Earth","amount":4.81,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"01-January","date":"Jan-18","account":"TG - Credit Card","description":"Marshalls Homesense $94.05","amount":19.53,"category":"Groceries","notes":""},{"year":"2026","month":"01-January","date":"Jan-18","account":"TG - Credit Card","description":"Marshalls Homesense $94.05","amount":63.23,"category":"Fundos (Retiradas)","notes":"Presentes (outros?)"},{"year":"2026","month":"01-January","date":"Jan-18","account":"TG - Credit Card","description":"Apple Bill $50.83","amount":20.0,"category":"Básicos","notes":"Fit App Lila"},{"year":"2026","month":"01-January","date":"Jan-18","account":"TG - Credit Card","description":"Apple Bill $50.83","amount":5.83,"category":"Lila","notes":""},{"year":"2026","month":"01-January","date":"Jan-19","account":"BMO - Checking","description":"Kinder Day Care","amount":220.0,"category":"Básicos","notes":""},{"year":"2026","month":"01-January","date":"Jan-19","account":"TG - Checking","description":"Child Benefit","amount":-596.63,"category":"Entradas","notes":""},{"year":"2026","month":"01-January","date":"Jan-19","account":"TG - Checking","description":"Koodo Lila","amount":38.42,"category":"Básicos","notes":""},{"year":"2026","month":"01-January","date":"Jan-20","account":"BMO - Credit Card","description":"Fionas Music Studio - Summer Camp","amount":300.0,"category":"Fundos (Retiradas)","notes":"Summer Camp"},{"year":"2026","month":"01-January","date":"Jan-20","account":"BMO - Credit Card","description":"United - Brazil flight tickets","amount":4150.48,"category":"Fundos (Retiradas)","notes":"Viagem Brasil"},{"year":"2026","month":"01-January","date":"Jan-20","account":"TG - Checking","description":"plan Canada","amount":48.0,"category":"Básicos","notes":""},{"year":"2026","month":"01-January","date":"Jan-20","account":"TG - Credit Card","description":"Pioneer Hairworks (Olivia)","amount":17.63,"category":"Luke/Olivia","notes":"Olivia Haircut"},{"year":"2026","month":"01-January","date":"Jan-20","account":"TG - Credit Card","description":"McDonalds","amount":2.92,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"01-January","date":"Jan-21","account":"BMO - Checking","description":"TD Loan","amount":133.7,"category":"Básicos","notes":""},{"year":"2026","month":"01-January","date":"Jan-21","account":"BMO - Credit Card","description":"Strava","amount":16.94,"category":"Le","notes":""},{"year":"2026","month":"01-January","date":"Jan-21","account":"BMO - Credit Card","description":"Good Fellaz Barbershop Luke","amount":51.6,"category":"Fundos (Retiradas)","notes":"Fundos - Hairt cut"},{"year":"2026","month":"01-January","date":"Jan-21","account":"BMO - Credit Card","description":"Food Basics","amount":16.95,"category":"Groceries","notes":""},{"year":"2026","month":"01-January","date":"Jan-21","account":"TG - Credit Card","description":"Mini Play Town (Princess event)","amount":39.54,"category":"Fundos (Retiradas)","notes":"entretenimento extra"},{"year":"2026","month":"01-January","date":"Jan-22","account":"BMO - Credit Card","description":"Prime Video Rent","amount":5.64,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"01-January","date":"Jan-22","account":"BMO - Credit Card","description":"PetPlus","amount":85.41,"category":"Básicos","notes":""},{"year":"2026","month":"01-January","date":"Jan-22","account":"TG - Checking","description":"Apex Systems","amount":-1231.85,"category":"Entradas","notes":""},{"year":"2026","month":"01-January","date":"Jan-23","account":"BMO - Credit Card","description":"Wal Mart $212.92 + $13.53","amount":195.97,"category":"Groceries","notes":""},{"year":"2026","month":"01-January","date":"Jan-23","account":"BMO - Credit Card","description":"Wal Mart $212.92 + $13.53","amount":30.48,"category":"Olivia - Básicos","notes":"Night diapers"},{"year":"2026","month":"01-January","date":"Jan-23","account":"TG - Credit Card","description":"Oldnavy","amount":-18.46,"category":"Le","notes":""},{"year":"2026","month":"01-January","date":"Jan-23","account":"TG - Credit Card","description":"Winners $44.62","amount":11.3,"category":"Luke/Olivia","notes":""},{"year":"2026","month":"01-January","date":"Jan-23","account":"TG - Credit Card","description":"Winners $44.62","amount":33.32,"category":"Groceries","notes":""},{"year":"2026","month":"01-January","date":"Jan-24","account":"Other method","description":"Amazon Gift Card Bell","amount":-200.0,"category":"Fundos (depósitos)","notes":"*Ver como registrar isso nas contas (fundos?)"},{"year":"2026","month":"01-January","date":"Jan-24","account":"Other method","description":"Prime video movie","amount":5.64,"category":"Saídas - Weekend","notes":"gift card"},{"year":"2026","month":"01-January","date":"Jan-24","account":"Other method","description":"Amazon $139.90","amount":24.23,"category":"Lila","notes":"creme l'oreal - gift card"},{"year":"2026","month":"01-January","date":"Jan-24","account":"Other method","description":"Amazon $139.90","amount":17.36,"category":"Vitaminas","notes":"Iron vitamin - gift card"},{"year":"2026","month":"01-January","date":"Jan-24","account":"Other method","description":"Amazon $139.90","amount":98.32,"category":"Fundos (Retiradas)","notes":"Viagem Brasil - Adaptador, fone Olivia, activities - gift card"},{"year":"2026","month":"01-January","date":"Jan-24","account":"BMO - Credit Card","description":"Osmows","amount":36.13,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"01-January","date":"Jan-24","account":"BMO - Credit Card","description":"Marshalls - Malas","amount":168.37,"category":"Fundos (Retiradas)","notes":"Viagem Brasil"},{"year":"2026","month":"01-January","date":"Jan-24","account":"BMO - Credit Card","description":"Pioneer","amount":50.94,"category":"Carro","notes":""},{"year":"2026","month":"01-January","date":"Jan-24","account":"BMO - Credit Card","description":"Costco Instacart","amount":275.0,"category":"Groceries","notes":""},{"year":"2026","month":"01-January","date":"Jan-24","account":"TG - Credit Card","description":"Good Earth","amount":4.81,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"01-January","date":"Jan-24","account":"TG - Credit Card","description":"Marshalls $73.38","amount":30.47,"category":"[TBD]","notes":"Coisas aleatories"},{"year":"2026","month":"01-January","date":"Jan-24","account":"TG - Credit Card","description":"Tim Hortons","amount":5.07,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"01-January","date":"Jan-24","account":"TG - Credit Card","description":"Adidas shoes","amount":66.94,"category":"Luke/Olivia","notes":""},{"year":"2026","month":"01-January","date":"Jan-24","account":"TG - Credit Card","description":"Marshalls $73.38","amount":22.59,"category":"Fundos (Retiradas)","notes":"Viagem Brasil - necessaire?"},{"year":"2026","month":"01-January","date":"Jan-24","account":"TG - Credit Card","description":"Marshalls $73.38","amount":20.32,"category":"Groceries","notes":""},{"year":"2026","month":"01-January","date":"Jan-25","account":"BMO - Credit Card","description":"Pur Simple","amount":70.67,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"01-January","date":"Jan-26","account":"BMO - Credit Card","description":"Cambridge Audiology","amount":40.0,"category":"Fundos (Retiradas)","notes":"Health - reembolsado"},{"year":"2026","month":"01-January","date":"Jan-26","account":"BMO - Credit Card","description":"Osmows","amount":11.29,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"01-January","date":"Jan-26","account":"BMO - Credit Card","description":"Carespace - Dietitian","amount":119.0,"category":"Fundos (Retiradas)","notes":"Health"},{"year":"2026","month":"01-January","date":"Jan-26","account":"BMO - Credit Card","description":"Tim Hortons","amount":7.95,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"01-January","date":"Jan-26","account":"BMO - Credit Card","description":"McDonalds","amount":19.75,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"01-January","date":"Jan-26","account":"BMO - Credit Card","description":"United - Brazil flight tickets","amount":270.0,"category":"Fundos (Retiradas)","notes":"Viagem Brasil"},{"year":"2026","month":"01-January","date":"Jan-26","account":"BMO - Checking","description":"Leticia - Cleaning","amount":150.0,"category":"Fundos (Retiradas)","notes":"Pago em cash - Ver como contabilizar"},{"year":"2026","month":"01-January","date":"Jan-28","account":"BMO - Credit Card","description":"Wal Mart $141.59 + $7.36","amount":126.38,"category":"Groceries","notes":""},{"year":"2026","month":"01-January","date":"Jan-28","account":"BMO - Credit Card","description":"Wal Mart $141.59 + $7.36","amount":22.57,"category":"Olivia - Básicos","notes":""},{"year":"2026","month":"01-January","date":"Jan-28","account":"BMO - Credit Card","description":"Osmows","amount":36.13,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"01-January","date":"Jan-28","account":"TG - Credit Card","description":"Poppy Peonies","amount":96.73,"category":"Lila","notes":"Bolsa Lila"},{"year":"2026","month":"01-January","date":"Jan-29","account":"Other method","description":"Amazon - toca Luke","amount":15.74,"category":"Luke/Olivia","notes":""},{"year":"2026","month":"01-January","date":"Jan-29","account":"BMO - Credit Card","description":"Subway","amount":6.77,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"01-January","date":"Jan-29","account":"TG - Checking","description":"Good Life","amount":45.19,"category":"Básicos","notes":""},{"year":"2026","month":"01-January","date":"Jan-29","account":"TG - Checking","description":"Apex Systems","amount":-1024.04,"category":"Fundos (depósitos)","notes":"Maybe Fundos? ver como programei"},{"year":"2026","month":"01-January","date":"Jan-30","account":"BMO - Checking","description":"CDW Canada","amount":-2700.07,"category":"Fundos (depósitos)","notes":""},{"year":"2026","month":"01-January","date":"Jan-30","account":"BMO - Checking","description":"BMO Performance Plan","amount":17.95,"category":"Básicos","notes":""},{"year":"2026","month":"01-January","date":"Jan-30","account":"BMO - Credit Card","description":"Good Earth","amount":15.89,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"01-January","date":"Jan-30","account":"BMO - Credit Card","description":"Chat GPT","amount":31.52,"category":"Básicos","notes":""},{"year":"2026","month":"01-January","date":"Jan-30","account":"TG - Checking","description":"Pay Pal","amount":38.03,"category":"[TBD]","notes":""},{"year":"2026","month":"01-January","date":"Jan-31","account":"Other method","description":"Prime video movie","amount":7.9,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"01-January","date":"Jan-31","account":"BMO - Credit Card","description":"A&W","amount":35.42,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"01-January","date":"Jan-31","account":"BMO - Credit Card","description":"Exotic Empire (candy store)","amount":11.84,"category":"Groceries","notes":""},{"year":"2026","month":"01-January","date":"Jan-31","account":"TG - Credit Card","description":"Longo's","amount":43.63,"category":"Groceries","notes":""},{"year":"2026","month":"01-January","date":"Jan-31","account":"TG - Credit Card","description":"jimmy The greek","amount":17.5,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"01-January","date":"Jan-31","account":"TG - Credit Card","description":"Cafe O ","amount":6.08,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"01-January","date":"Feb-2","account":"BMO - Credit Card","description":"Refund Canada Life Audiology","amount":-40.0,"category":"Fundos (Retiradas)","notes":"Reembolso"},{"year":"2026","month":"01-January","date":"Feb-2","account":"TG - Checking","description":"NSLSC","amount":88.99,"category":"Básicos","notes":""},{"year":"2025","month":"02-February","date":"Feb-1","account":"BMO - Credit Card","description":"Skillsta","amount":29.5,"category":"Le","notes":""},{"year":"2025","month":"02-February","date":"Feb-1","account":"BMO - Credit Card","description":"Arabesque Café","amount":42.69,"category":"Saídas","notes":"janta que durou 1001 refeiçoes"},{"year":"2025","month":"02-February","date":"Feb-1","account":"BMO - Credit Card","description":"Walmart 1/3","amount":16.91,"category":"Vitaminas","notes":""},{"year":"2025","month":"02-February","date":"Feb-1","account":"BMO - Credit Card","description":"Walmart 2/3","amount":10.89,"category":"Remédios","notes":"tylenol crianças reserva"},{"year":"2025","month":"02-February","date":"Feb-1","account":"BMO - Credit Card","description":"Walmart 3/3","amount":118.72,"category":"Groceries","notes":""},{"year":"2025","month":"02-February","date":"Feb-1","account":"BMO - Credit Card","description":"Cafe O","amount":9.11,"category":"Saídas","notes":""},{"year":"2025","month":"02-February","date":"Feb-2","account":"BMO - Credit Card","description":"Funvilla","amount":41.79,"category":"Saídas","notes":""},{"year":"2025","month":"02-February","date":"Feb-2","account":"BMO - Credit Card","description":"Umi teriaky","amount":44.14,"category":"Saídas","notes":""},{"year":"2025","month":"02-February","date":"Feb-2","account":"BMO - Credit Card","description":"Mcdonalds","amount":12.47,"category":"Saídas","notes":"sorvete"},{"year":"2025","month":"02-February","date":"Feb-2","account":"TG - Credit Card","description":"Funvilla","amount":20.0,"category":"Luke","notes":"joguíneos arcade"},{"year":"2025","month":"02-February","date":"Feb-3","account":"TG - Credit Card","description":"The culinary studio","amount":33.9,"category":"Fundos (Retiradas)","notes":""},{"year":"2025","month":"02-February","date":"Feb-3","account":"TG - Credit Card","description":"Claires","amount":46.9,"category":"Olivia","notes":"meio caro mas vai durar muito"},{"year":"2025","month":"02-February","date":"Feb-3","account":"TG - Credit Card","description":"Williams","amount":12.65,"category":"Saídas","notes":"férias"},{"year":"2025","month":"02-February","date":"Feb-3","account":"TG - Credit Card","description":"FarmBoy","amount":33.69,"category":"Groceries","notes":""},{"year":"2025","month":"02-February","date":"Feb-3","account":"TG - Credit Card","description":"Party City","amount":7.9,"category":"Luke","notes":"mascara darth vader"},{"year":"2025","month":"02-February","date":"Feb-4","account":"TG - Credit Card","description":"Text Expander","amount":6.86,"category":"Lila","notes":""},{"year":"2025","month":"02-February","date":"Feb-4","account":"TG - Credit Card","description":"Dollar Tree","amount":7.43,"category":"Luke","notes":"valentines day cards"},{"year":"2025","month":"02-February","date":"Feb-4","account":"TG - Credit Card","description":"ClickOrganics Salon","amount":118.25,"category":"Fundos (Retiradas)","notes":"corte de cabelo mais produto"},{"year":"2025","month":"02-February","date":"Feb-4","account":"TG - Credit Card","description":"RCSS","amount":53.06,"category":"Groceries","notes":""},{"year":"2025","month":"02-February","date":"Feb-4","account":"TG - Credit Card","description":"Zehrs","amount":10.98,"category":"Groceries","notes":"sandubinhas"},{"year":"2025","month":"02-February","date":"Feb-4","account":"TG - Credit Card","description":"Walmart","amount":43.31,"category":"Saídas","notes":""},{"year":"2025","month":"02-February","date":"Feb-5","account":"BMO - Credit Card","description":"Tim Hortons","amount":8.46,"category":"Saídas","notes":""},{"year":"2025","month":"02-February","date":"Feb-5","account":"BMO - Credit Card","description":"Allstate","amount":171.45,"category":"Básicos","notes":""},{"year":"2025","month":"02-February","date":"Feb-5","account":"BMO - Credit Card","description":"Staples","amount":305.09,"category":"Fundos (Retiradas)","notes":""},{"year":"2025","month":"02-February","date":"Feb-5","account":"TG - Credit Card","description":"Marshalls 1/3","amount":57.61,"category":"Lila","notes":"tenis + skincare"},{"year":"2025","month":"02-February","date":"Feb-5","account":"TG - Credit Card","description":"Marshalls 2/3","amount":45.17,"category":"Casa","notes":""},{"year":"2025","month":"02-February","date":"Feb-5","account":"TG - Credit Card","description":"Marshalls 3/3","amount":14.67,"category":"Groceries","notes":""},{"year":"2025","month":"02-February","date":"Feb-5","account":"TG - Credit Card","description":"Marshalls 4/4","amount":11.87,"category":"Luke","notes":""},{"year":"2025","month":"02-February","date":"Feb-5","account":"TG - Credit Card","description":"FarmBoy","amount":20.96,"category":"Groceries","notes":""},{"year":"2025","month":"02-February","date":"Feb-6","account":"BMO - Credit Card","description":"Costco","amount":102.05,"category":"Groceries","notes":""},{"year":"2025","month":"02-February","date":"Feb-6","account":"TG - Credit Card","description":"Zara","amount":155.56,"category":"Lila","notes":"se precisar coloca em workwear"},{"year":"2025","month":"02-February","date":"Feb-7","account":"BMO - Credit Card","description":"Shell","amount":74.24,"category":"Carro","notes":""},{"year":"2025","month":"02-February","date":"Feb-7","account":"TG - Credit Card","description":"H&M","amount":33.61,"category":"Luke","notes":"tenis avengers"},{"year":"2025","month":"02-February","date":"Feb-7","account":"TG - Credit Card","description":"H&M","amount":58.58,"category":"Lila","notes":"cardigan e brusinha"},{"year":"2025","month":"02-February","date":"Feb-7","account":"TG - Credit Card","description":"Subway","amount":13.39,"category":"Saídas","notes":""},{"year":"2025","month":"02-February","date":"Feb-8","account":"BMO - Credit Card","description":"Simply Delicious","amount":8.85,"category":"Saídas","notes":""},{"year":"2025","month":"02-February","date":"Feb-8","account":"BMO - Credit Card","description":"Serrinia Cafe","amount":2.87,"category":"Saídas","notes":""},{"year":"2025","month":"02-February","date":"Feb-8","account":"BMO - Credit Card","description":"Ubereats","amount":49.14,"category":"Saídas","notes":""},{"year":"2025","month":"02-February","date":"Feb-8","account":"BMO - Credit Card","description":"Walmart","amount":104.42,"category":"Groceries","notes":""},{"year":"2025","month":"02-February","date":"Feb-8","account":"BMO - Credit Card","description":"SQ Marquez Churros","amount":22.06,"category":"Saídas","notes":"almoço no market"},{"year":"2025","month":"02-February","date":"Feb-8","account":"TG - Credit Card","description":"Serrinia Cafe","amount":2.87,"category":"Saídas","notes":"café no market"},{"year":"2025","month":"02-February","date":"Feb-8","account":"TG - Credit Card","description":"Ola Brazil 1/2","amount":20.0,"category":"Groceries","notes":""},{"year":"2025","month":"02-February","date":"Feb-8","account":"TG - Credit Card","description":"Ola Brazil 2/2","amount":25.0,"category":"Saídas","notes":"pastel crianças"},{"year":"2025","month":"02-February","date":"Feb-9","account":"BMO - Credit Card","description":"Korner Kitchen","amount":82.19,"category":"Saídas","notes":"brunch com as crianças"},{"year":"2025","month":"02-February","date":"Feb-9","account":"BMO - Credit Card","description":"Zehrs","amount":56.73,"category":"Groceries","notes":""},{"year":"2025","month":"02-February","date":"Feb-9","account":"BMO - Credit Card","description":"Fido Mobile","amount":-27.27,"category":"Básicos","notes":"onde colocar isso?"},{"year":"2025","month":"02-February","date":"Feb-9","account":"BMO - Credit Card","description":"Oculus","amount":13.55,"category":"Le","notes":"CONFIRMAR"},{"year":"2025","month":"02-February","date":"Feb-10","account":"BMO - Credit Card","description":"Pizza Pizza","amount":5.46,"category":"Saídas","notes":""},{"year":"2025","month":"02-February","date":"Feb-10","account":"BMO - Credit Card","description":"Cafe O","amount":10.11,"category":"Saídas","notes":""},{"year":"2025","month":"02-February","date":"Feb-10","account":"BMO - Credit Card","description":"Amazon","amount":-13.55,"category":"Casa","notes":"devoluçao fio da baba"},{"year":"2025","month":"02-February","date":"Feb-10","account":"TG - Credit Card","description":"Apple","amount":4.51,"category":"Lila","notes":""},{"year":"2025","month":"02-February","date":"Feb-10","account":"TG - Credit Card","description":"Active Kitchener","amount":90.4,"category":"Fundos (Retiradas)","notes":"curso culinária"},{"year":"2025","month":"02-February","date":"Feb-11","account":"BMO - Credit Card","description":"Petsmart","amount":13.55,"category":"Max - Básicos","notes":"começou as pereba do Max"},{"year":"2025","month":"02-February","date":"Feb-11","account":"BMO - Credit Card","description":"Mcdonalds","amount":4.64,"category":"Saídas","notes":""},{"year":"2025","month":"02-February","date":"Feb-11","account":"BMO - Credit Card","description":"Breslau Animal Hospital","amount":264.69,"category":"Fundos (Retiradas)","notes":"cabelo enrolado no pinto"},{"year":"2025","month":"02-February","date":"Feb-11","account":"BMO - Credit Card","description":"Amazon","amount":58.42,"category":"Fundos (Retiradas)","notes":"presente Lila vday"},{"year":"2025","month":"02-February","date":"Feb-12","account":"BMO - Credit Card","description":"Petsmart","amount":46.3,"category":"Max - Básicos","notes":"nao sei onde colocar"},{"year":"2025","month":"02-February","date":"Feb-12","account":"BMO - Credit Card","description":"Mcdonalds","amount":12.39,"category":"Saídas","notes":""},{"year":"2025","month":"02-February","date":"Feb-12","account":"BMO - Credit Card","description":"Cafe O","amount":10.11,"category":"Saídas","notes":""},{"year":"2025","month":"02-February","date":"Feb-12","account":"BMO - Credit Card","description":"Instacart","amount":107.56,"category":"Groceries","notes":""},{"year":"2025","month":"02-February","date":"Feb-12","account":"BMO - Credit Card","description":"Amazon Prime","amount":11.29,"category":"Básicos","notes":""},{"year":"2025","month":"02-February","date":"Feb-12","account":"BMO - Credit Card","description":"Social Next Conferences","amount":502.78,"category":"Le","notes":"vai ser reembolsado"},{"year":"2025","month":"02-February","date":"Feb-12","account":"TG - Credit Card","description":"Spotify","amount":23.72,"category":"Básicos","notes":""},{"year":"2025","month":"02-February","date":"Feb-13","account":"BMO - Credit Card","description":"Petsmart","amount":-19.2,"category":"Max - Básicos","notes":""},{"year":"2025","month":"02-February","date":"Feb-13","account":"BMO - Credit Card","description":"Google","amount":3.15,"category":"Le","notes":"storage"},{"year":"2025","month":"02-February","date":"Feb-14","account":"BMO - Credit Card","description":"Skip the Dishes","amount":24.18,"category":"Saídas","notes":""},{"year":"2025","month":"02-February","date":"Feb-14","account":"TG - Credit Card","description":"Farmboy","amount":44.2,"category":"Groceries","notes":""},{"year":"2025","month":"02-February","date":"Feb-15","account":"BMO - Credit Card","description":"LCBO","amount":22.85,"category":"Groceries","notes":""},{"year":"2025","month":"02-February","date":"Feb-15","account":"BMO - Credit Card","description":"Skip The Dishes","amount":41.0,"category":"Saídas","notes":""},{"year":"2025","month":"02-February","date":"Feb-15","account":"BMO - Credit Card","description":"Zehrs","amount":43.39,"category":"Groceries","notes":""},{"year":"2025","month":"02-February","date":"Feb-15","account":"TG - Credit Card","description":"Shoppers","amount":527.61,"category":"Básicos","notes":""},{"year":"2025","month":"02-February","date":"Feb-15","account":"TG - Credit Card","description":"Shoppers 1/2","amount":0,"category":"","notes":""},{"year":"2025","month":"02-February","date":"Feb-15","account":"TG - Credit Card","description":"Shoppers 2/2","amount":0,"category":"","notes":""},{"year":"2025","month":"02-February","date":"Feb-15","account":"TG - Credit Card","description":"SQ Marquez Churros","amount":9.01,"category":"Saídas","notes":""},{"year":"2025","month":"02-February","date":"Feb-15","account":"TG - Credit Card","description":"SQ Naranj","amount":27.58,"category":"Saídas","notes":""},{"year":"2025","month":"02-February","date":"Feb-15","account":"TG - Credit Card","description":"Ola Brazil","amount":24.5,"category":"Saídas","notes":"pastel crianças"},{"year":"2025","month":"02-February","date":"Feb-15","account":"TG - Credit Card","description":"Ola Brazil","amount":4.0,"category":"Saídas","notes":"suco crianças"},{"year":"2025","month":"02-February","date":"Feb-15","account":"TG - Credit Card","description":"Walmart","amount":11.97,"category":"Groceries","notes":""},{"year":"2025","month":"02-February","date":"Feb-15","account":"TG - Credit Card","description":"Walmart","amount":193.57,"category":"Groceries","notes":"se passar pode tirar o liquido do Max e por na casa"},{"year":"2025","month":"02-February","date":"Feb-16","account":"BMO - Credit Card","description":"Oculus","amount":46.32,"category":"Fundos (Retiradas)","notes":"Present Leo Vday"},{"year":"2025","month":"02-February","date":"Feb-16","account":"BMO - Credit Card","description":"Amazon","amount":34.34,"category":"Fundos (Retiradas)","notes":"decor aniver Luke"},{"year":"2025","month":"02-February","date":"Feb-16","account":"BMO - Credit Card","description":"Disney Plus","amount":18.07,"category":"Básicos","notes":""},{"year":"2025","month":"02-February","date":"Feb-16","account":"TG - Credit Card","description":"Happy Mammoth","amount":80.99,"category":"Vitaminas","notes":"vou tentar devolver, esqueci de cancelar a subscription"},{"year":"2025","month":"02-February","date":"Feb-17","account":"TG - Credit Card","description":"Koodoo","amount":79.33,"category":"Básicos","notes":""},{"year":"2025","month":"02-February","date":"Feb-18","account":"BMO - Credit Card","description":"Waterloo Region","amount":228.0,"category":"Básicos","notes":"after school Luke"},{"year":"2025","month":"02-February","date":"Feb-18","account":"BMO - Credit Card","description":"Amazon","amount":33.89,"category":"Lila","notes":"calcinhas"},{"year":"2025","month":"02-February","date":"Feb-18","account":"BMO - Credit Card","description":"Amazon","amount":33.89,"category":"Fundos (Retiradas)","notes":"sabre de luz Luke"},{"year":"2025","month":"02-February","date":"Feb-19","account":"BMO - Credit Card","description":"Walmart","amount":19.29,"category":"Vitaminas","notes":""},{"year":"2025","month":"02-February","date":"Feb-19","account":"BMO - Credit Card","description":"Instacart (Real Canadian Superstore)","amount":126.95,"category":"Groceries","notes":""},{"year":"2025","month":"02-February","date":"Feb-20","account":"TG - Credit Card","description":"Etsy","amount":7.38,"category":"Fundos (Retiradas)","notes":""},{"year":"2025","month":"02-February","date":"Feb-20","account":"TG - Credit Card","description":"Marshalls 1/3","amount":64.36,"category":"Groceries","notes":"shampoo max etc"},{"year":"2025","month":"02-February","date":"Feb-20","account":"TG - Credit Card","description":"Marshalls 2/3","amount":7.89,"category":"Casa","notes":""},{"year":"2025","month":"02-February","date":"Feb-20","account":"TG - Credit Card","description":"Marshalls 3/3","amount":8.47,"category":"Olivia","notes":""},{"year":"2025","month":"02-February","date":"Feb-20","account":"TG - Credit Card","description":"Etsy","amount":2.75,"category":"Luke","notes":"convite aniver escola"},{"year":"2025","month":"02-February","date":"Feb-21","account":"BMO - Credit Card","description":"Amazon","amount":36.58,"category":"Max - Básicos","notes":"anti bafo Max"},{"year":"2025","month":"02-February","date":"Feb-21","account":"TG - Credit Card","description":"Dr Johal Assoc","amount":130.0,"category":"Terapia","notes":""},{"year":"2025","month":"02-February","date":"Feb-21","account":"TG - Credit Card","description":"Farm Boy","amount":85.15,"category":"Groceries","notes":""},{"year":"2025","month":"02-February","date":"Feb-22","account":"BMO - Credit Card","description":"Wendy's","amount":42.44,"category":"Saídas","notes":""},{"year":"2025","month":"02-February","date":"Feb-22","account":"BMO - Credit Card","description":"Good Earth Coffee House","amount":11.11,"category":"Saídas","notes":""},{"year":"2025","month":"02-February","date":"Feb-22","account":"BMO - Credit Card","description":"Canadian Tire","amount":32.72,"category":"Casa","notes":"fios + lancheira do Luke"},{"year":"2025","month":"02-February","date":"Feb-22","account":"BMO - Credit Card","description":"Amazon","amount":39.11,"category":"Fundos (Retiradas)","notes":""},{"year":"2025","month":"02-February","date":"Feb-22","account":"BMO - Credit Card","description":"UberOne","amount":3.39,"category":"Le","notes":""},{"year":"2025","month":"02-February","date":"Feb-22","account":"TG - Credit Card","description":"Walmart","amount":60.66,"category":"Groceries","notes":""},{"year":"2025","month":"02-February","date":"Feb-22","account":"TG - Credit Card","description":"Marshalls","amount":36.14,"category":"Casa","notes":"cable organizer + table slip"},{"year":"2025","month":"02-February","date":"Feb-22","account":"TG - Credit Card","description":"Dollar tree","amount":11.87,"category":"Fundos (Retiradas)","notes":"pool noodle"},{"year":"2025","month":"02-February","date":"Feb-22","account":"TG - Credit Card","description":"understance","amount":30.51,"category":"Lila","notes":"sutiã"},{"year":"2025","month":"02-February","date":"Feb-22","account":"TG - Credit Card","description":"starbucks","amount":8.36,"category":"Saídas","notes":""},{"year":"2025","month":"02-February","date":"Feb-23","account":"BMO - Credit Card","description":"Petsmart","amount":44.06,"category":"Max - Básicos","notes":""},{"year":"2025","month":"02-February","date":"Feb-23","account":"BMO - Credit Card","description":"Walmart","amount":20.03,"category":"Groceries","notes":"snacks pra movie night"},{"year":"2025","month":"02-February","date":"Feb-23","account":"BMO - Credit Card","description":"A portuguesa bakery","amount":8.98,"category":"Saídas","notes":""},{"year":"2025","month":"02-February","date":"Feb-23","account":"BMO - Credit Card","description":"A portuguesa bakery","amount":23.96,"category":"Saídas","notes":""},{"year":"2025","month":"02-February","date":"Feb-23","account":"BMO - Credit Card","description":"JJs convenience","amount":18.98,"category":"Groceries","notes":""},{"year":"2025","month":"02-February","date":"Feb-23","account":"BMO - Credit Card","description":"Costco 1/2","amount":123.34,"category":"Groceries","notes":""},{"year":"2025","month":"02-February","date":"Feb-23","account":"BMO - Credit Card","description":"Costco 2/2","amount":50.0,"category":"Olivia - Básicos","notes":""},{"year":"2025","month":"02-February","date":"Feb-24","account":"BMO - Credit Card","description":"Tim Hortons","amount":1.67,"category":"Saídas","notes":""},{"year":"2025","month":"02-February","date":"Feb-24","account":"BMO - Credit Card","description":"PTZ Insurance","amount":72.19,"category":"Básicos","notes":""},{"year":"2025","month":"02-February","date":"Feb-24","account":"TG - Credit Card","description":"torrid vancouver","amount":122.72,"category":"Fundos (Retiradas)","notes":"agasalho Lila"},{"year":"2025","month":"02-February","date":"Feb-26","account":"BMO - Credit Card","description":"Better Care Mental","amount":140.0,"category":"Terapia","notes":""},{"year":"2025","month":"02-February","date":"Feb-26","account":"BMO - Credit Card","description":"Skip the dishes","amount":28.65,"category":"Saídas","notes":""},{"year":"2025","month":"02-February","date":"Feb-26","account":"BMO - Credit Card","description":"Walmart","amount":102.43,"category":"Groceries","notes":""},{"year":"2025","month":"02-February","date":"Feb-26","account":"TG - Credit Card","description":"HM","amount":100.79,"category":"Olivia","notes":"roupinhas Olivia"},{"year":"2025","month":"02-February","date":"Feb-26","account":"TG - Credit Card","description":"Shoppers","amount":68.64,"category":"Groceries","notes":"shampoo etc"},{"year":"2025","month":"02-February","date":"Feb-26","account":"TG - Credit Card","description":"Zehrs","amount":33.23,"category":"Groceries","notes":""},{"year":"2025","month":"02-February","date":"Feb-26","account":"TG - Credit Card","description":"Torrid","amount":10.16,"category":"Lila","notes":""},{"year":"2025","month":"02-February","date":"Feb-27","account":"BMO - Credit Card","description":"Wendy's","amount":27.19,"category":"Saídas","notes":""},{"year":"2025","month":"02-February","date":"Feb-27","account":"BMO - Credit Card","description":"Esso","amount":15.8,"category":"Carro","notes":""},{"year":"2025","month":"02-February","date":"Feb-27","account":"TG - Credit Card","description":"Little house of Deli","amount":7.59,"category":"Saídas","notes":""},{"year":"2025","month":"02-February","date":"Feb-27","account":"TG - Credit Card","description":"Farm Boy","amount":24.78,"category":"Groceries","notes":""},{"year":"2025","month":"02-February","date":"Feb-28","account":"BMO - Credit Card","description":"OpenAI","amount":33.46,"category":"Básicos","notes":""},{"year":"2025","month":"02-February","date":"Feb-28","account":"TG - Credit Card","description":"Uber","amount":18.03,"category":"Office","notes":""},{"year":"2025","month":"02-February","date":"Feb-28","account":"TG - Credit Card","description":"Presto","amount":50.0,"category":"Office","notes":""},{"year":"2026","month":"02-February","date":"Jan-30","account":"BMO - Credit Card","description":"Bell","amount":0,"category":"Básicos","notes":""},{"year":"2026","month":"02-February","date":"Jan-30","account":"TG - Checking","description":"Rent","amount":0,"category":"Básicos","notes":""},{"year":"2026","month":"02-February","date":"Jan-31","account":"BMO - Credit Card","description":"Carters","amount":0,"category":"Luke/Olivia","notes":""},{"year":"2026","month":"02-February","date":"Jan-31","account":"BMO - Credit Card","description":"H&M","amount":0,"category":"Luke/Olivia","notes":""},{"year":"2026","month":"02-February","date":"Feb-1","account":"BMO - Credit Card","description":"Osmows","amount":0,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"02-February","date":"Feb-1","account":"BMO - Credit Card","description":"JJs $90.29","amount":0,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"02-February","date":"Feb-1","account":"BMO - Credit Card","description":"JJs $90.29","amount":0,"category":"Saídas - Weekend","notes":"Compramos feijao pra Paula, ela pagou a pizza, por isso esta em Saidas"},{"year":"2026","month":"02-February","date":"Feb-1","account":"BMO - Credit Card","description":"JJs $90.29","amount":0,"category":"Groceries","notes":""},{"year":"2026","month":"02-February","date":"Feb-1","account":"BMO - Credit Card","description":"Chewy - Oral Care Max","amount":0,"category":"Max - Básicos","notes":""},{"year":"2026","month":"02-February","date":"Feb-1","account":"BMO - Credit Card","description":"YMCA","amount":0,"category":"Básicos","notes":""},{"year":"2026","month":"02-February","date":"Feb-2","account":"BMO - Checking","description":"Kinder Day Care","amount":0,"category":"Básicos","notes":""},{"year":"2026","month":"02-February","date":"Feb-2","account":"BMO - Credit Card","description":"Amazon","amount":0,"category":"Casa","notes":"7.76 cobrado, resto foi gift card"},{"year":"2026","month":"02-February","date":"Feb-2","account":"BMO - Credit Card","description":"WalMart (double check)","amount":0,"category":"Groceries","notes":""},{"year":"2026","month":"02-February","date":"Feb-2","account":"BMO - Credit Card","description":"Allstate casa","amount":0,"category":"Básicos","notes":""},{"year":"2026","month":"02-February","date":"Feb-2","account":"BMO - Credit Card","description":"Carespace - Dietician","amount":0,"category":"Fundos (Retiradas)","notes":"Carespace - Dietician"},{"year":"2026","month":"02-February","date":"Feb-2","account":"BMO - Credit Card","description":"Oculus","amount":0,"category":"Le","notes":""},{"year":"2026","month":"02-February","date":"Feb-2","account":"TG - Checking","description":"NSLSC","amount":0,"category":"Básicos","notes":""},{"year":"2026","month":"02-February","date":"Feb-3","account":"BMO - Credit Card","description":"Amazon Luna","amount":0,"category":"Le","notes":""},{"year":"2026","month":"02-February","date":"Feb-3","account":"BMO - Credit Card","description":"GoDaddy","amount":0,"category":"Le","notes":"Dominion fingestyleclass.com 1 ano"},{"year":"2026","month":"02-February","date":"Feb-4","account":"BMO - Checking","description":"TD Loan","amount":0,"category":"Básicos","notes":""},{"year":"2026","month":"02-February","date":"Feb-4","account":"BMO - Credit Card","description":"Amazon $104.36","amount":0,"category":"Fundos (Retiradas)","notes":"Viagem Brasil - toys and necessaire"},{"year":"2026","month":"02-February","date":"Feb-4","account":"BMO - Credit Card","description":"Amazon $104.36","amount":0,"category":"Groceries","notes":"Tinta cabelo Lila + Gel cabelo kids"},{"year":"2026","month":"02-February","date":"Feb-4","account":"BMO - Credit Card","description":"Amazon","amount":0,"category":"Lila","notes":"Keychain charm + Eye cream"},{"year":"2026","month":"02-February","date":"Feb-4","account":"BMO - Credit Card","description":"Amazon","amount":0,"category":"Fundos (Retiradas)","notes":"Viagem Brasil - Toys"},{"year":"2026","month":"02-February","date":"Feb-4","account":"BMO - Credit Card","description":"Food Basics","amount":0,"category":"Groceries","notes":""},{"year":"2026","month":"02-February","date":"Feb-4","account":"BMO - Credit Card","description":"Costco","amount":0,"category":"Groceries","notes":""},{"year":"2026","month":"02-February","date":"Feb-4","account":"TG - Credit Card","description":"Paddle.net TExtxpandr","amount":0,"category":"Office","notes":""},{"year":"2026","month":"02-February","date":"Feb-5","account":"BMO - Credit Card","description":"Allstate car","amount":0,"category":"Básicos","notes":""},{"year":"2026","month":"02-February","date":"Feb-5","account":"TG - Checking","description":"Apex Systems","amount":0,"category":"Entradas","notes":""},{"year":"2026","month":"02-February","date":"Feb-6","account":"BMO - Credit Card","description":"McDonalds","amount":0,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"02-February","date":"Feb-6","account":"BMO - Credit Card","description":"Osmows","amount":0,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"02-February","date":"Feb-6","account":"BMO - Credit Card","description":"Oculus","amount":0,"category":"Le","notes":""},{"year":"2026","month":"02-February","date":"Feb-6","account":"TG - Credit Card","description":"Contrave","amount":0,"category":"Básicos","notes":""},{"year":"2026","month":"02-February","date":"Feb-6","account":"TG - Credit Card","description":"Adidas","amount":0,"category":"[TBD]","notes":"Lila??"},{"year":"2026","month":"02-February","date":"Feb-6","account":"TG - Credit Card","description":"Recharge and Wellness","amount":0,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"02-February","date":"Feb-6","account":"TG - Credit Card","description":"Recharge and Wellness","amount":0,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"02-February","date":"Feb-7","account":"BMO - Credit Card","description":"Montanas","amount":0,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"02-February","date":"Feb-7","account":"TG - Credit Card","description":"Tim Hortons","amount":0,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"02-February","date":"Feb-7","account":"TG - Credit Card","description":"Shoppers $148.30","amount":0,"category":"Groceries","notes":""},{"year":"2026","month":"02-February","date":"Feb-7","account":"TG - Credit Card","description":"Good Earth ","amount":0,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"02-February","date":"Feb-7","account":"TG - Credit Card","description":"Shoppers $148.30","amount":0,"category":"Remédios","notes":""},{"year":"2026","month":"02-February","date":"Feb-7","account":"TG - Credit Card","description":"Shoppers $148.30","amount":0,"category":"Lila","notes":""},{"year":"2026","month":"02-February","date":"Feb-7","account":"TG - Credit Card","description":"Marshalls $118.54","amount":0,"category":"Groceries","notes":""},{"year":"2026","month":"02-February","date":"Feb-7","account":"TG - Credit Card","description":"Marshalls $118.54","amount":0,"category":"Fundos (Retiradas)","notes":"Compras Lou - presentes?"},{"year":"2026","month":"02-February","date":"Feb-7","account":"TG - Credit Card","description":"Marshalls $118.54","amount":0,"category":"Casa","notes":""},{"year":"2026","month":"02-February","date":"Feb-7","account":"TG - Credit Card","description":"Marshalls $118.54","amount":0,"category":"Luke/Olivia","notes":""},{"year":"2026","month":"02-February","date":"Feb-7","account":"TG - Credit Card","description":"Marshalls $118.54","amount":0,"category":"Lila","notes":""},{"year":"2026","month":"02-February","date":"Feb-8","account":"TG - Credit Card","description":"H&M","amount":0,"category":"Luke/Olivia","notes":"Kids - online"},{"year":"2026","month":"02-February","date":"Feb-8","account":"BMO - Credit Card","description":"Osmows","amount":0,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"02-February","date":"Feb-8","account":"BMO - Credit Card","description":"Revive car wash","amount":0,"category":"Carro","notes":""},{"year":"2026","month":"02-February","date":"Feb-8","account":"BMO - Credit Card","description":"Claude AI","amount":31.64,"category":"Le","notes":""},{"year":"2026","month":"02-February","date":"Feb-8","account":"TG - Credit Card","description":"Tim Hortons","amount":0,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"02-February","date":"Feb-8","account":"R$ - Brasil","description":"Transfer Ju (feita pela Lou)","amount":0,"category":"Básicos","notes":""},{"year":"2026","month":"02-February","date":"Feb-9","account":"BMO - Credit Card","description":"Wal Mart","amount":0,"category":"Groceries","notes":""},{"year":"2026","month":"02-February","date":"Feb-9","account":"TG - Checking","description":"PayPal","amount":0,"category":"Fundos (Retiradas)","notes":"Presente Paula"},{"year":"2026","month":"02-February","date":"Feb-10","account":"TG - Credit Card","description":"Apple.com bill","amount":0,"category":"Lila","notes":""},{"year":"2026","month":"02-February","date":"Feb-9","account":"BMO - Checking","description":"Utilities","amount":0,"category":"Básicos","notes":""},{"year":"2026","month":"02-February","date":"Feb-11","account":"BMO - Checking","description":"Wise (transfer R$)","amount":54.68,"category":"Fundos (Retiradas)","notes":"Viagem Brasil"},{"year":"2026","month":"02-February","date":"Feb-11","account":"BMO - Checking","description":"Wise (transfer R$)","amount":30.09,"category":"Fundos (Retiradas)","notes":"Viagem Brasil"},{"year":"2026","month":"02-February","date":"Feb-13","account":"BMO - Checking","description":"CDW Canada","amount":-2750.02,"category":"Entradas","notes":""},{"year":"2026","month":"02-February","date":"Feb-13","account":"BMO - Checking","description":"Kitchener Wilmo","amount":111.24,"category":"Básicos","notes":""},{"year":"2026","month":"02-February","date":"Feb-17","account":"BMO - Checking","description":"Kinder Day Care","amount":220.0,"category":"Básicos","notes":""},{"year":"2026","month":"02-February","date":"Feb-17","account":"BMO - Checking","description":"PayPal","amount":16.39,"category":"Le","notes":"Office"},{"year":"2026","month":"02-February","date":"Feb-18","account":"BMO - Checking","description":"TD Loan","amount":133.7,"category":"Básicos","notes":""},{"year":"2026","month":"02-February","date":"Feb-10","account":"BMO - Credit Card","description":"Tim Hortons","amount":5.07,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"02-February","date":"Feb-10","account":"BMO - Credit Card","description":"Osmows","amount":15.81,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"02-February","date":"Feb-10","account":"BMO - Credit Card","description":"GoFundMe (trabalho)","amount":28.75,"category":"Le","notes":""},{"year":"2026","month":"02-February","date":"Feb-11","account":"BMO - Credit Card","description":"Food Basics","amount":11.91,"category":"Groceries","notes":""},{"year":"2026","month":"02-February","date":"Feb-12","account":"BMO - Credit Card","description":"McDonalds","amount":20.0,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"02-February","date":"Feb-12","account":"BMO - Credit Card","description":"Amazon Prime","amount":11.29,"category":"Básicos","notes":""},{"year":"2026","month":"02-February","date":"Feb-12","account":"BMO - Credit Card","description":"Amazon $43.21","amount":9.34,"category":"Luke/Olivia","notes":"Valentine's day cards"},{"year":"2026","month":"02-February","date":"Feb-12","account":"BMO - Credit Card","description":"Amazon $43.21","amount":33.87,"category":"Groceries","notes":"Lily's stevia chips"},{"year":"2026","month":"02-February","date":"Feb-12","account":"BMO - Credit Card","description":"Amazon $156.35","amount":156.35,"category":"Fundos (Retiradas)","notes":"Viagem - Brasil (tablet, masks, 1 inflatable)"},{"year":"2026","month":"02-February","date":"Feb-13","account":"BMO - Credit Card","description":"Wal Mart","amount":19.74,"category":"Groceries","notes":""},{"year":"2026","month":"02-February","date":"Feb-13","account":"BMO - Credit Card","description":"Google One","amount":3.15,"category":"Le","notes":""},{"year":"2026","month":"02-February","date":"Feb-14","account":"BMO - Credit Card","description":"Canadian Tire","amount":33.82,"category":"Casa","notes":"Humidifier"},{"year":"2026","month":"02-February","date":"Feb-14","account":"BMO - Credit Card","description":"Shoppers","amount":53.09,"category":"Remédios","notes":""},{"year":"2026","month":"02-February","date":"Feb-14","account":"BMO - Credit Card","description":"Jinzakaya Japones","amount":114.97,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"02-February","date":"Feb-14","account":"BMO - Credit Card","description":"FOod Basics","amount":15.93,"category":"Groceries","notes":""},{"year":"2026","month":"02-February","date":"Feb-14","account":"BMO - Credit Card","description":"Koodoo","amount":44.24,"category":"Básicos","notes":""},{"year":"2026","month":"02-February","date":"Feb-14","account":"BMO - Credit Card","description":"Pioneer","amount":57.28,"category":"Carro","notes":""},{"year":"2026","month":"02-February","date":"Feb-14","account":"BMO - Credit Card","description":"WalMart","amount":11.23,"category":"Groceries","notes":""},{"year":"2026","month":"02-February","date":"Feb-14","account":"BMO - Credit Card","description":"WalMart","amount":6.18,"category":"Groceries","notes":""},{"year":"2026","month":"02-February","date":"Feb-14","account":"BMO - Credit Card","description":"Netflix","amount":5.62,"category":"Básicos","notes":""},{"year":"2026","month":"02-February","date":"Feb-14","account":"BMO - Credit Card","description":"Amazon $157.30","amount":30.96,"category":"Groceries","notes":"Protein Bars"},{"year":"2026","month":"02-February","date":"Feb-14","account":"BMO - Credit Card","description":"Amazon $157.30","amount":34.79,"category":"Fundos (Retiradas)","notes":"Presente Nos - Valetine's Day chocolate"},{"year":"2026","month":"02-February","date":"Feb-14","account":"BMO - Credit Card","description":"Amazon $157.30","amount":26.32,"category":"Casa","notes":"Silicone Mini Loaf Pan"},{"year":"2026","month":"02-February","date":"Feb-14","account":"BMO - Credit Card","description":"Amazon $157.30","amount":20.03,"category":"Remédios","notes":"Sleep-Eze"},{"year":"2026","month":"02-February","date":"Feb-14","account":"BMO - Credit Card","description":"Amazon $157.30","amount":45.19,"category":"Fundos (Retiradas)","notes":"Presente Outros - Elvira Heated Blanket"},{"year":"2026","month":"02-February","date":"Feb-15","account":"BMO - Credit Card","description":"Starbucks","amount":6.59,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"02-February","date":"Feb-15","account":"BMO - Credit Card","description":"Osmows","amount":22.58,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"02-February","date":"Feb-15","account":"BMO - Credit Card","description":"PrimeVideo","amount":5.64,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"02-February","date":"Feb-15","account":"BMO - Credit Card","description":"South St. Burguer","amount":19.54,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"02-February","date":"Feb-16","account":"BMO - Credit Card","description":"McDonalds","amount":9.46,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"02-February","date":"Feb-16","account":"BMO - Credit Card","description":"WalMart","amount":79.39,"category":"Casa","notes":"Humidifiers"},{"year":"2026","month":"02-February","date":"Feb-16","account":"BMO - Credit Card","description":"Disney+","amount":19.2,"category":"Básicos","notes":""},{"year":"2026","month":"02-February","date":"Feb-17","account":"BMO - Credit Card","description":"WalMart DOUBLE CHECK","amount":89.9,"category":"Groceries","notes":""},{"year":"2026","month":"02-February","date":"Feb-18","account":"BMO - Credit Card","description":"Amazon $33.69","amount":33.69,"category":"Fundos (Retiradas)","notes":"Viagem - Brasil - Compra Lou"},{"year":"2026","month":"02-February","date":"Feb-12","account":"TG - Checking","description":"Good Life","amount":45.19,"category":"Básicos","notes":""},{"year":"2026","month":"02-February","date":"Feb-12","account":"TG - Checking","description":"Wise (transfer R$)","amount":50.16,"category":"Fundos (Retiradas)","notes":"Viagem - Brasil"},{"year":"2026","month":"02-February","date":"Feb-12","account":"TG - Checking","description":"Apex Systems","amount":-1231.84,"category":"Entradas","notes":""},{"year":"2026","month":"02-February","date":"Feb-17","account":"TG - Checking","description":"Koodoo","amount":38.42,"category":"Básicos","notes":""},{"year":"2026","month":"02-February","date":"Feb-18","account":"TG - Checking","description":"CCB Canada","amount":-596.63,"category":"Entradas","notes":""},{"year":"2026","month":"02-February","date":"Feb-12","account":"TG - Credit Card","description":"Spotify","amount":23.72,"category":"Básicos","notes":""},{"year":"2026","month":"02-February","date":"Feb-12","account":"TG - Credit Card","description":"Winners $33.88","amount":4.52,"category":"Groceries","notes":""},{"year":"2026","month":"02-February","date":"Feb-12","account":"TG - Credit Card","description":"Winners $33.88","amount":22.59,"category":"Luke/Olivia","notes":"Lancheira Olivia"},{"year":"2026","month":"02-February","date":"Feb-12","account":"TG - Credit Card","description":"Winners $33.88","amount":6.77,"category":"Fundos (Retiradas)","notes":"Viagem Brasil - Compra Lou"},{"year":"2026","month":"02-February","date":"Feb-12","account":"TG - Credit Card","description":"Dollarama","amount":13.28,"category":"[TBD]","notes":""},{"year":"2026","month":"02-February","date":"Feb-13","account":"TG - Credit Card","description":"Tahini's","amount":16.19,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"02-February","date":"Feb-14","account":"TG - Credit Card","description":"Marshalls/Homesense","amount":10.15,"category":"[TBD]","notes":""},{"year":"2026","month":"02-February","date":"Feb-14","account":"TG - Credit Card","description":"Good Earth","amount":4.81,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"02-February","date":"Feb-15","account":"TG - Credit Card","description":"WalMart","amount":140.76,"category":"[TBD]","notes":""},{"year":"2026","month":"02-February","date":"Feb-15","account":"TG - Credit Card","description":"WalMart","amount":49.44,"category":"[TBD]","notes":""},{"year":"2026","month":"02-February","date":"Feb-15","account":"TG - Credit Card","description":"McDonalds","amount":1.46,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"02-February","date":"Feb-15","account":"TG - Credit Card","description":"JJ's ","amount":39.76,"category":"Saídas - Weekend","notes":"tb tem groceries aqui"},{"year":"2026","month":"02-February","date":"Feb-17","account":"TG - Credit Card","description":"SickKids","amount":25.0,"category":"Básicos","notes":""}];
+        const TEST_BUDGET_DATA = [{"year":"2026","month":"01-January","category":"Básicos","budget":5701.08},{"year":"2026","month":"01-January","category":"Groceries","budget":1900.0},{"year":"2026","month":"01-January","category":"Carro","budget":300.0},{"year":"2026","month":"01-January","category":"Saídas - Weekend","budget":800.0},{"year":"2026","month":"01-January","category":"Saídas - Mid-Week","budget":200.0},{"year":"2026","month":"01-January","category":"Office","budget":150.0},{"year":"2026","month":"01-January","category":"Olivia - Básicos","budget":40.0},{"year":"2026","month":"01-January","category":"Max - Básicos","budget":50.0},{"year":"2026","month":"01-January","category":"Remédios","budget":50.0},{"year":"2026","month":"01-January","category":"Vitaminas","budget":65.0},{"year":"2026","month":"01-January","category":"Lila","budget":350.0},{"year":"2026","month":"01-January","category":"Le","budget":150.0},{"year":"2026","month":"01-January","category":"Luke/Olivia","budget":300.0},{"year":"2026","month":"01-January","category":"Casa","budget":150.0},{"year":"2026","month":"01-January","category":"[TBD]","budget":0},{"year":"2026","month":"02-February","category":"Básicos","budget":5393.51},{"year":"2026","month":"02-February","category":"Groceries","budget":1900.0},{"year":"2026","month":"02-February","category":"Carro","budget":300.0},{"year":"2026","month":"02-February","category":"Saídas - Weekend","budget":700.0},{"year":"2026","month":"02-February","category":"Saídas - Mid-Week","budget":200.0},{"year":"2026","month":"02-February","category":"Office","budget":150.0},{"year":"2026","month":"02-February","category":"Olivia - Básicos","budget":40.0},{"year":"2026","month":"02-February","category":"Max - Básicos","budget":50.0},{"year":"2026","month":"02-February","category":"Remédios","budget":50.0},{"year":"2026","month":"02-February","category":"Vitaminas","budget":65.0},{"year":"2026","month":"02-February","category":"Lila","budget":350.0},{"year":"2026","month":"02-February","category":"Le","budget":150.0},{"year":"2026","month":"02-February","category":"Luke/Olivia","budget":300.0},{"year":"2026","month":"02-February","category":"Casa","budget":150.0},{"year":"2026","month":"02-February","category":"[TBD]","budget":0}];
+        
         let allTransactions = [];
         let filteredTransactions = [];
+        let allBudgets = [];
 
         // Categories to exclude from monthly budget (yearly budget items)
         const EXCLUDED_CATEGORIES = ['Fundos (depósitos)', 'Fundos (Retiradas)'];
         
-        function toggleCollapse(sectionId) {
-            const content = document.getElementById(sectionId);
-            const icon = document.getElementById(sectionId + '-icon');
-            
-            content.classList.toggle('collapsed');
-            icon.classList.toggle('collapsed');
-        }
         
         function updateLastTransactionDate() {
             if (allTransactions.length === 0) {
@@ -437,16 +576,24 @@
         function populateFilters() {
             // Get unique years and months from data
             const years = new Set();
-            const months = new Set();
+            const monthYearPairs = [];
             
             allTransactions.forEach(transaction => {
                 if (transaction.year) years.add(transaction.year);
-                if (transaction.month) months.add(transaction.month);
+                if (transaction.year && transaction.month) {
+                    monthYearPairs.push({
+                        year: transaction.year,
+                        month: transaction.month,
+                        date: transaction.date
+                    });
+                }
             });
             
             // Sort years and months
             const sortedYears = Array.from(years).sort((a, b) => b - a); // Descending
-            const sortedMonths = Array.from(months).sort();
+            
+            // Get unique months while preserving order
+            const uniqueMonths = [...new Set(allTransactions.map(t => t.month))];
             
             // Populate year dropdown
             const yearFilter = document.getElementById('yearFilter');
@@ -458,18 +605,19 @@
             // Populate month dropdown
             const monthFilter = document.getElementById('monthFilter');
             monthFilter.innerHTML = '<option value="all">All Months</option>';
-            sortedMonths.forEach(month => {
+            uniqueMonths.forEach(month => {
                 monthFilter.innerHTML += `<option value="${month}">${month}</option>`;
             });
             
-            // Set default to most recent year and month if available
-            if (sortedYears.length > 0) {
-                yearFilter.value = sortedYears[0];
-            }
-            if (sortedMonths.length > 0) {
-                // Try to find current month or use first month
-                const currentMonth = sortedMonths[sortedMonths.length - 1];
-                monthFilter.value = currentMonth;
+            // Set default to most recent transaction's year and month
+            if (monthYearPairs.length > 0) {
+                // Find the most recent transaction (last one in array typically)
+                const lastTransaction = allTransactions[allTransactions.length - 1];
+                if (lastTransaction.year && lastTransaction.month) {
+                    yearFilter.value = lastTransaction.year;
+                    monthFilter.value = lastTransaction.month;
+                    console.log(`Defaulting to: ${lastTransaction.month} ${lastTransaction.year}`);
+                }
             }
         }
         
@@ -485,7 +633,15 @@
             });
             
             // Update visualizations with filtered data
-            createChart(filteredTransactions);
+            processData(filteredTransactions);
+            
+            // Update budget table
+            createBudgetTable(
+                filteredTransactions, 
+                allBudgets,
+                selectedYear === 'all' ? filteredTransactions[filteredTransactions.length - 1]?.year : selectedYear,
+                selectedMonth === 'all' ? filteredTransactions[filteredTransactions.length - 1]?.month : selectedMonth
+            );
             
             console.log(`Filtered: ${filteredTransactions.length} of ${allTransactions.length} transactions`);
         }
@@ -564,8 +720,60 @@
             return transactions;
         }
 
+        function convertBudgetData(googleData) {
+            // Check if we got valid data
+            if (!googleData.table || !googleData.table.rows) {
+                throw new Error('No budget data found in the response');
+            }
+            
+            const rows = googleData.table.rows;
+            const budgets = [];
+            
+            rows.forEach(row => {
+                // Each row has a 'c' array with cell values
+                const cells = row.c;
+                
+                // Skip empty rows (expecting 4 columns: Year, Month, Category, Budget)
+                if (!cells || cells.length < 4) return;
+                
+                // Extract values
+                const year = cells[0]?.v || '';
+                const month = cells[1]?.v || '';
+                const category = cells[2]?.v || '';
+                const budget = cells[3]?.v || 0;
+                
+                // Skip if essential fields are missing
+                if (!year || !month || !category) return;
+                
+                budgets.push({
+                    year: year.toString(),
+                    month: month,
+                    category: category,
+                    budget: parseFloat(budget) || 0
+                });
+            });
+            
+            return budgets;
+        }
+
         async function fetchGoogleSheetData() {
             try {
+                // ============================================
+                // DEV MODE: Use hardcoded test data
+                // ============================================
+                if (DEV_MODE) {
+                    showMessage('success', `✅ DEV MODE: Loaded ${TEST_DATA.length} transactions from test data`);
+                    console.log('🔧 DEV MODE: Using hardcoded test data');
+                    
+                    // Simulate a small delay to mimic API call
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                    
+                    return TEST_DATA;
+                }
+                
+                // ============================================
+                // PRODUCTION MODE: Fetch from Google Sheets API
+                // ============================================
                 showMessage('loading', 'Fetching data from Google Sheets...');
                 
                 const response = await fetch(API_URL);
@@ -599,14 +807,71 @@
             }
         }
 
+        async function fetchBudgetData() {
+            try {
+                // ============================================
+                // DEV MODE: Use hardcoded test data
+                // ============================================
+                if (DEV_MODE) {
+                    console.log('🔧 DEV MODE: Using hardcoded budget test data');
+                    
+                    // Simulate a small delay to mimic API call
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    
+                    return TEST_BUDGET_DATA;
+                }
+                
+                // ============================================
+                // PRODUCTION MODE: Fetch from Google Sheets API
+                // ============================================
+                console.log('📊 Fetching budget data from Google Sheets...');
+                
+                const response = await fetch(BUDGET_API_URL);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const responseText = await response.text();
+                
+                // Parse the Google Sheets JSON response
+                const googleData = parseGoogleSheetsJSON(responseText);
+                
+                // Check if the response is valid
+                if (googleData.status !== 'ok') {
+                    throw new Error('Google Sheets API returned an error: ' + (googleData.errors?.[0]?.detailed_message || googleData.status));
+                }
+                
+                // Convert to our format
+                const budgets = convertBudgetData(googleData);
+                
+                console.log(`✅ Loaded ${budgets.length} budget entries from Google Sheets`);
+                
+                return budgets;
+                
+            } catch (error) {
+                console.error('Error fetching budget data:', error);
+                return [];
+            }
+        }
+
         function processData(data) {
             // Calculate totals
             let totalIncome = 0;
             let totalExpenses = 0;
+            let fundosDepositos = 0;  // Income from Fundos
+            let fundosRetiradas = 0;   // Expenses to Fundos
             const categoryTotals = {};
             
             data.forEach(item => {
-                // Skip excluded categories
+                // Separate Fundos calculations
+                if (item.category === 'Fundos (depósitos)' && item.amount < 0) {
+                    fundosDepositos += Math.abs(item.amount);
+                } else if (item.category === 'Fundos (Retiradas)' && item.amount > 0) {
+                    fundosRetiradas += item.amount;
+                }
+                
+                // Skip excluded categories for monthly budget
                 if (EXCLUDED_CATEGORIES.includes(item.category)) {
                     return;
                 }
@@ -637,6 +902,10 @@
             
             document.getElementById('totalTransactions').textContent = data.length;
             
+            // Update Fundos cards
+            document.getElementById('fundosDepositos').textContent = '$' + fundosDepositos.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('fundosRetiradas').textContent = '$' + fundosRetiradas.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            
             // Convert to array and sort by amount (descending)
             const sortedCategories = Object.entries(categoryTotals)
                 .sort((a, b) => b[1] - a[1])
@@ -645,93 +914,149 @@
                     total: total
                 }));
             
-            // Populate the category table
-            const tableBody = document.getElementById('categoryTableBody');
-            tableBody.innerHTML = ''; // Clear existing rows
-            
-            sortedCategories.forEach((item, index) => {
-                const percentage = (item.total / totalExpenses) * 100;
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td class="category-name">${item.category}</td>
-                    <td class="category-amount">$${item.total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                    <td class="category-percentage">${percentage.toFixed(1)}%</td>
-                `;
-                tableBody.appendChild(row);
-            });
-            
             return sortedCategories;
         }
 
-        function createChart(data) {
-            const ctx = document.getElementById('categoryChart').getContext('2d');
+        function createBudgetTable(transactions, budgets, selectedYear, selectedMonth) {
+            const tableBody = document.getElementById('budgetTableBody');
+            tableBody.innerHTML = '';
             
-            // Destroy existing chart if it exists
-            if (categoryChart) {
-                categoryChart.destroy();
-            }
-            
-            const processedData = processData(data);
-            const labels = processedData.map(item => item.category);
-            const amounts = processedData.map(item => item.total);
-            
-            // Generate colors - nicer palette
-            const colors = [
-                '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
-                '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384',
-                '#E7E9ED', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'
-            ];
-            
-            categoryChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Total Spent ($)',
-                        data: amounts,
-                        backgroundColor: colors.slice(0, labels.length),
-                        borderWidth: 1,
-                        borderColor: '#fff'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return '$' + context.parsed.y.toLocaleString('en-US', {
-                                        minimumFractionDigits: 2,
-                                        maximumFractionDigits: 2
-                                    });
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return '$' + value.toLocaleString();
-                                }
-                            }
-                        },
-                        x: {
-                            ticks: {
-                                maxRotation: 45,
-                                minRotation: 45,
-                                font: {
-                                    size: 11
-                                }
-                            }
-                        }
-                    }
+            // Calculate spending by category
+            const spendingByCategory = {};
+            transactions.forEach(item => {
+                if (EXCLUDED_CATEGORIES.includes(item.category)) {
+                    return;
                 }
+                
+                if (item.amount > 0) { // Only expenses
+                    if (!spendingByCategory[item.category]) {
+                        spendingByCategory[item.category] = 0;
+                    }
+                    spendingByCategory[item.category] += item.amount;
+                }
+            });
+            
+            // Get budgets for current year/month
+            const currentBudgets = budgets.filter(b => 
+                b.year === selectedYear && b.month === selectedMonth
+            );
+            
+            // Get all unique categories (from both budget and spending)
+            const allCategories = new Set([
+                ...currentBudgets.map(b => b.category),
+                ...Object.keys(spendingByCategory)
+            ]);
+            
+            // Build rows
+            const rows = [];
+            allCategories.forEach(category => {
+                const budget = currentBudgets.find(b => b.category === category)?.budget || 0;
+                const spent = spendingByCategory[category] || 0;
+                const remaining = budget - spent;
+                const percentage = budget > 0 ? (spent / budget) * 100 : 0;
+                
+                rows.push({
+                    category,
+                    budget,
+                    spent,
+                    remaining,
+                    percentage
+                });
+            });
+            
+            // Sort by spending (highest first)
+            rows.sort((a, b) => b.spent - a.spent);
+            
+            // Render rows
+            rows.forEach(row => {
+                const tr = document.createElement('tr');
+                
+                // Add over-budget class
+                if (row.remaining < 0) {
+                    tr.classList.add('over-budget');
+                }
+                
+                // Category
+                const tdCategory = document.createElement('td');
+                tdCategory.className = 'budget-category';
+                tdCategory.textContent = row.category;
+                tr.appendChild(tdCategory);
+                
+                // Budget
+                const tdBudget = document.createElement('td');
+                tdBudget.className = 'budget-amount';
+                tdBudget.style.textAlign = 'right';
+                
+                if (row.budget === 0 && (row.category === '[TBD]' || row.category === 'Entradas' || 
+                    row.category === 'Fundos (Retiradas)' || row.category === 'Fundos (depósitos)')) {
+                    tdBudget.innerHTML = '<span class="no-budget-message">-</span>';
+                } else if (row.budget === 0) {
+                    tdBudget.innerHTML = '<span class="no-budget-message">No budget set</span>';
+                } else {
+                    tdBudget.textContent = '$' + row.budget.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                }
+                tr.appendChild(tdBudget);
+                
+                // Spent
+                const tdSpent = document.createElement('td');
+                tdSpent.className = 'spent-amount';
+                tdSpent.style.textAlign = 'right';
+                tdSpent.textContent = '$' + row.spent.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                tr.appendChild(tdSpent);
+                
+                // Progress
+                const tdProgress = document.createElement('td');
+                tdProgress.className = 'budget-progress';
+                
+                if (row.budget === 0) {
+                    tdProgress.innerHTML = '<span class="no-budget-message">-</span>';
+                } else {
+                    const progressDiv = document.createElement('div');
+                    progressDiv.className = 'progress-bar-container';
+                    
+                    const barDiv = document.createElement('div');
+                    barDiv.className = 'progress-bar';
+                    
+                    // Color based on percentage
+                    if (row.percentage <= 75) {
+                        barDiv.classList.add('low');
+                    } else if (row.percentage <= 100) {
+                        barDiv.classList.add('medium');
+                    } else {
+                        barDiv.classList.add('high');
+                    }
+                    
+                    // Cap visual width at 100%
+                    const visualWidth = Math.min(row.percentage, 100);
+                    barDiv.style.width = visualWidth + '%';
+                    
+                    progressDiv.appendChild(barDiv);
+                    
+                    const percentSpan = document.createElement('span');
+                    percentSpan.className = 'progress-percentage';
+                    percentSpan.textContent = row.percentage.toFixed(0) + '%';
+                    
+                    tdProgress.appendChild(progressDiv);
+                    tdProgress.appendChild(percentSpan);
+                }
+                
+                tr.appendChild(tdProgress);
+                
+                // Remaining
+                const tdRemaining = document.createElement('td');
+                tdRemaining.className = 'remaining-amount';
+                tdRemaining.style.textAlign = 'right';
+                
+                if (row.budget === 0) {
+                    tdRemaining.innerHTML = '<span class="no-budget-message">-</span>';
+                } else {
+                    tdRemaining.textContent = '$' + row.remaining.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    tdRemaining.classList.add(row.remaining >= 0 ? 'positive' : 'negative');
+                }
+                
+                tr.appendChild(tdRemaining);
+                
+                tableBody.appendChild(tr);
             });
         }
 
@@ -749,11 +1074,17 @@
                 refreshBtn.disabled = true;
                 refreshBtn.textContent = '⏳ Loading...';
                 
-                // Fetch data from Google Sheets
-                const transactions = await fetchGoogleSheetData();
+                // Fetch both transactions and budget data
+                const [transactions, budgets] = await Promise.all([
+                    fetchGoogleSheetData(),
+                    fetchBudgetData()
+                ]);
                 
                 // Store globally
                 allTransactions = transactions;
+                allBudgets = budgets;
+                
+                console.log(`Loaded ${transactions.length} transactions and ${budgets.length} budget entries`);
                 
                 // Update last transaction date
                 updateLastTransactionDate();
@@ -768,6 +1099,7 @@
                 
                 // Save to localStorage for offline viewing
                 localStorage.setItem('financeData', JSON.stringify(transactions));
+                localStorage.setItem('budgetData', JSON.stringify(budgets));
                 localStorage.setItem('lastUpdated', new Date().toISOString());
                 
                 showMessage('success', `✅ Successfully loaded ${transactions.length} transactions from Google Sheets`);
@@ -804,14 +1136,25 @@
 
         // Load data when page loads
         window.onload = function() {
+            // Update mode indicator
+            const modeIndicator = document.getElementById('modeIndicator');
+            if (DEV_MODE) {
+                modeIndicator.textContent = '🔧 DEV MODE - Using Test Data';
+                modeIndicator.style.color = '#ff9800';
+                modeIndicator.style.fontWeight = 'bold';
+            } else {
+                modeIndicator.textContent = '✅ PRODUCTION - Connected to Google Sheets';
+            }
+            
             // Try to load from localStorage first (for offline viewing)
             const savedData = localStorage.getItem('financeData');
+            const savedBudgetData = localStorage.getItem('budgetData');
             const lastUpdated = localStorage.getItem('lastUpdated');
             
-            if (savedData) {
+            if (savedData && !DEV_MODE) {
                 console.log('Loading cached data from localStorage');
-                const data = JSON.parse(savedData);
-                allTransactions = data;
+                allTransactions = JSON.parse(savedData);
+                allBudgets = savedBudgetData ? JSON.parse(savedBudgetData) : [];
                 updateLastTransactionDate();
                 populateFilters();
                 applyFilters();
@@ -824,7 +1167,7 @@
                 // Then fetch fresh data in the background
                 loadData();
             } else {
-                // If no cached data, fetch immediately
+                // If no cached data or in DEV_MODE, fetch immediately
                 loadData();
             }
         };
