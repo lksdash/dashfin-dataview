@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Finance Dashboard v4</title>
+    <title>Personal Finance Dashboard v5</title>
     <style>
         * {
             margin: 0;
@@ -35,7 +35,6 @@
             font-size: 24px;
             margin-bottom: 10px;
         }
-        
         
         .card {
             background-color: white;
@@ -121,10 +120,7 @@
             min-width: 150px;
         }
         
-        .filter-group select:hover {
-            border-color: #4CAF50;
-        }
-        
+        .filter-group select:hover { border-color: #4CAF50; }
         .filter-group select:focus {
             outline: none;
             border-color: #4CAF50;
@@ -158,20 +154,10 @@
             font-weight: bold;
         }
         
-        .stat-value.positive {
-            color: #4CAF50;
-        }
+        .stat-value.positive { color: #4CAF50; }
+        .stat-value.negative { color: #f44336; }
         
-        .stat-value.negative {
-            color: #f44336;
-        }
-        
-        .category-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        
+        .category-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         .category-table th {
             background-color: #f5f5f5;
             padding: 12px;
@@ -180,31 +166,11 @@
             color: #333;
             border-bottom: 2px solid #4CAF50;
         }
-        
-        .category-table td {
-            padding: 10px 12px;
-            border-bottom: 1px solid #e0e0e0;
-        }
-        
-        .category-table tr:hover {
-            background-color: #f9f9f9;
-        }
-        
-        .category-table .category-name {
-            color: #333;
-        }
-        
-        .category-table .category-amount {
-            text-align: right;
-            font-weight: 500;
-            color: #333;
-        }
-        
-        .category-table .category-percentage {
-            text-align: right;
-            color: #666;
-            font-size: 14px;
-        }
+        .category-table td { padding: 10px 12px; border-bottom: 1px solid #e0e0e0; }
+        .category-table tr:hover { background-color: #f9f9f9; }
+        .category-table .category-name { color: #333; }
+        .category-table .category-amount { text-align: right; font-weight: 500; color: #333; }
+        .category-table .category-percentage { text-align: right; color: #666; font-size: 14px; }
         
         .collapsible-header {
             display: flex;
@@ -213,29 +179,11 @@
             cursor: pointer;
             user-select: none;
         }
-        
-        .collapsible-header:hover {
-            opacity: 0.8;
-        }
-        
-        .collapse-icon {
-            font-size: 20px;
-            transition: transform 0.3s ease;
-        }
-        
-        .collapse-icon.collapsed {
-            transform: rotate(-90deg);
-        }
-        
-        .collapsible-content {
-            max-height: 1000px;
-            overflow: hidden;
-            transition: max-height 0.3s ease;
-        }
-        
-        .collapsible-content.collapsed {
-            max-height: 0;
-        }
+        .collapsible-header:hover { opacity: 0.8; }
+        .collapse-icon { font-size: 20px; transition: transform 0.3s ease; }
+        .collapse-icon.collapsed { transform: rotate(-90deg); }
+        .collapsible-content { max-height: 1000px; overflow: hidden; transition: max-height 0.3s ease; }
+        .collapsible-content.collapsed { max-height: 0; }
         
         .last-transaction {
             display: inline-block;
@@ -247,33 +195,13 @@
             margin-left: 20px;
         }
         
-        /* Mobile responsiveness */
         @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
-            
-            .header h1 {
-                font-size: 20px;
-            }
-            
-            .card {
-                padding: 15px;
-            }
-            
-            .chart-container {
-                height: 300px;
-            }
-            
-            .stat-value {
-                font-size: 20px;
-            }
-            
-            .category-table th,
-            .category-table td {
-                padding: 8px;
-                font-size: 14px;
-            }
+            body { padding: 10px; }
+            .header h1 { font-size: 20px; }
+            .card { padding: 15px; }
+            .chart-container { height: 300px; }
+            .stat-value { font-size: 20px; }
+            .category-table th, .category-table td { padding: 8px; font-size: 14px; }
         }
         
         .mode-toggle {
@@ -295,15 +223,8 @@
             transition: all 0.3s ease;
             border-right: 1px solid #667eea;
         }
-        
-        .mode-btn:last-child {
-            border-right: none;
-        }
-        
-        .mode-btn:hover {
-            background: #f0f4ff;
-        }
-        
+        .mode-btn:last-child { border-right: none; }
+        .mode-btn:hover { background: #f0f4ff; }
         .mode-btn.active {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -320,335 +241,463 @@
             font-weight: 600;
             transition: transform 0.2s, box-shadow 0.2s;
         }
-        
-        .refresh-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-        
-        .refresh-btn:active {
-            transform: translateY(0);
-        }
-        
-        .refresh-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
+        .refresh-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); }
+        .refresh-btn:active { transform: translateY(0); }
+        .refresh-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
         
         @media (max-width: 768px) {
-            .mode-toggle {
-                flex-direction: row;
-            }
-            
-            .mode-btn {
-                padding: 8px 16px;
-                font-size: 12px;
-            }
-            
-            .refresh-btn {
-                padding: 8px 16px;
-                font-size: 12px;
-            }
+            .mode-toggle { flex-direction: row; }
+            .mode-btn { padding: 8px 16px; font-size: 12px; }
+            .refresh-btn { padding: 8px 16px; font-size: 12px; }
         }
         
-        .budget-table-container {
-            overflow-x: auto;
-        }
-        
-        .budget-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-        
+        .budget-table-container { overflow-x: auto; }
+        .budget-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         .budget-table thead {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
         }
-        
-        .budget-table th {
-            padding: 14px 16px;
-            font-weight: 600;
-            text-align: left;
-            font-size: 15px;
-            letter-spacing: 0.3px;
-        }
-        
-        .budget-table td {
-            padding: 14px 16px;
-            border-bottom: 1px solid #e2e8f0;
-        }
-        
-        .budget-table tbody tr:hover {
-            background-color: #f7fafc;
-        }
-        
-        .budget-table tbody tr.over-budget {
-            background-color: #fff5f5;
-        }
-        
-        .budget-table tbody tr.over-budget:hover {
-            background-color: #fed7d7;
-        }
-        
-        /* Totals row styling */
+        .budget-table th { padding: 14px 16px; font-weight: 600; text-align: left; font-size: 15px; letter-spacing: 0.3px; }
+        .budget-table td { padding: 14px 16px; border-bottom: 1px solid #e2e8f0; }
+        .budget-table tbody tr:hover { background-color: #f7fafc; }
+        .budget-table tbody tr.over-budget { background-color: #fff5f5; }
+        .budget-table tbody tr.over-budget:hover { background-color: #fed7d7; }
         .budget-table .totals-row {
             background: linear-gradient(to right, #f7fafc, #edf2f7);
             border-top: 3px solid #667eea;
             border-bottom: 3px solid #667eea;
             font-weight: 700;
         }
-        
-        .budget-table .totals-row:hover {
-            background: linear-gradient(to right, #edf2f7, #e2e8f0);
-        }
-        
-        .budget-table .totals-label {
-            font-size: 16px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #667eea;
-        }
-        
-        .budget-table .totals-value {
-            font-size: 17px;
-            font-weight: 700;
-        }
-        
-        .budget-category {
-            font-weight: 500;
-            color: #2d3748;
-            font-size: 15px;
-        }
-        
+        .budget-table .totals-row:hover { background: linear-gradient(to right, #edf2f7, #e2e8f0); }
+        .budget-table .totals-label { font-size: 16px; text-transform: uppercase; letter-spacing: 1px; color: #667eea; }
+        .budget-table .totals-value { font-size: 17px; font-weight: 700; }
+        .budget-category { font-weight: 500; color: #2d3748; font-size: 15px; }
         .budget-amount, .spent-amount, .remaining-amount {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
-            font-size: 15px;
-            font-weight: 500;
-            letter-spacing: 0.3px;
+            font-size: 15px; font-weight: 500; letter-spacing: 0.3px;
         }
-        
-        .remaining-amount.positive {
-            color: #38a169;
-            font-weight: 600;
-        }
-        
-        .remaining-amount.negative {
-            color: #e53e3e;
-            font-weight: 600;
-        }
-        
-        .budget-progress {
-            display: flex;
-            align-items: center;
-            gap: 0;
-        }
-        
-        .progress-bar-container {
-            flex: 1;
-            height: 28px;
-            background-color: #e2e8f0;
-            border-radius: 6px;
-            overflow: hidden;
-            position: relative;
-        }
-        
+        .remaining-amount.positive { color: #38a169; font-weight: 600; }
+        .remaining-amount.negative { color: #e53e3e; font-weight: 600; }
+        .budget-progress { display: flex; align-items: center; gap: 0; }
+        .progress-bar-container { flex: 1; height: 28px; background-color: #e2e8f0; border-radius: 6px; overflow: hidden; position: relative; }
         .progress-bar {
-            height: 100%;
-            transition: width 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 13px;
-            font-weight: 700;
-            letter-spacing: 0.3px;
-            min-width: 0;
+            height: 100%; transition: width 0.3s ease;
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 13px; font-weight: 700; letter-spacing: 0.3px; min-width: 0;
         }
+        .progress-bar.low { background: linear-gradient(90deg, #48bb78, #38a169); }
+        .progress-bar.medium { background: linear-gradient(90deg, #ecc94b, #d69e2e); }
+        .progress-bar.high { background: linear-gradient(90deg, #f56565, #e53e3e); }
+        .no-budget-message { color: #a0aec0; font-style: italic; font-size: 14px; }
         
-        .progress-bar.low {
-            background: linear-gradient(90deg, #48bb78, #38a169);
-        }
-        
-        .progress-bar.medium {
-            background: linear-gradient(90deg, #ecc94b, #d69e2e);
-        }
-        
-        .progress-bar.high {
-            background: linear-gradient(90deg, #f56565, #e53e3e);
-        }
-        
-        .no-budget-message {
-            color: #a0aec0;
-            font-style: italic;
-            font-size: 14px;
-        }
-        
-        /* Transaction Details Section */
         .transaction-filter {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 20px;
-            padding: 15px;
-            background: #f7fafc;
-            border-radius: 8px;
+            display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
+            padding: 15px; background: #f7fafc; border-radius: 8px;
         }
-        
-        .transaction-filter label {
-            font-weight: 600;
-            color: #2d3748;
-        }
-        
+        .transaction-filter label { font-weight: 600; color: #2d3748; }
         .transaction-filter select {
-            padding: 8px 12px;
-            border: 1px solid #cbd5e0;
-            border-radius: 6px;
-            background: white;
-            font-size: 14px;
-            min-width: 200px;
-            cursor: pointer;
+            padding: 8px 12px; border: 1px solid #cbd5e0; border-radius: 6px;
+            background: white; font-size: 14px; min-width: 200px; cursor: pointer;
         }
-        
-        .transaction-table-container {
-            overflow-x: auto;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-        }
-        
-        .transaction-table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-        }
-        
+        .transaction-table-container { overflow-x: auto; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .transaction-table { width: 100%; border-collapse: collapse; background: white; }
         .transaction-table thead {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
         }
-        
-        .transaction-table th {
-            padding: 12px 16px;
-            text-align: left;
-            font-weight: 600;
-            font-size: 13px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .transaction-table tbody tr {
-            border-bottom: 1px solid #e2e8f0;
-            transition: background-color 0.2s;
-        }
-        
-        .transaction-table tbody tr:hover {
-            background-color: #f7fafc;
-        }
-        
-        .transaction-table tbody tr:last-child {
-            border-bottom: none;
-        }
-        
-        .transaction-table td {
-            padding: 12px 16px;
-            font-size: 14px;
-            color: #2d3748;
-        }
-        
-        .transaction-date {
-            font-weight: 600;
-            color: #4a5568;
-            white-space: nowrap;
-        }
-        
-        .transaction-account {
-            color: #718096;
-            font-size: 13px;
-        }
-        
-        .transaction-description {
-            font-weight: 500;
-        }
-        
-        .transaction-amount {
-            font-weight: 700;
-            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
-            white-space: nowrap;
-        }
-        
-        .transaction-amount.positive {
-            color: #e53e3e;
-        }
-        
-        .transaction-amount.negative {
-            color: #38a169;
-        }
-        
-        .transaction-category {
-            display: inline-block;
-            padding: 4px 10px;
-            background: #edf2f7;
-            color: #4a5568;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-        
-        .transaction-notes {
-            color: #718096;
-            font-size: 13px;
-            font-style: italic;
-        }
-        
-        .no-transactions {
-            text-align: center;
-            padding: 40px 20px;
-            color: #a0aec0;
-            font-style: italic;
-        }
-        
-        .sortable-header {
-            cursor: pointer;
-            user-select: none;
-            white-space: nowrap;
-        }
+        .transaction-table th { padding: 12px 16px; text-align: left; font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .transaction-table tbody tr { border-bottom: 1px solid #e2e8f0; transition: background-color 0.2s; }
+        .transaction-table tbody tr:hover { background-color: #f7fafc; }
+        .transaction-table tbody tr:last-child { border-bottom: none; }
+        .transaction-table td { padding: 12px 16px; font-size: 14px; color: #2d3748; }
+        .transaction-date { font-weight: 600; color: #4a5568; white-space: nowrap; }
+        .transaction-account { color: #718096; font-size: 13px; }
+        .transaction-description { font-weight: 500; }
+        .transaction-amount { font-weight: 700; font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace; white-space: nowrap; }
+        .transaction-amount.positive { color: #e53e3e; }
+        .transaction-amount.negative { color: #38a169; }
+        .transaction-category { display: inline-block; padding: 4px 10px; background: #edf2f7; color: #4a5568; border-radius: 12px; font-size: 12px; font-weight: 600; }
+        .transaction-notes { color: #718096; font-size: 13px; font-style: italic; }
+        .no-transactions { text-align: center; padding: 40px 20px; color: #a0aec0; font-style: italic; }
+        .sortable-header { cursor: pointer; user-select: none; white-space: nowrap; }
         .sortable-header:hover { background: rgba(255,255,255,0.15); }
         .sort-icon { font-size: 10px; opacity: 0.7; margin-left: 3px; }
         
         @media (max-width: 768px) {
-            .budget-table {
-                font-size: 13px;
-            }
-            
-            .budget-table th,
-            .budget-table td {
-                padding: 10px 8px;
-            }
-            
-            .budget-category {
-                font-size: 14px;
-            }
-            
-            .budget-amount, .spent-amount, .remaining-amount {
-                font-size: 14px;
-            }
-            
-            .progress-bar-container {
-                min-width: 80px;
-                height: 24px;
-            }
-            
-            .progress-bar {
-                font-size: 12px;
-            }
+            .budget-table { font-size: 13px; }
+            .budget-table th, .budget-table td { padding: 10px 8px; }
+            .budget-category { font-size: 14px; }
+            .budget-amount, .spent-amount, .remaining-amount { font-size: 14px; }
+            .progress-bar-container { min-width: 80px; height: 24px; }
+            .progress-bar { font-size: 12px; }
+        }
+
+        /* ============================================
+           AI ASSISTANT SECTION
+           ============================================ */
+
+        .ai-section {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .ai-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            cursor: pointer;
+            user-select: none;
+            border-bottom: 2px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .ai-section-header:hover {
+            border-bottom-color: #e2e8f0;
+        }
+
+        .ai-section-header h2 {
+            color: #333;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ai-badge {
+            font-size: 11px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 10px;
+            letter-spacing: 0.5px;
+        }
+
+        .ai-section-body {
+            padding: 20px;
+            display: none;
+        }
+
+        .ai-section-body.open {
+            display: block;
+        }
+
+        /* API Key area */
+        .ai-key-area {
+            background: #f7fafc;
+            border: 1px dashed #cbd5e0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .ai-key-area label {
+            display: block;
+            font-size: 12px;
+            font-weight: 700;
+            color: #4a5568;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .ai-key-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .ai-key-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: monospace;
+            background: white;
+            color: #2d3748;
+        }
+
+        .ai-key-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102,126,234,0.15);
+        }
+
+        .ai-key-save-btn {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .ai-key-save-btn:hover { opacity: 0.9; }
+
+        .ai-key-status {
+            font-size: 12px;
+            margin-top: 6px;
+        }
+
+        .ai-key-status.saved { color: #38a169; }
+        .ai-key-status.missing { color: #e53e3e; }
+
+        /* Model selector */
+        .ai-controls-row {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .ai-model-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .ai-model-group label {
+            font-size: 12px;
+            font-weight: 700;
+            color: #4a5568;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .ai-model-select {
+            padding: 9px 14px;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            background: white;
+            font-size: 14px;
+            color: #2d3748;
+            cursor: pointer;
+            font-weight: 500;
+            min-width: 280px;
+        }
+
+        .ai-model-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102,126,234,0.15);
+        }
+
+        /* Quick prompts */
+        .ai-quick-prompts {
+            margin-bottom: 14px;
+        }
+
+        .ai-quick-prompts-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .ai-quick-btns {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .ai-quick-btn {
+            padding: 7px 13px;
+            background: #edf2f7;
+            color: #4a5568;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .ai-quick-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        /* Input area */
+        .ai-input-row {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+            margin-bottom: 16px;
+        }
+
+        .ai-textarea {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #cbd5e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 70px;
+            color: #2d3748;
+            line-height: 1.5;
+            transition: border-color 0.2s;
+        }
+
+        .ai-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102,126,234,0.15);
+        }
+
+        .ai-textarea::placeholder { color: #a0aec0; }
+
+        .ai-send-btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            white-space: nowrap;
+            height: fit-content;
+        }
+
+        .ai-send-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102,126,234,0.4);
+        }
+
+        .ai-send-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Response area */
+        .ai-response-area {
+            display: none;
+        }
+
+        .ai-response-area.visible {
+            display: block;
+        }
+
+        .ai-thinking {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px;
+            background: #f7fafc;
+            border-radius: 8px;
+            color: #718096;
+            font-size: 14px;
+        }
+
+        .ai-thinking-dots span {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background: #667eea;
+            border-radius: 50%;
+            margin: 0 2px;
+            animation: bounce 1.2s infinite;
+        }
+
+        .ai-thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .ai-thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+            40% { transform: translateY(-6px); opacity: 1; }
+        }
+
+        .ai-response-box {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-left: 4px solid #667eea;
+            border-radius: 8px;
+            padding: 18px 20px;
+            font-size: 14px;
+            line-height: 1.7;
+            color: #2d3748;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .ai-response-box strong { font-weight: 700; color: #1a202c; }
+
+        /* Token / cost display */
+        .ai-token-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+            padding: 10px 14px;
+            background: #edf2f7;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #718096;
+        }
+
+        .ai-token-bar .token-detail { display: flex; align-items: center; gap: 6px; }
+        .ai-token-bar .token-pill {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 2px 8px;
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 11px;
+        }
+
+        .ai-token-bar .token-cost {
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .ai-session-total {
+            margin-top: 8px;
+            font-size: 11px;
+            color: #a0aec0;
+            text-align: right;
+        }
+
+        .ai-error-box {
+            background: #fff5f5;
+            border: 1px solid #fed7d7;
+            border-left: 4px solid #e53e3e;
+            border-radius: 8px;
+            padding: 14px 16px;
+            font-size: 14px;
+            color: #c53030;
+        }
+
+        .ai-data-info {
+            font-size: 12px;
+            color: #a0aec0;
+            margin-top: 4px;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v4</span></h1>
+            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5</span></h1>
             <div style="display: flex; gap: 15px; align-items: center; margin: 15px 0;">
                 <div class="mode-toggle">
                     <button id="testModeBtn" class="mode-btn active">🔧 TEST</button>
@@ -676,9 +725,7 @@
                     </select>
                 </div>
                 <div class="filter-group" style="justify-content: flex-end;">
-                    <span class="last-transaction" id="lastTransaction">
-                        📅 Last transaction: --
-                    </span>
+                    <span class="last-transaction" id="lastTransaction">📅 Last transaction: --</span>
                 </div>
             </div>
         </div>
@@ -743,9 +790,7 @@
                             <th style="text-align: right;">Remaining</th>
                         </tr>
                     </thead>
-                    <tbody id="budgetTableBody">
-                        <!-- Budget rows will be inserted here -->
-                    </tbody>
+                    <tbody id="budgetTableBody"></tbody>
                 </table>
             </div>
         </div>
@@ -771,22 +816,104 @@
                             <th>Notes</th>
                         </tr>
                     </thead>
-                    <tbody id="transactionTableBody">
-                        <!-- Transaction rows will be inserted here -->
-                    </tbody>
+                    <tbody id="transactionTableBody"></tbody>
                 </table>
             </div>
         </div>
-        
+
+        <!-- ============================================
+             AI ASSISTANT SECTION
+             ============================================ -->
+        <div class="ai-section" id="aiSection">
+            <div class="ai-section-header" onclick="toggleAiSection()">
+                <h2>
+                    🤖 AI Finance Assistant
+                    <span class="ai-badge">BETA</span>
+                </h2>
+                <span class="collapse-icon" id="aiCollapseIcon">▼</span>
+            </div>
+
+            <div class="ai-section-body" id="aiSectionBody">
+
+                <!-- API Key area -->
+                <div class="ai-key-area" id="aiKeyArea">
+                    <label>🔑 Anthropic API Key</label>
+                    <div class="ai-key-row">
+                        <input type="password" class="ai-key-input" id="aiKeyInput"
+                            placeholder="sk-ant-api03-..."
+                            onkeydown="if(event.key==='Enter') saveApiKey()">
+                        <button class="ai-key-save-btn" onclick="saveApiKey()">Save Key</button>
+                        <button class="ai-key-save-btn" onclick="clearApiKey()" style="background: #e53e3e;">Clear</button>
+                    </div>
+                    <div class="ai-key-status" id="aiKeyStatus"></div>
+                </div>
+
+                <!-- Model selector + data info -->
+                <div class="ai-controls-row">
+                    <div class="ai-model-group">
+                        <label>Model</label>
+                        <select class="ai-model-select" id="aiModelSelect">
+                            <option value="claude-haiku-4-5-20251001">⚡ Claude Haiku 3.5 — Fast &amp; cheap ($0.80 / $4.00 per 1M tokens)</option>
+                            <option value="claude-sonnet-4-6">🧠 Claude Sonnet 4 — Smarter &amp; detailed ($3.00 / $15.00 per 1M tokens)</option>
+                        </select>
+                    </div>
+                    <div id="aiDataInfo" class="ai-data-info"></div>
+                </div>
+
+                <!-- Quick prompt buttons -->
+                <div class="ai-quick-prompts">
+                    <div class="ai-quick-prompts-label">Quick questions</div>
+                    <div class="ai-quick-btns">
+                        <button class="ai-quick-btn" onclick="useQuickPrompt('Summarize my spending for the currently loaded data. What are the main takeaways?')">📋 Summarize spending</button>
+                        <button class="ai-quick-btn" onclick="useQuickPrompt('Which categories are over budget? List them with how much over they are.')">🚨 Over budget?</button>
+                        <button class="ai-quick-btn" onclick="useQuickPrompt('What are my top 5 largest expense transactions? List each one with date, description, category and amount.')">💸 Top 5 expenses</button>
+                        <button class="ai-quick-btn" onclick="useQuickPrompt('Are there any unusual or suspicious transactions I should look at? Check for duplicates, very high amounts, or anything that looks out of place.')">🔍 Unusual transactions</button>
+                    </div>
+                </div>
+
+                <!-- Text input -->
+                <div class="ai-input-row">
+                    <textarea class="ai-textarea" id="aiTextarea"
+                        placeholder="Ask anything about your finances… e.g. 'How much did I spend on groceries vs eating out?' or 'What would my net be if I cut Saídas spending by 20%?'"
+                        onkeydown="if(event.key==='Enter' && (event.ctrlKey || event.metaKey)) sendAiQuery()"></textarea>
+                    <button class="ai-send-btn" id="aiSendBtn" onclick="sendAiQuery()">Send ↵</button>
+                </div>
+                <div style="font-size: 11px; color: #a0aec0; margin-top: -10px; margin-bottom: 14px;">Ctrl+Enter to send</div>
+
+                <!-- Response area -->
+                <div class="ai-response-area" id="aiResponseArea">
+                    <div class="ai-thinking" id="aiThinking" style="display:none;">
+                        <div class="ai-thinking-dots">
+                            <span></span><span></span><span></span>
+                        </div>
+                        Thinking…
+                    </div>
+                    <div class="ai-response-box" id="aiResponseBox" style="display:none;"></div>
+                    <div class="ai-error-box" id="aiErrorBox" style="display:none;"></div>
+                    <div class="ai-token-bar" id="aiTokenBar" style="display:none;">
+                        <div class="token-detail">
+                            <span>Input:</span>
+                            <span class="token-pill" id="tokIn">—</span>
+                            <span>Output:</span>
+                            <span class="token-pill" id="tokOut">—</span>
+                            <span>Cost:</span>
+                            <span class="token-cost" id="tokCost">—</span>
+                        </div>
+                        <div style="font-size:11px; color:#a0aec0;" id="tokModel">—</div>
+                    </div>
+                    <div class="ai-session-total" id="aiSessionTotal" style="display:none;"></div>
+                </div>
+
+            </div>
+        </div>
+        <!-- END AI SECTION -->
+
     </div>
 
     <script>
         // ============================================
         // CONFIGURATION - DEV MODE
         // ============================================
-        // Set to true for local testing with hardcoded data
-        // Set to false for production (GitHub) to use Google Sheets API
-        // Can be toggled via UI
         let DEV_MODE = true;
         
         // ============================================
@@ -795,19 +922,11 @@
         const SHEET_ID = '1rhO_nnuE_m2JkCGEmLFh26o9LO-9y16q_rOxjZpyKm4';
         const SHEET_NAME = 'finance_db';
         const BUDGET_SHEET_NAME = 'budget_db';
-        // Use JSON format - works better from hosted pages
         const API_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${SHEET_NAME}`;
         const BUDGET_API_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${BUDGET_SHEET_NAME}`;
         
         // ============================================
-        // TEST DATA - FOR DEV MODE ONLY
-        // ============================================
-        // To update this test data:
-        // Option A: Upload your CSV file and ask Claude to update it
-        // Option B: Run the convert-csv.py script (see separate file)
-        //
-        // IMPORTANT: This data should match your production data structure
-        // including the new "year" column as column A (index 0)
+        // TEST DATA
         // ============================================
         const TEST_DATA = [{"year":"2026","month":"03-March","date":"Feb-19","account":"TG - Credit Card","description":"Best Buy - Computer Mu","amount":1809.52,"category":"Viagem - Brasil 2026","notes":"Viagem Brasil - PC Mu"},{"year":"2026","month":"03-March","date":"Feb-22","account":"BMO - Credit Card","description":"Amazon","amount":31.49,"category":"Viagem - Brasil 2026","notes":"Viagem Brasil - Grip Mu"},{"year":"2026","month":"03-March","date":"Feb-27","account":"TG - Checking","description":"Rent","amount":2950.0,"category":"Básicos","notes":""},{"year":"2026","month":"03-March","date":"Mar-1","account":"BMO - Credit Card","description":"YMCA","amount":204.0,"category":"Básicos","notes":""},{"year":"2026","month":"03-March","date":"Mar-1","account":"Amex - Credit Card","description":"McDonalds","amount":14.0,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"03-March","date":"Mar-1","account":"Amex - Credit Card","description":"Arcade Niver Arthur","amount":7.91,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"03-March","date":"Mar-2","account":"TG - Checking","description":"NSLSC","amount":88.99,"category":"Básicos","notes":""},{"year":"2026","month":"03-March","date":"Mar-2","account":"BMO - Checking","description":"Kinder Day Care","amount":220.0,"category":"Básicos","notes":""},{"year":"2026","month":"03-March","date":"Mar-2","account":"BMO - Credit Card","description":"Osmows","amount":22.58,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"03-March","date":"Mar-2","account":"BMO - Credit Card","description":"Allstate","amount":82.94,"category":"Básicos","notes":""},{"year":"2026","month":"03-March","date":"Mar-2","account":"Amex - Credit Card","description":"McDonalds","amount":2.51,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"03-March","date":"Mar-2","account":"Amex - Credit Card","description":"Food Basics","amount":19.44,"category":"Groceries","notes":""},{"year":"2026","month":"03-March","date":"Mar-2","account":"Amex - Credit Card","description":"Luna","amount":14.68,"category":"Le","notes":""},{"year":"2026","month":"03-March","date":"Mar-3","account":"BMO - Credit Card","description":"Pioneer hairworks - Olivia Hair","amount":17.63,"category":"Luke/Olivia","notes":""},{"year":"2026","month":"03-March","date":"Mar-3","account":"BMO - Credit Card","description":"Wal Mart","amount":24.83,"category":"Groceries","notes":""},{"year":"2026","month":"03-March","date":"Mar-3","account":"TG - Credit Card","description":"Winners","amount":-15.74,"category":"Luke/Olivia","notes":"Estorno (compra em February)"},{"year":"2026","month":"03-March","date":"Mar-3","account":"Amex - Credit Card","description":"Tim Hortons","amount":3.44,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"03-March","date":"Mar-3","account":"Amex - Credit Card","description":"Amazon $28.92","amount":28.92,"category":"Lila","notes":"Retina Serum"},{"year":"2026","month":"03-March","date":"Mar-3","account":"Amex - Credit Card","description":"Amazon $18.04","amount":18.04,"category":"Lila","notes":"Tinta cabelo"},{"year":"2026","month":"03-March","date":"Mar-3","account":"Amex - Credit Card","description":"Amazon $33.89","amount":33.89,"category":"Lila","notes":"Make up Mirror"},{"year":"2026","month":"03-March","date":"Mar-4","account":"BMO - Checking","description":"TD Loan","amount":133.7,"category":"Básicos","notes":""},{"year":"2026","month":"03-March","date":"Mar-4","account":"BMO - Credit Card","description":"Williamsburh Remedy","amount":8.62,"category":"Remédios","notes":"Remedio Queixo Luke"},{"year":"2026","month":"03-March","date":"Mar-4","account":"BMO - Credit Card","description":"Bell","amount":62.15,"category":"Básicos","notes":""},{"year":"2026","month":"03-March","date":"Mar-4","account":"TG - Credit Card","description":"Textxpandr","amount":6.54,"category":"Lila","notes":""},{"year":"2026","month":"03-March","date":"Mar-4","account":"Amex - Credit Card","description":"Tim Hortons","amount":11.53,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"03-March","date":"Mar-4","account":"Amex - Credit Card","description":"Good Fellaz Luke Hair","amount":49.48,"category":"Luke/Olivia","notes":""},{"year":"2026","month":"03-March","date":"Mar-4","account":"Amex - Credit Card","description":"Food Basics","amount":15.64,"category":"Groceries","notes":""},{"year":"2026","month":"03-March","date":"Mar-4","account":"Amex - Credit Card","description":"McDonalds","amount":19.98,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"03-March","date":"Mar-5","account":"BMO - Checking","description":"Saques - Anna Max","amount":900.0,"category":"Viagem - Brasil 2026","notes":"Viagem Brasil- Anna Max"},{"year":"2026","month":"03-March","date":"Mar-5","account":"BMO - Credit Card","description":"Osmows","amount":11.29,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"03-March","date":"Mar-5","account":"BMO - Credit Card","description":"Allstate car","amount":178.12,"category":"Básicos","notes":""},{"year":"2026","month":"03-March","date":"Mar-5","account":"TG - Checking","description":"Apex Systems","amount":-1231.85,"category":"Entradas","notes":""},{"year":"2026","month":"03-March","date":"Mar-5","account":"Amex - Credit Card","description":"Amazon","amount":11.29,"category":"Viagem - Brasil 2026","notes":"Viagem Brasil - Silicone covers"},{"year":"2026","month":"03-March","date":"Mar-5","account":"Amex - Credit Card","description":"Amazon","amount":27.18,"category":"Luke/Olivia","notes":"Princess Little People viagem"},{"year":"2026","month":"03-March","date":"Mar-5","account":"Amex - Credit Card","description":"Amazon","amount":40.65,"category":"Viagem - Brasil 2026","notes":"Viagem Brasil - Necessaire + razors Lila"},{"year":"2026","month":"03-March","date":"Mar-5","account":"Amex - Credit Card","description":"Amazon","amount":40.66,"category":"Lila","notes":"Panties"},{"year":"2026","month":"03-March","date":"Mar-6","account":"BMO - Credit Card","description":"Walmart $250.79","amount":210.96,"category":"Groceries","notes":""},{"year":"2026","month":"03-March","date":"Mar-6","account":"BMO - Credit Card","description":"Walmart $250.79","amount":26.97,"category":"Olivia - Básicos","notes":"Pull ups"},{"year":"2026","month":"03-March","date":"Mar-6","account":"BMO - Credit Card","description":"Walmart $250.79","amount":12.86,"category":"Luke/Olivia","notes":""},{"year":"2026","month":"03-March","date":"Mar-6","account":"BMO - Credit Card","description":"Meta Quest Supernatural","amount":13.55,"category":"Le","notes":""},{"year":"2026","month":"03-March","date":"Mar-6","account":"Amex - Credit Card","description":"Winners","amount":84.49,"category":"Luke/Olivia","notes":""},{"year":"2026","month":"03-March","date":"Mar-6","account":"Amex - Credit Card","description":"Luxe nail Bar","amount":69.8,"category":"Fundos (Retiradas)","notes":"Grooming"},{"year":"2026","month":"03-March","date":"Mar-6","account":"Amex - Credit Card","description":"Healthy Planet","amount":42.5,"category":"Vitaminas","notes":""},{"year":"2026","month":"03-March","date":"Mar-7","account":"Amex - Credit Card","description":"Swiss Chalet","amount":84.32,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"03-March","date":"Mar-7","account":"Amex - Credit Card","description":"Shoppers","amount":6.77,"category":"Viagem - Brasil 2026","notes":"Viagem Brasil - Ear plugs"},{"year":"2026","month":"03-March","date":"Mar-7","account":"Amex - Credit Card","description":"Pioneer","amount":29.71,"category":"Carro","notes":""},{"year":"2026","month":"03-March","date":"Mar-7","account":"Amex - Credit Card","description":"Hollys Cafe","amount":9.61,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"03-March","date":"Mar-7","account":"Amex - Credit Card","description":"Hollys Cafe","amount":7.68,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"03-March","date":"Mar-7","account":"Amex - Credit Card","description":"Cobs Bread","amount":20.43,"category":"Groceries","notes":""},{"year":"2026","month":"03-March","date":"Mar-8","account":"BMO - Credit Card","description":"Osmows","amount":11.29,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"03-March","date":"Mar-8","account":"BMO - Credit Card","description":"Wal Mart","amount":16.93,"category":"Casa","notes":"grill cover"},{"year":"2026","month":"03-March","date":"Mar-8","account":"BMO - Credit Card","description":"Costco","amount":62.1,"category":"Groceries","notes":""},{"year":"2026","month":"03-March","date":"Mar-8","account":"BMO - Credit Card","description":"Costco Gas","amount":48.52,"category":"Carro","notes":""},{"year":"2026","month":"03-March","date":"Mar-8","account":"BMO - Credit Card","description":"Claude AI","amount":31.64,"category":"Le","notes":""},{"year":"2026","month":"03-March","date":"Mar-8","account":"TG - Credit Card","description":"DoorDash Sushi","amount":66.26,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"03-March","date":"Mar-8","account":"Amex - Credit Card","description":"Wal Mart","amount":83.69,"category":"Groceries","notes":""},{"year":"2026","month":"03-March","date":"Mar-8","account":"Amex - Credit Card","description":"Wal Mart","amount":21.45,"category":"Groceries","notes":""},{"year":"2026","month":"03-March","date":"Mar-8","account":"Amex - Credit Card","description":"McDonalds","amount":2.51,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"03-March","date":"Mar-9","account":"R$ - Brasil","description":"Transfer Ju (feita pela Lou)","amount":228.45,"category":"Elvira","notes":""},{"year":"2026","month":"03-March","date":"Mar-9","account":"BMO - Checking","description":"Utilities","amount":323.6,"category":"Básicos","notes":""},{"year":"2026","month":"03-March","date":"Mar-10","account":"TG - Credit Card","description":"Apple.com bill","amount":4.51,"category":"Lila","notes":""},{"year":"2026","month":"03-March","date":"Mar-10","account":"Amex - Credit Card","description":"Tim Hortons","amount":5.61,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"03-March","date":"Mar-10","account":"Amex - Credit Card","description":"Williamsburg Contrave","amount":178.61,"category":"Básicos","notes":""},{"year":"2026","month":"03-March","date":"Mar-10","account":"BMO - Credit Card","description":"VERONA PIZZA & GRILL KITCHENER ON","amount":16.99,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"03-March","date":"Mar-10","account":"BMO - Credit Card","description":"OSMOWS APP - F193 KITCHENER ON","amount":11.29,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"03-March","date":"Mar-10","account":"BMO - Credit Card","description":"ACT*KITCHENER PROG REG KITCHNER ON","amount":32.06,"category":"Fundos (Retiradas)","notes":"Kids Activities"},{"year":"2026","month":"03-March","date":"Mar-10","account":"BMO - Credit Card","description":"ACT*KITCHENER PROG REG KITCHNER ON 1","amount":36.0,"category":"Fundos (Retiradas)","notes":"Kids Activities"},{"year":"2026","month":"03-March","date":"Mar-10","account":"BMO - Credit Card","description":"ACT*KITCHENER PROG REG KITCHNER ON 2","amount":36.0,"category":"Fundos (Retiradas)","notes":"Kids Activities"},{"year":"2026","month":"03-March","date":"Mar-10","account":"Amex - Credit Card","description":"Tim Hortons","amount":5.18,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"03-March","date":"Mar-10","account":"R$ - Brasil","description":"Pix Justine (condominio)","amount":230.26,"category":"Elvira","notes":"R$874.97"},{"year":"2026","month":"03-March","date":"Mar-11","account":"Amex - Credit Card","description":"YYZ Tim Hortons","amount":21.37,"category":"Viagem - Brasil 2026","notes":"Viagem - Brasil"},{"year":"2026","month":"03-March","date":"Mar-11","account":"Amex - Credit Card","description":"Villa Madina","amount":29.36,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"03-March","date":"Mar-11","account":"Amex - Credit Card","description":"Tim Hortons","amount":4.17,"category":"Saídas - Mid-Week","notes":""},{"year":"2026","month":"03-March","date":"Mar-11","account":"Amex - Credit Card","description":"Pi Co","amount":18.19,"category":"Viagem - Brasil 2026","notes":"Viagem - Brasil"},{"year":"2026","month":"03-March","date":"Mar-11","account":"Amex - Credit Card","description":"Pearson Parking","amount":14.0,"category":"Viagem - Brasil 2026","notes":"Viagem - Brasil"},{"year":"2026","month":"03-March","date":"Mar-11","account":"Amex - Credit Card","description":"Hudson (IAD Airport)","amount":25.72,"category":"Viagem - Brasil 2026","notes":"Viagem - Brasil"},{"year":"2026","month":"03-March","date":"Mar-11","account":"TG - Credit Card","description":"YYZ UPPER CRUST NODE 7 MISSISSAUGA ON","amount":34.76,"category":"Viagem - Brasil 2026","notes":"Viagem - Brasil"},{"year":"2026","month":"03-March","date":"Mar-11","account":"TG - Credit Card","description":"YYZ TIM HORTONS TB 710 MISSISSAUGA ON","amount":8.9,"category":"Viagem - Brasil 2026","notes":""},{"year":"2026","month":"03-March","date":"Mar-11","account":"TG - Credit Card","description":"TORONTO DUTY FREE CATV MISSISSAUGA ON","amount":10.5,"category":"Viagem - Brasil 2026","notes":""},{"year":"2026","month":"03-March","date":"Mar-12","account":"Amex - Credit Card","description":"Amazon Prime","amount":11.29,"category":"Básicos","notes":""},{"year":"2026","month":"03-March","date":"Mar-12","account":"TG - Checking","description":"EFT Withdrawal to GOODLIFE CLUBS","amount":45.19,"category":"Básicos","notes":""},{"year":"2026","month":"03-March","date":"Mar-12","account":"TG - Checking","description":"EFT Deposit from APEX SYSTEMS","amount":-1100.67,"category":"Entradas","notes":""},{"year":"2026","month":"03-March","date":"Mar-12","account":"TG - Credit Card","description":"Spotify P4046E2134 Stockholm SWE","amount":23.72,"category":"Básicos","notes":""},{"year":"2026","month":"03-March","date":"Mar-13","account":"BMO - Checking","description":"CDW CANADA CORP PAY/PAY","amount":-2785.04,"category":"Entradas","notes":""},{"year":"2026","month":"03-March","date":"Mar-13","account":"BMO - Credit Card","description":"GOOGLE *Google One HALIFAX NS","amount":3.15,"category":"Le","notes":""},{"year":"2026","month":"03-March","date":"Mar-13","account":"BMO - Credit Card","description":"DNH*GODADDY#4037760775 VICTORIA BC","amount":37.58,"category":"Le","notes":""},{"year":"2026","month":"03-March","date":"Mar-13","account":"TG - Credit Card","description":"DL *UberRides Sao Paulo SP","amount":4.06,"category":"Viagem - Brasil 2026","notes":""},{"year":"2026","month":"03-March","date":"Mar-14","account":"BMO - Credit Card","description":"NETFLIX ENTRETENIMENTO Barueri SP","amount":5.66,"category":"Básicos","notes":""},{"year":"2026","month":"03-March","date":"Mar-15","account":"TG - Credit Card","description":"Uber UBER *TRIP HELP.U SAO PAULO BRA","amount":5.14,"category":"Viagem - Brasil 2026","notes":""},{"year":"2026","month":"03-March","date":"Mar-15","account":"TG - Credit Card","description":"Uber UBER *TRIP HELP.U SAO PAULO BRA","amount":3.78,"category":"Viagem - Brasil 2026","notes":""},{"year":"2026","month":"03-March","date":"Mar-15","account":"TG - Credit Card","description":"Uber UBER *TRIP HELP.U SAO PAULO BRA","amount":5.42,"category":"Viagem - Brasil 2026","notes":""},{"year":"2026","month":"03-March","date":"Mar-15","account":"TG - Credit Card","description":"Uber UBER *TRIP HELP.U SAO PAULO BRA","amount":0.81,"category":"Viagem - Brasil 2026","notes":""},{"year":"2026","month":"03-March","date":"Mar-15","account":"TG - Credit Card","description":"Uber UBER *TRIP HELP.U SAO PAULO BRA","amount":0.27,"category":"Viagem - Brasil 2026","notes":""},{"year":"2026","month":"03-March","date":"Mar-15","account":"TG - Credit Card","description":"DL *UberRides Sao Paulo SP","amount":0.27,"category":"Viagem - Brasil 2026","notes":""},{"year":"2026","month":"03-March","date":"Mar-15","account":"R$ - Brasil","description":"EC *MERCADOLIVRESO Sofa","amount":313.96,"category":"Elvira","notes":"R$1,199.32"},{"year":"2026","month":"03-March","date":"Mar-16","account":"BMO - Checking","description":"KINDER DAY CARE MSP/DIV","amount":220.0,"category":"Básicos","notes":""},{"year":"2026","month":"03-March","date":"Mar-16","account":"BMO - Credit Card","description":"Disney Plus Burbank CA","amount":19.2,"category":"Básicos","notes":""},{"year":"2026","month":"03-March","date":"Mar-16","account":"TG - Credit Card","description":"SICKKIDS FDN DOWNTOWN TORO ON","amount":25.0,"category":"Básicos","notes":""},{"year":"2026","month":"03-March","date":"Mar-16","account":"R$ - Brasil","description":"HAVAN BOM RETIRO CURITC","amount":42.66,"category":"Elvira","notes":"R$162.95"},{"year":"2026","month":"03-March","date":"Mar-17","account":"BMO - Checking","description":"PAYPAL MSP/DIV","amount":16.48,"category":"Le","notes":"Office?"},{"year":"2026","month":"03-March","date":"Mar-17","account":"TG - Credit Card","description":"Uber UBER *TRIP HELP.U SAO PAULO BRA","amount":8.05,"category":"Viagem - Brasil 2026","notes":""},{"year":"2026","month":"03-March","date":"Mar-17","account":"TG - Credit Card","description":"Uber UBER *TRIP HELP.U SAO PAULO BRA","amount":3.95,"category":"Viagem - Brasil 2026","notes":""},{"year":"2026","month":"03-March","date":"Mar-17","account":"TG - Credit Card","description":"Uber UBER *TRIP HELP.U SAO PAULO BRA","amount":8.04,"category":"Viagem - Brasil 2026","notes":""},{"year":"2026","month":"03-March","date":"Mar-17","account":"TG - Credit Card","description":"Uber UBER *TRIP HELP.U SAO PAULO BRA","amount":0.8,"category":"Viagem - Brasil 2026","notes":""},{"year":"2026","month":"03-March","date":"Mar-17","account":"TG - Credit Card","description":"Uber UBER *TRIP HELP.U SAO PAULO BRA","amount":0.27,"category":"Viagem - Brasil 2026","notes":""},{"year":"2026","month":"03-March","date":"Mar-17","account":"TG - Credit Card","description":"Uber UBER *TRIP HELP.U SAO PAULO BRA 2","amount":0.27,"category":"Viagem - Brasil 2026","notes":""},{"year":"2026","month":"03-March","date":"Mar-17","account":"R$ - Brasil","description":"Pediatra Taico x2","amount":164.84,"category":"Fundos (Retiradas)","notes":"Health"},{"year":"2026","month":"03-March","date":"Mar-18","account":"BMO - Checking","description":"TD LOAN PAYMNT LNS/PRE","amount":133.7,"category":"Básicos","notes":""},{"year":"2026","month":"03-March","date":"Mar-18","account":"BMO - Checking","description":"KITCHENER-WILMO MSP/DIV","amount":102.93,"category":"Básicos","notes":""},{"year":"2026","month":"03-March","date":"Mar-19","account":"BMO - Credit Card","description":"KOODO MOBILE PAC EDMONTON AB","amount":44.07,"category":"Básicos","notes":""},{"year":"2026","month":"03-March","date":"Mar-19","account":"TG - Checking","description":"EFT Deposit from CANADA","amount":-596.63,"category":"Entradas","notes":""},{"year":"2026","month":"03-March","date":"Mar-19","account":"TG - Checking","description":"EFT Withdrawal to Koodo Mobile","amount":38.42,"category":"Básicos","notes":""},{"year":"2026","month":"03-March","date":"Mar-19","account":"TG - Checking","description":"EFT Deposit from APEX SYSTEMS","amount":-800.67,"category":"Entradas","notes":""},{"year":"2026","month":"03-March","date":"Mar-20","account":"TG - Checking","description":"EFT Withdrawal to Plan Canada","amount":48.0,"category":"Básicos","notes":""},{"year":"2026","month":"03-March","date":"Mar-21","account":"BMO - Credit Card","description":"ROAMLESS WILMINGTON DE","amount":70.46,"category":"Viagem - Brasil 2026","notes":"Viagem - Brasil (extra roaming)"},{"year":"2026","month":"03-March","date":"Mar-21","account":"BMO - Credit Card","description":"GOOGLE *Strava Run Bik HALIFAX NS","amount":16.94,"category":"Le","notes":""},{"year":"2026","month":"03-March","date":"Mar-21","account":"Amex - Credit Card","description":"Prime Video","amount":5.64,"category":"Saídas - Weekend","notes":""},{"year":"2026","month":"03-March","date":"Mar-21","account":"TG - Credit Card","description":"DL *UberRides Sao Paulo SP","amount":7.31,"category":"Viagem - Brasil 2026","notes":""},{"year":"2026","month":"03-March","date":"Mar-21","account":"TG - Credit Card","description":"Uber UBER *TRIP HELP.U SAO PAULO BRA","amount":0.27,"category":"Viagem - Brasil 2026","notes":""},{"year":"2026","month":"03-March","date":"Mar-22","account":"TG - Credit Card","description":"DL *UberRides Sao Paulo SP","amount":7.59,"category":"Viagem - Brasil 2026","notes":""},{"year":"2026","month":"03-March","date":"Mar-22","account":"TG - Credit Card","description":"Uber UBER *TRIP HELP.U SAO PAULO BRA","amount":0.27,"category":"Viagem - Brasil 2026","notes":""},{"year":"2026","month":"03-March","date":"Mar-22","account":"R$ - Brasil","description":"Enfermeira Elvira","amount":47.37,"category":"Elvira","notes":"R$180.00"},{"year":"2026","month":"03-March","date":"Mar-23","account":"BMO - Credit Card","description":"PETS PLUS US OAKVILLE ON","amount":85.41,"category":"Básicos","notes":""},{"year":"2026","month":"03-March","date":"Mar-24","account":"BMO - Credit Card","description":"ACT*KITCHENER PROG REG KITCHNER ON","amount":103.13,"category":"Fundos (Retiradas)","notes":"Summer Camp"},{"year":"2026","month":"03-March","date":"Mar-24","account":"BMO - Credit Card","description":"ACT*KITCHENER PROG REG KITCHNER ON 3","amount":128.91,"category":"Fundos (Retiradas)","notes":"Summer Camp"},{"year":"2026","month":"03-March","date":"Mar-24","account":"BMO - Credit Card","description":"ACT*KITCHENER PROG REG KITCHNER ON 4","amount":128.91,"category":"Fundos (Retiradas)","notes":"Summer Camp"},{"year":"2026","month":"03-March","date":"Mar-24","account":"BMO - Credit Card","description":"ACT*KITCHENER PROG REG KITCHNER ON 5","amount":128.91,"category":"Fundos (Retiradas)","notes":"Summer Camp"},{"year":"2026","month":"03-March","date":"Mar-24","account":"BMO - Credit Card","description":"ACT*KITCHENER PROG REG KITCHNER ON 6","amount":128.91,"category":"Fundos (Retiradas)","notes":"Summer Camp"},{"year":"2026","month":"03-March","date":"Mar-24","account":"BMO - Credit Card","description":"ACT*KITCHENER PROG REG KITCHNER ON 7","amount":128.91,"category":"Fundos (Retiradas)","notes":"Summer Camp"},{"year":"2026","month":"03-March","date":"Mar-24","account":"TG - Credit Card","description":"IFD*53.747.893 KEROLLY CURITIBA BRA","amount":64.09,"category":"Viagem - Brasil 2026","notes":""},{"year":"2026","month":"03-March","date":"Mar-24","account":"R$ - Brasil","description":"FARMACIA E DROGARIA NIC","amount":83.11,"category":"Elvira","notes":"R$315.81"},{"year":"2026","month":"03-March","date":"Mar-24","account":"R$ - Brasil","description":"FARMACIA NISSEICURITIBA","amount":64.27,"category":"Elvira","notes":"R$244.21"},{"year":"2026","month":"03-March","date":"Mar-25","account":"TG - Credit Card","description":"Uber UBER *TRIP HELP.U SAO PAULO BRA","amount":3.52,"category":"Viagem - Brasil 2026","notes":""},{"year":"2026","month":"03-March","date":"Mar-25","account":"TG - Credit Card","description":"Uber UBER *TRIP HELP.U SAO PAULO BRA","amount":0.27,"category":"Viagem - Brasil 2026","notes":""},{"year":"2026","month":"03-March","date":"Mar-26","account":"BMO - Credit Card","description":"IFD*PIZZARIA DO FUTURO Curitiba BRA","amount":34.66,"category":"Viagem - Brasil 2026","notes":"Viagem - Brasil"},{"year":"2026","month":"03-March","date":"Mar-26","account":"TG - Checking","description":"EFT Withdrawal to GOODLIFE CLUBS","amount":45.19,"category":"Básicos","notes":""},{"year":"2026","month":"03-March","date":"Mar-26","account":"TG - Checking","description":"EFT Deposit from APEX SYSTEMS","amount":-1024.39,"category":"Entradas","notes":""},{"year":"2026","month":"03-March","date":"Mar-27","account":"BMO - Checking","description":"CDW CANADA CORP PAY/PAY","amount":-2770.12,"category":"Entradas","notes":""},{"year":"2026","month":"03-March","date":"Mar-27","account":"TG - Credit Card","description":"DL *UberRides Sao Paulo SP","amount":7.03,"category":"Viagem - Brasil 2026","notes":""},{"year":"2026","month":"03-March","date":"Mar-27","account":"TG - Credit Card","description":"Uber UBER *TRIP HELP.U SAO PAULO BRA","amount":0.28,"category":"Viagem - Brasil 2026","notes":""},{"year":"2026","month":"03-March","date":"Mar-27","account":"R$ - Brasil","description":"Festa Luke","amount":555.77,"category":"Fundos (Retiradas)","notes":"Festas"},{"year":"2026","month":"03-March","date":"Mar-28","account":"TG - Credit Card","description":"APPLE.COM/BILL TORONTO ON","amount":22.59,"category":"Lila","notes":""},{"year":"2026","month":"03-March","date":"Mar-29","account":"TG - Credit Card","description":"DL *UberRides Sao Paulo SP","amount":3.76,"category":"Viagem - Brasil 2026","notes":""},{"year":"2026","month":"03-March","date":"Mar-29","account":"TG - Credit Card","description":"Uber UBER *TRIP HELP.U SAO PAULO BRA","amount":0.28,"category":"Viagem - Brasil 2026","notes":""},{"year":"2026","month":"03-March","date":"Mar-30","account":"BMO - Credit Card","description":"OPENAI *CHATGPT SUBSCR SAN FRANCISCO CA","amount":32.3,"category":"Básicos","notes":""},{"year":"2026","month":"03-March","date":"Mar-31","account":"BMO - Checking","description":"FULL PLAN FEE REBATE","amount":-17.95,"category":"Básicos","notes":""},{"year":"2026","month":"03-March","date":"Mar-31","account":"BMO - Checking","description":"PERFORMANCE PLAN","amount":17.95,"category":"Básicos","notes":""},{"year":"2026","month":"03-March","date":"Mar-31","account":"BMO - Checking","description":"KINDER DAY CARE MSP/DIV","amount":220.0,"category":"Básicos","notes":""},{"year":"2026","month":"03-March","date":"Mar-31","account":"R$ - Brasil","description":"SAN Pix Karen (enfermeira)","amount":53.62,"category":"Elvira","notes":""},{"year":"2026","month":"03-March","date":"Mar-31","account":"R$ - Brasil","description":"Gastos BR - $4850 (2/3 do mes) menos gastos extras/fundos","amount":1698.35,"category":"Viagem - Brasil 2026","notes":""},{"year":"2026","month":"03-March","date":"Apr-2","account":"R$ - Brasil","description":"Leroy merlincuritibabra","amount":32.77,"category":"Elvira","notes":"R$121.25"}];
         const TEST_BUDGET_DATA = [{"year":"2026","month":"03-March","category":"Básicos","budget":5521.62},{"year":"2026","month":"03-March","category":"Groceries","budget":1900.0},{"year":"2026","month":"03-March","category":"Carro","budget":300.0},{"year":"2026","month":"03-March","category":"Saídas - Weekend","budget":700.0},{"year":"2026","month":"03-March","category":"Saídas - Mid-Week","budget":200.0},{"year":"2026","month":"03-March","category":"Office","budget":150.0},{"year":"2026","month":"03-March","category":"Olivia - Básicos","budget":40.0},{"year":"2026","month":"03-March","category":"Max - Básicos","budget":50.0},{"year":"2026","month":"03-March","category":"Remédios","budget":50.0},{"year":"2026","month":"03-March","category":"Vitaminas","budget":65.0},{"year":"2026","month":"03-March","category":"Lila","budget":350.0},{"year":"2026","month":"03-March","category":"Le","budget":150.0},{"year":"2026","month":"03-March","category":"Luke/Olivia","budget":300.0},{"year":"2026","month":"03-March","category":"Casa","budget":150.0},{"year":"2026","month":"03-March","category":"Elvira","budget":1000.0},{"year":"2026","month":"03-March","category":"Viagem - Brasil 2026","budget":0},{"year":"2026","month":"03-March","category":"[TBD]","budget":0}];
@@ -816,99 +935,306 @@
         let filteredTransactions = [];
         let allBudgets = [];
 
-        // Categories to exclude from monthly budget (yearly budget items)
         const EXCLUDED_CATEGORIES = ['Fundos (depósitos)', 'Fundos (Retiradas)'];
-        
-        // Custom category order for budget table
-        const BUDGET_CATEGORY_ORDER = [
-            'Básicos',
-            'Groceries',
-            'Carro',
-            'Saídas - Weekend',
-            'Saídas - Mid-Week',
-            'Office',
-            'Olivia - Básicos',
-            'Max - Básicos',
-            'Remédios',
-            'Vitaminas',
-            'Lila',
-            'Le',
-            'Luke/Olivia',
-            'Casa',
-            '[TBD]'
-        ];
-        
-        
+        const BUDGET_CATEGORY_ORDER = ['Básicos','Groceries','Carro','Saídas - Weekend','Saídas - Mid-Week','Office','Olivia - Básicos','Max - Básicos','Remédios','Vitaminas','Lila','Le','Luke/Olivia','Casa','[TBD]'];
+
+        // ============================================
+        // AI ASSISTANT — STATE
+        // ============================================
+        const AI_SYSTEM_PROMPT = `You are a personal finance assistant embedded in Leo's household budget dashboard.
+
+ROLE: Analyze the financial transaction and budget data provided and give clear, honest, useful insights.
+
+DATA STRUCTURE:
+- Transactions have fields: year, month, date, account, description, amount, category, notes
+- Negative amounts in category "Entradas" = income deposits (shown as positive income)
+- Negative amounts in ALL other categories = reimbursements (they reduce that category's spend, NOT income)
+- Categories "Fundos (depósitos)" and "Fundos (Retiradas)" are savings movements, excluded from expense analysis
+- Budget data has fields: year, month, category, budget amount
+
+GOALS:
+- Answer questions based strictly on the data provided
+- Surface patterns, overspending, and anomalies proactively when relevant
+- Be concise for simple questions, detailed for report requests
+
+CONSTRAINTS:
+- Never invent or assume data not present in the provided context
+- If data is insufficient to answer confidently, say so clearly
+- No generic financial advice unrelated to the actual numbers
+
+FORMAT:
+- Conversational answers: 2-3 paragraphs max
+- Reports: use headers and bullet points
+- Always bold key dollar amounts`;
+
+        // Token pricing per 1M tokens [input, output]
+        const MODEL_PRICING = {
+            'claude-haiku-4-5-20251001': { input: 0.80, output: 4.00, label: 'Haiku 3.5' },
+            'claude-sonnet-4-6':         { input: 3.00, output: 15.00, label: 'Sonnet 4' }
+        };
+
+        // Session totals
+        let sessionInputTokens = 0;
+        let sessionOutputTokens = 0;
+        let sessionCost = 0;
+        let sessionQueryCount = 0;
+
+        // ============================================
+        // AI SECTION — UI TOGGLE
+        // ============================================
+        let aiSectionOpen = false;
+
+        function toggleAiSection() {
+            aiSectionOpen = !aiSectionOpen;
+            const body = document.getElementById('aiSectionBody');
+            const icon = document.getElementById('aiCollapseIcon');
+            body.classList.toggle('open', aiSectionOpen);
+            icon.style.transform = aiSectionOpen ? 'rotate(0deg)' : 'rotate(-90deg)';
+            if (aiSectionOpen) updateAiKeyStatus();
+        }
+
+        // ============================================
+        // API KEY MANAGEMENT
+        // ============================================
+        function saveApiKey() {
+            const val = document.getElementById('aiKeyInput').value.trim();
+            if (!val || !val.startsWith('sk-ant')) {
+                alert('Please enter a valid Anthropic API key (starts with sk-ant-)');
+                return;
+            }
+            localStorage.setItem('anthropicApiKey', val);
+            document.getElementById('aiKeyInput').value = '';
+            updateAiKeyStatus();
+        }
+
+        function clearApiKey() {
+            if (!confirm('Remove saved API key?')) return;
+            localStorage.removeItem('anthropicApiKey');
+            updateAiKeyStatus();
+        }
+
+        function getApiKey() {
+            return localStorage.getItem('anthropicApiKey') || '';
+        }
+
+        function updateAiKeyStatus() {
+            const key = getApiKey();
+            const status = document.getElementById('aiKeyStatus');
+            const input = document.getElementById('aiKeyInput');
+            if (key) {
+                const masked = key.substring(0, 10) + '••••••••••••••••' + key.slice(-4);
+                status.textContent = '✅ Key saved: ' + masked;
+                status.className = 'ai-key-status saved';
+                input.placeholder = 'Key already saved — paste new one to replace';
+            } else {
+                status.textContent = '⚠️ No key saved — paste your Anthropic API key above';
+                status.className = 'ai-key-status missing';
+                input.placeholder = 'sk-ant-api03-...';
+            }
+        }
+
+        // ============================================
+        // QUICK PROMPTS
+        // ============================================
+        function useQuickPrompt(text) {
+            document.getElementById('aiTextarea').value = text;
+            document.getElementById('aiTextarea').focus();
+        }
+
+        // ============================================
+        // BUILD CONTEXT PAYLOAD
+        // Only sends year=2026 data
+        // ============================================
+        function buildAiContext() {
+            const filtered2026 = allTransactions.filter(t => t.year === '2026');
+            const budgets2026 = allBudgets.filter(b => b.year === '2026');
+
+            const monthsPresent = [...new Set(filtered2026.map(t => t.month))].sort().join(', ');
+            const rowCount = filtered2026.length;
+
+            // Update the data info line
+            document.getElementById('aiDataInfo').textContent =
+                `📊 Sending ${rowCount} transactions (2026 only) across: ${monthsPresent || 'no months'}`;
+
+            return `TRANSACTION DATA (${rowCount} rows, year 2026):
+${JSON.stringify(filtered2026)}
+
+BUDGET DATA (2026):
+${JSON.stringify(budgets2026)}`;
+        }
+
+        // ============================================
+        // COST CALCULATION
+        // ============================================
+        function calcCost(model, inputTokens, outputTokens) {
+            const pricing = MODEL_PRICING[model] || MODEL_PRICING['claude-haiku-4-5-20251001'];
+            const inputCost  = (inputTokens  / 1_000_000) * pricing.input;
+            const outputCost = (outputTokens / 1_000_000) * pricing.output;
+            return inputCost + outputCost;
+        }
+
+        function formatCost(cost) {
+            if (cost < 0.001) return '<$0.001';
+            return '$' + cost.toFixed(4);
+        }
+
+        // ============================================
+        // SEND QUERY TO CLAUDE API
+        // ============================================
+        async function sendAiQuery() {
+            const question = document.getElementById('aiTextarea').value.trim();
+            if (!question) { alert('Please enter a question first.'); return; }
+
+            const apiKey = getApiKey();
+            if (!apiKey) {
+                alert('No API key found. Please save your Anthropic API key in the section above.');
+                return;
+            }
+
+            const model = document.getElementById('aiModelSelect').value;
+            const context = buildAiContext();
+
+            // UI — show thinking
+            const responseArea = document.getElementById('aiResponseArea');
+            const thinkingEl   = document.getElementById('aiThinking');
+            const responseBox  = document.getElementById('aiResponseBox');
+            const errorBox     = document.getElementById('aiErrorBox');
+            const tokenBar     = document.getElementById('aiTokenBar');
+            const sendBtn      = document.getElementById('aiSendBtn');
+
+            responseArea.classList.add('visible');
+            thinkingEl.style.display = 'flex';
+            responseBox.style.display = 'none';
+            errorBox.style.display = 'none';
+            tokenBar.style.display = 'none';
+            sendBtn.disabled = true;
+            sendBtn.textContent = '⏳ Thinking…';
+
+            try {
+                const response = await fetch('https://api.anthropic.com/v1/messages', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': apiKey,
+                        'anthropic-version': '2023-06-01',
+                        'anthropic-dangerous-direct-browser-access': 'true'
+                    },
+                    body: JSON.stringify({
+                        model: model,
+                        max_tokens: 1500,
+                        system: AI_SYSTEM_PROMPT,
+                        messages: [{
+                            role: 'user',
+                            content: `Here is my financial data:\n\n${context}\n\n---\n\nMy question: ${question}`
+                        }]
+                    })
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData?.error?.message || `HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // Extract response text
+                const text = data.content
+                    .filter(b => b.type === 'text')
+                    .map(b => b.text)
+                    .join('');
+
+                // Token counts
+                const inputTok  = data.usage?.input_tokens  || 0;
+                const outputTok = data.usage?.output_tokens || 0;
+                const cost      = calcCost(model, inputTok, outputTok);
+
+                // Update session totals
+                sessionInputTokens  += inputTok;
+                sessionOutputTokens += outputTok;
+                sessionCost         += cost;
+                sessionQueryCount++;
+
+                // Render response
+                thinkingEl.style.display = 'none';
+                responseBox.style.display = 'block';
+                responseBox.innerHTML = formatAiResponse(text);
+
+                // Token bar
+                const pricing = MODEL_PRICING[model];
+                document.getElementById('tokIn').textContent    = inputTok.toLocaleString();
+                document.getElementById('tokOut').textContent   = outputTok.toLocaleString();
+                document.getElementById('tokCost').textContent  = formatCost(cost);
+                document.getElementById('tokModel').textContent = pricing.label + ' · $' + pricing.input + '/$' + pricing.output + ' per 1M in/out';
+                tokenBar.style.display = 'flex';
+
+                // Session total
+                const sessionEl = document.getElementById('aiSessionTotal');
+                sessionEl.style.display = 'block';
+                sessionEl.textContent = `Session: ${sessionQueryCount} quer${sessionQueryCount === 1 ? 'y' : 'ies'} · ${(sessionInputTokens + sessionOutputTokens).toLocaleString()} total tokens · ${formatCost(sessionCost)} total cost`;
+
+            } catch (err) {
+                thinkingEl.style.display = 'none';
+                errorBox.style.display = 'block';
+                errorBox.textContent = '❌ Error: ' + err.message;
+                console.error('AI query error:', err);
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.textContent = 'Send ↵';
+            }
+        }
+
+        // ============================================
+        // FORMAT AI RESPONSE
+        // Basic markdown-lite: **bold**, headers, bullets
+        // ============================================
+        function formatAiResponse(text) {
+            return text
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/^### (.+)$/gm, '<h4 style="margin:12px 0 4px;color:#2d3748;font-size:14px;">$1</h4>')
+                .replace(/^## (.+)$/gm,  '<h3 style="margin:14px 0 6px;color:#1a202c;font-size:15px;">$1</h3>')
+                .replace(/^# (.+)$/gm,   '<h2 style="margin:16px 0 8px;color:#1a202c;font-size:16px;">$1</h2>')
+                .replace(/^- (.+)$/gm,   '<li style="margin:3px 0 3px 16px;">$1</li>')
+                .replace(/\n/g, '<br>');
+        }
+
+        // ============================================
+        // EXISTING DASHBOARD FUNCTIONS (unchanged)
+        // ============================================
         function updateLastTransactionDate() {
             if (allTransactions.length === 0) {
                 document.getElementById('lastTransaction').textContent = '📅 Last transaction: --';
                 return;
             }
-            
-            // Find the most recent transaction date
-            // Dates are in format like "Jan-1", "Dec-31", etc.
             let mostRecentTransaction = allTransactions[0];
-            
-            // Try to find the transaction with the latest date
-            // Since dates might be in different formats, we'll look at the raw data
-            allTransactions.forEach(transaction => {
-                // We'll use a simple comparison - you might want to enhance this
-                // For now, we'll just show the last transaction in the array
-                mostRecentTransaction = transaction;
-            });
-            
+            allTransactions.forEach(transaction => { mostRecentTransaction = transaction; });
             const lastDate = mostRecentTransaction.date || 'Unknown';
             const lastMonth = mostRecentTransaction.month || '';
             const lastYear = mostRecentTransaction.year || '';
-            
-            document.getElementById('lastTransaction').textContent = 
+            document.getElementById('lastTransaction').textContent =
                 `📅 Last transaction: ${lastDate}${lastMonth ? ' (' + lastMonth : ''}${lastYear ? ' ' + lastYear + ')' : ''}`;
         }
         
         function populateFilters() {
-            // Get unique years and months from data
             const years = new Set();
             const monthYearPairs = [];
-            
             allTransactions.forEach(transaction => {
                 if (transaction.year) years.add(transaction.year);
-                if (transaction.year && transaction.month) {
-                    monthYearPairs.push({
-                        year: transaction.year,
-                        month: transaction.month,
-                        date: transaction.date
-                    });
-                }
+                if (transaction.year && transaction.month) monthYearPairs.push({ year: transaction.year, month: transaction.month, date: transaction.date });
             });
-            
-            // Sort years and months
-            const sortedYears = Array.from(years).sort((a, b) => b - a); // Descending
-            
-            // Get unique months while preserving order
+            const sortedYears = Array.from(years).sort((a, b) => b - a);
             const uniqueMonths = [...new Set(allTransactions.map(t => t.month))];
-            
-            // Populate year dropdown
             const yearFilter = document.getElementById('yearFilter');
             yearFilter.innerHTML = '<option value="all">All Years</option>';
-            sortedYears.forEach(year => {
-                yearFilter.innerHTML += `<option value="${year}">${year}</option>`;
-            });
-            
-            // Populate month dropdown
+            sortedYears.forEach(year => { yearFilter.innerHTML += `<option value="${year}">${year}</option>`; });
             const monthFilter = document.getElementById('monthFilter');
             monthFilter.innerHTML = '<option value="all">All Months</option>';
-            uniqueMonths.forEach(month => {
-                monthFilter.innerHTML += `<option value="${month}">${month}</option>`;
-            });
-            
-            // Set default to most recent transaction's year and month
+            uniqueMonths.forEach(month => { monthFilter.innerHTML += `<option value="${month}">${month}</option>`; });
             if (monthYearPairs.length > 0) {
-                // Find the most recent transaction (last one in array typically)
                 const lastTransaction = allTransactions[allTransactions.length - 1];
                 if (lastTransaction.year && lastTransaction.month) {
                     yearFilter.value = lastTransaction.year;
                     monthFilter.value = lastTransaction.month;
-                    console.log(`Defaulting to: ${lastTransaction.month} ${lastTransaction.year}`);
                 }
             }
         }
@@ -916,303 +1242,126 @@
         function applyFilters() {
             const selectedYear = document.getElementById('yearFilter').value;
             const selectedMonth = document.getElementById('monthFilter').value;
-            
-            // Filter transactions based on selected year and month
             filteredTransactions = allTransactions.filter(transaction => {
                 const yearMatch = selectedYear === 'all' || transaction.year.toString() === selectedYear;
                 const monthMatch = selectedMonth === 'all' || transaction.month === selectedMonth;
                 return yearMatch && monthMatch;
             });
-            
-            // Update visualizations with filtered data
             processData(filteredTransactions);
-            
-            // Update budget table
-            createBudgetTable(
-                filteredTransactions, 
-                allBudgets,
+            createBudgetTable(filteredTransactions, allBudgets,
                 selectedYear === 'all' ? filteredTransactions[filteredTransactions.length - 1]?.year : selectedYear,
                 selectedMonth === 'all' ? filteredTransactions[filteredTransactions.length - 1]?.month : selectedMonth
             );
-            
-            // Update transaction filter (reset to prompt state on month change)
             hasFilteredOnce = false;
             updateCategoryFilter();
             filterTransactions();
-            
-            console.log(`Filtered: ${filteredTransactions.length} of ${allTransactions.length} transactions`);
         }
 
         function showMessage(type, message) {
-            // Hide all messages first
             document.getElementById('loadingMessage').style.display = 'none';
             document.getElementById('errorMessage').style.display = 'none';
             document.getElementById('successMessage').style.display = 'none';
-            
-            // Show the appropriate message
             const messageDiv = document.getElementById(type + 'Message');
             messageDiv.textContent = message;
             messageDiv.style.display = 'block';
-            
-            // Auto-hide success and error messages after 5 seconds
-            if (type !== 'loading') {
-                setTimeout(() => {
-                    messageDiv.style.display = 'none';
-                }, 5000);
-            }
+            if (type !== 'loading') { setTimeout(() => { messageDiv.style.display = 'none'; }, 5000); }
         }
 
         function parseGoogleSheetsJSON(responseText) {
-            // The response looks like: /*O_o*/\ngoogle.visualization.Query.setResponse({...});
-            // We need to extract just the JSON part
-            
-            // Find the start of the JSON object
             const jsonStart = responseText.indexOf('{');
             const jsonEnd = responseText.lastIndexOf('}');
-            
-            if (jsonStart === -1 || jsonEnd === -1) {
-                throw new Error('Invalid response format from Google Sheets');
-            }
-            
-            // Extract the JSON part
-            const jsonString = responseText.substring(jsonStart, jsonEnd + 1);
-            
-            // Parse the JSON
-            const data = JSON.parse(jsonString);
-            
-            return data;
+            if (jsonStart === -1 || jsonEnd === -1) throw new Error('Invalid response format from Google Sheets');
+            return JSON.parse(responseText.substring(jsonStart, jsonEnd + 1));
         }
         
         function convertGoogleSheetsData(googleData) {
-            // Check if we got valid data
-            if (!googleData.table || !googleData.table.rows) {
-                throw new Error('No data found in the response');
-            }
-            
+            if (!googleData.table || !googleData.table.rows) throw new Error('No data found in the response');
             const rows = googleData.table.rows;
             const transactions = [];
-            
             rows.forEach(row => {
-                // Each row has a 'c' array with cell values
                 const cells = row.c;
-                
-                // Skip empty rows (now we need 8 columns: Year + original 7)
                 if (!cells || cells.length < 8) return;
-                
-                // Extract values with new column structure (Year is now column A/index 0)
-                const transaction = {
-                    year: cells[0]?.v || '',           // Column A: Year
-                    month: cells[1]?.v || '',          // Column B: month
-                    date: cells[2]?.f || cells[2]?.v || '',  // Column C: Date
-                    account: cells[3]?.v || '',        // Column D: account
-                    description: cells[4]?.v || '',    // Column E: description
-                    amount: cells[5]?.v || 0,          // Column F: amount
-                    category: cells[6]?.v || '',       // Column G: category
-                    notes: cells[7]?.v || ''           // Column H: notes
-                };
-                
-                transactions.push(transaction);
+                transactions.push({
+                    year: cells[0]?.v || '', month: cells[1]?.v || '',
+                    date: cells[2]?.f || cells[2]?.v || '', account: cells[3]?.v || '',
+                    description: cells[4]?.v || '', amount: cells[5]?.v || 0,
+                    category: cells[6]?.v || '', notes: cells[7]?.v || ''
+                });
             });
-            
             return transactions;
         }
 
         function convertBudgetData(googleData) {
-            // Check if we got valid data
-            if (!googleData.table || !googleData.table.rows) {
-                throw new Error('No budget data found in the response');
-            }
-            
+            if (!googleData.table || !googleData.table.rows) throw new Error('No budget data found in the response');
             const rows = googleData.table.rows;
             const budgets = [];
-            
             rows.forEach(row => {
-                // Each row has a 'c' array with cell values
                 const cells = row.c;
-                
-                // Skip empty rows (expecting 4 columns: Year, Month, Category, Budget)
                 if (!cells || cells.length < 4) return;
-                
-                // Extract values
-                // Note: Month is a DATE type in Google Sheets, so we use the formatted value (f)
                 const year = cells[0]?.v || '';
-                const month = cells[1]?.f || cells[1]?.v || ''; // Use formatted value for month
+                const month = cells[1]?.f || cells[1]?.v || '';
                 const category = cells[2]?.v || '';
                 const budget = cells[3]?.v || 0;
-                
-                // Skip if essential fields are missing
                 if (!year || !month || !category) return;
-                
-                budgets.push({
-                    year: year.toString(),
-                    month: month,
-                    category: category,
-                    budget: parseFloat(budget) || 0
-                });
+                budgets.push({ year: year.toString(), month, category, budget: parseFloat(budget) || 0 });
             });
-            
             return budgets;
         }
 
         async function fetchGoogleSheetData() {
-            try {
-                // ============================================
-                // DEV MODE: Use hardcoded test data
-                // ============================================
-                if (DEV_MODE) {
-                    showMessage('success', `✅ DEV MODE: Loaded ${TEST_DATA.length} transactions from test data`);
-                    console.log('🔧 DEV MODE: Using hardcoded test data');
-                    
-                    // Simulate a small delay to mimic API call
-                    await new Promise(resolve => setTimeout(resolve, 300));
-                    
-                    return TEST_DATA;
-                }
-                
-                // ============================================
-                // PRODUCTION MODE: Fetch from Google Sheets API
-                // ============================================
-                showMessage('loading', 'Fetching data from Google Sheets...');
-                
-                const response = await fetch(API_URL);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const responseText = await response.text();
-                
-                // Parse the Google Sheets JSON response
-                const googleData = parseGoogleSheetsJSON(responseText);
-                
-                // Check if the response is valid
-                if (googleData.status !== 'ok') {
-                    throw new Error('Google Sheets API returned an error: ' + (googleData.errors?.[0]?.detailed_message || googleData.status));
-                }
-                
-                // Convert to our format
-                const transactions = convertGoogleSheetsData(googleData);
-                
-                if (transactions.length === 0) {
-                    throw new Error('No transactions found in the spreadsheet');
-                }
-                
-                return transactions;
-                
-            } catch (error) {
-                console.error('Error fetching data:', error);
-                throw error;
+            if (DEV_MODE) {
+                showMessage('success', `✅ DEV MODE: Loaded ${TEST_DATA.length} transactions from test data`);
+                await new Promise(resolve => setTimeout(resolve, 300));
+                return TEST_DATA;
             }
+            showMessage('loading', 'Fetching data from Google Sheets...');
+            const response = await fetch(API_URL);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const responseText = await response.text();
+            const googleData = parseGoogleSheetsJSON(responseText);
+            if (googleData.status !== 'ok') throw new Error('Google Sheets API returned an error: ' + (googleData.errors?.[0]?.detailed_message || googleData.status));
+            const transactions = convertGoogleSheetsData(googleData);
+            if (transactions.length === 0) throw new Error('No transactions found in the spreadsheet');
+            return transactions;
         }
 
         async function fetchBudgetData() {
-            try {
-                // ============================================
-                // DEV MODE: Use hardcoded test data
-                // ============================================
-                if (DEV_MODE) {
-                    console.log('🔧 DEV MODE: Using hardcoded budget test data');
-                    
-                    // Simulate a small delay to mimic API call
-                    await new Promise(resolve => setTimeout(resolve, 200));
-                    
-                    return TEST_BUDGET_DATA;
-                }
-                
-                // ============================================
-                // PRODUCTION MODE: Fetch from Google Sheets API
-                // ============================================
-                console.log('📊 Fetching budget data from Google Sheets...');
-                
-                const response = await fetch(BUDGET_API_URL);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const responseText = await response.text();
-                
-                // Parse the Google Sheets JSON response
-                const googleData = parseGoogleSheetsJSON(responseText);
-                
-                // Check if the response is valid
-                if (googleData.status !== 'ok') {
-                    throw new Error('Google Sheets API returned an error: ' + (googleData.errors?.[0]?.detailed_message || googleData.status));
-                }
-                
-                // Convert to our format
-                const budgets = convertBudgetData(googleData);
-                
-                console.log(`✅ Loaded ${budgets.length} budget entries from Google Sheets`);
-                
-                return budgets;
-                
-            } catch (error) {
-                console.error('Error fetching budget data:', error);
-                return [];
+            if (DEV_MODE) {
+                await new Promise(resolve => setTimeout(resolve, 200));
+                return TEST_BUDGET_DATA;
             }
+            const response = await fetch(BUDGET_API_URL);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const responseText = await response.text();
+            const googleData = parseGoogleSheetsJSON(responseText);
+            if (googleData.status !== 'ok') throw new Error('Google Sheets API error');
+            return convertBudgetData(googleData);
         }
 
         function processData(data) {
-            // Calculate totals
-            let totalIncome = 0;
-            let totalExpenses = 0;
-            let fundosDepositos = 0;  // Income from Fundos
-            let fundosRetiradas = 0;   // Expenses to Fundos
+            let totalIncome = 0, totalExpenses = 0, fundosDepositos = 0, fundosRetiradas = 0;
             const categoryTotals = {};
-            
             data.forEach(item => {
-                // Separate Fundos calculations
-                if (item.category === 'Fundos (depósitos)' && item.amount < 0) {
-                    fundosDepositos += Math.abs(item.amount);
-                } else if (item.category === 'Fundos (Retiradas)' && item.amount > 0) {
-                    fundosRetiradas += item.amount;
-                }
-                
-                // Income = only Entradas category (negative = deposit)
-                if (item.category === 'Entradas') {
-                    if (item.amount < 0) totalIncome += Math.abs(item.amount);
-                    return;
-                }
-                
-                // Skip excluded categories for monthly budget
-                if (EXCLUDED_CATEGORIES.includes(item.category)) {
-                    return;
-                }
-                
-                // All other categories: add to expenses (reimbursements are negative → reduce total)
+                if (item.category === 'Fundos (depósitos)' && item.amount < 0) { fundosDepositos += Math.abs(item.amount); }
+                else if (item.category === 'Fundos (Retiradas)' && item.amount > 0) { fundosRetiradas += item.amount; }
+                if (item.category === 'Entradas') { if (item.amount < 0) totalIncome += Math.abs(item.amount); return; }
+                if (EXCLUDED_CATEGORIES.includes(item.category)) return;
                 totalExpenses += item.amount;
                 if (!categoryTotals[item.category]) categoryTotals[item.category] = 0;
                 categoryTotals[item.category] += item.amount;
             });
-            
-            // Update stat boxes
             realIncomeValue = totalIncome;
             document.getElementById('totalExpenses').textContent = '$' + totalExpenses.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            updateIncomeDisplay(); // sets income + net
-            
+            updateIncomeDisplay();
             document.getElementById('totalTransactions').textContent = data.length;
-            
-            // Update Fundos cards
             document.getElementById('fundosDepositos').textContent = '$' + fundosDepositos.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
             document.getElementById('fundosRetiradas').textContent = '$' + fundosRetiradas.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            
-            // Convert to array and sort by amount (descending)
-            const sortedCategories = Object.entries(categoryTotals)
-                .sort((a, b) => b[1] - a[1])
-                .map(([category, total]) => ({
-                    category: category,
-                    total: total
-                }));
-            
-            return sortedCategories;
+            return Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]).map(([category, total]) => ({ category, total }));
         }
 
         function createBudgetTable(transactions, budgets, selectedYear, selectedMonth) {
             const tableBody = document.getElementById('budgetTableBody');
             tableBody.innerHTML = '';
-            
-            // Calculate spending by category — net of reimbursements
             const spendingByCategory = {};
             transactions.forEach(item => {
                 if (EXCLUDED_CATEGORIES.includes(item.category)) return;
@@ -1220,545 +1369,239 @@
                 if (!spendingByCategory[item.category]) spendingByCategory[item.category] = 0;
                 spendingByCategory[item.category] += item.amount;
             });
-            
-            // Get budgets for current year/month
-            const currentBudgets = budgets.filter(b => 
-                b.year === selectedYear && b.month === selectedMonth
-            );
-            
-            // Get all unique categories (from both budget and spending)
-            const allCategories = new Set([
-                ...currentBudgets.map(b => b.category),
-                ...Object.keys(spendingByCategory)
-            ]);
-            
-            // Build rows following custom order
+            const currentBudgets = budgets.filter(b => b.year === selectedYear && b.month === selectedMonth);
+            const allCategories = new Set([...currentBudgets.map(b => b.category), ...Object.keys(spendingByCategory)]);
             const rows = [];
-            let totalBudget = 0;
-            let totalSpent = 0;
-            
-            // Process categories in the specified order
+            let totalBudget = 0, totalSpent = 0;
             BUDGET_CATEGORY_ORDER.forEach(category => {
                 if (!allCategories.has(category)) return;
-                
                 const budget = currentBudgets.find(b => b.category === category)?.budget || 0;
                 const spent = spendingByCategory[category] || 0;
-                const remaining = budget - spent;
-                const percentage = budget > 0 ? (spent / budget) * 100 : 0;
-                
-                // Always add spent to totals; only add budget if one exists
-                totalSpent += spent;
-                if (budget > 0) {
-                    totalBudget += budget;
-                }
-                
-                rows.push({
-                    category,
-                    budget,
-                    spent,
-                    remaining,
-                    percentage
-                });
+                totalSpent += spent; if (budget > 0) totalBudget += budget;
+                rows.push({ category, budget, spent, remaining: budget - spent, percentage: budget > 0 ? (spent / budget) * 100 : 0 });
             });
-            
-            // Add any categories not in the order list (at the end)
             allCategories.forEach(category => {
                 if (!BUDGET_CATEGORY_ORDER.includes(category)) {
                     const budget = currentBudgets.find(b => b.category === category)?.budget || 0;
                     const spent = spendingByCategory[category] || 0;
-                    const remaining = budget - spent;
-                    const percentage = budget > 0 ? (spent / budget) * 100 : 0;
-                    
-                    totalSpent += spent;
-                    if (budget > 0) {
-                        totalBudget += budget;
-                    }
-                    
-                    rows.push({
-                        category,
-                        budget,
-                        spent,
-                        remaining,
-                        percentage
-                    });
+                    totalSpent += spent; if (budget > 0) totalBudget += budget;
+                    rows.push({ category, budget, spent, remaining: budget - spent, percentage: budget > 0 ? (spent / budget) * 100 : 0 });
                 }
             });
-            
-            // Calculate total percentage and remaining
             const totalRemaining = totalBudget - totalSpent;
             const totalPercentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
-            
-            // Render TOTALS row first
-            const totalRow = document.createElement('tr');
-            totalRow.classList.add('totals-row');
-            
-            // Category cell (TOTALS label)
-            const tdTotalLabel = document.createElement('td');
-            tdTotalLabel.className = 'budget-category totals-label';
-            tdTotalLabel.textContent = 'TOTALS';
-            totalRow.appendChild(tdTotalLabel);
-            
-            // Budget total
-            const tdTotalBudget = document.createElement('td');
-            tdTotalBudget.className = 'budget-amount totals-value';
-            tdTotalBudget.style.textAlign = 'right';
-            tdTotalBudget.textContent = '$' + totalBudget.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            totalRow.appendChild(tdTotalBudget);
-            
-            // Spent total
-            const tdTotalSpent = document.createElement('td');
-            tdTotalSpent.className = 'spent-amount totals-value';
-            tdTotalSpent.style.textAlign = 'right';
-            tdTotalSpent.textContent = '$' + totalSpent.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            totalRow.appendChild(tdTotalSpent);
-            
-            // Progress total
-            const tdTotalProgress = document.createElement('td');
-            tdTotalProgress.className = 'budget-progress';
-            
-            const progressDiv = document.createElement('div');
-            progressDiv.className = 'progress-bar-container';
-            
-            const barDiv = document.createElement('div');
-            barDiv.className = 'progress-bar';
-            
-            // Color based on percentage
-            if (totalPercentage <= 75) {
-                barDiv.classList.add('low');
-            } else if (totalPercentage <= 100) {
-                barDiv.classList.add('medium');
-            } else {
-                barDiv.classList.add('high');
+
+            function makeProgressCell(pct, className) {
+                const td = document.createElement('td');
+                td.className = 'budget-progress';
+                const wrap = document.createElement('div'); wrap.className = 'progress-bar-container';
+                const bar = document.createElement('div'); bar.className = 'progress-bar';
+                bar.classList.add(pct <= 75 ? 'low' : pct <= 100 ? 'medium' : 'high');
+                bar.style.width = Math.min(pct, 100) + '%';
+                if (pct > 0) bar.textContent = pct.toFixed(0) + '%';
+                wrap.appendChild(bar); td.appendChild(wrap); return td;
             }
-            
-            // Cap visual width at 100%, show percentage inside bar
-            const visualWidth = Math.min(totalPercentage, 100);
-            barDiv.style.width = visualWidth + '%';
-            barDiv.textContent = totalPercentage.toFixed(0) + '%';
-            
-            progressDiv.appendChild(barDiv);
-            tdTotalProgress.appendChild(progressDiv);
-            totalRow.appendChild(tdTotalProgress);
-            
-            // Remaining total
-            const tdTotalRemaining = document.createElement('td');
-            tdTotalRemaining.className = 'remaining-amount totals-value';
-            tdTotalRemaining.style.textAlign = 'right';
-            tdTotalRemaining.textContent = '$' + totalRemaining.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            tdTotalRemaining.classList.add(totalRemaining >= 0 ? 'positive' : 'negative');
-            totalRow.appendChild(tdTotalRemaining);
-            
+
+            // Totals row
+            const totalRow = document.createElement('tr'); totalRow.classList.add('totals-row');
+            const cells_t = [
+                ['td', 'budget-category totals-label', 'TOTALS'],
+                ['td', 'budget-amount totals-value', '$' + totalBudget.toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2}), 'right'],
+                ['td', 'spent-amount totals-value', '$' + totalSpent.toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2}), 'right'],
+            ];
+            cells_t.forEach(([tag, cls, txt, align]) => {
+                const td = document.createElement(tag); td.className = cls; td.textContent = txt;
+                if (align) td.style.textAlign = align; totalRow.appendChild(td);
+            });
+            totalRow.appendChild(makeProgressCell(totalPercentage));
+            const tdTotRem = document.createElement('td');
+            tdTotRem.className = 'remaining-amount totals-value ' + (totalRemaining >= 0 ? 'positive' : 'negative');
+            tdTotRem.style.textAlign = 'right';
+            tdTotRem.textContent = '$' + totalRemaining.toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2});
+            totalRow.appendChild(tdTotRem);
             tableBody.appendChild(totalRow);
-            
-            // Render individual category rows
+
             rows.forEach(row => {
                 const tr = document.createElement('tr');
-                
-                // Add over-budget class
-                if (row.remaining < 0) {
-                    tr.classList.add('over-budget');
-                }
-                
-                // Category
-                const tdCategory = document.createElement('td');
-                tdCategory.className = 'budget-category';
-                tdCategory.textContent = row.category;
-                tr.appendChild(tdCategory);
-                
-                // Budget
-                const tdBudget = document.createElement('td');
-                tdBudget.className = 'budget-amount';
-                tdBudget.style.textAlign = 'right';
-                
-                if (row.budget === 0 && (row.category === '[TBD]' || row.category === 'Entradas' || 
-                    row.category === 'Fundos (Retiradas)' || row.category === 'Fundos (depósitos)')) {
-                    tdBudget.innerHTML = '<span class="no-budget-message">-</span>';
-                } else if (row.budget === 0) {
-                    tdBudget.innerHTML = '<span class="no-budget-message">No budget set</span>';
-                } else {
-                    tdBudget.textContent = '$' + row.budget.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                }
-                tr.appendChild(tdBudget);
-                
-                // Spent
-                const tdSpent = document.createElement('td');
-                tdSpent.className = 'spent-amount';
-                tdSpent.style.textAlign = 'right';
-                tdSpent.textContent = '$' + row.spent.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                tr.appendChild(tdSpent);
-                
-                // Progress
-                const tdProgress = document.createElement('td');
-                tdProgress.className = 'budget-progress';
-                
+                if (row.remaining < 0) tr.classList.add('over-budget');
+                const tdCat = document.createElement('td'); tdCat.className = 'budget-category'; tdCat.textContent = row.category; tr.appendChild(tdCat);
+                const tdBud = document.createElement('td'); tdBud.className = 'budget-amount'; tdBud.style.textAlign = 'right';
+                if (row.budget === 0) { tdBud.innerHTML = '<span class="no-budget-message">-</span>'; }
+                else { tdBud.textContent = '$' + row.budget.toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2}); }
+                tr.appendChild(tdBud);
+                const tdSpent = document.createElement('td'); tdSpent.className = 'spent-amount'; tdSpent.style.textAlign = 'right';
+                tdSpent.textContent = '$' + row.spent.toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2}); tr.appendChild(tdSpent);
                 if (row.budget === 0) {
-                    tdProgress.innerHTML = '<span class="no-budget-message">-</span>';
-                } else {
-                    const progressDiv = document.createElement('div');
-                    progressDiv.className = 'progress-bar-container';
-                    
-                    const barDiv = document.createElement('div');
-                    barDiv.className = 'progress-bar';
-                    
-                    // Color based on percentage
-                    if (row.percentage <= 75) {
-                        barDiv.classList.add('low');
-                    } else if (row.percentage <= 100) {
-                        barDiv.classList.add('medium');
-                    } else {
-                        barDiv.classList.add('high');
-                    }
-                    
-                    // Cap visual width at 100%, show percentage inside bar
-                    const visualWidth = Math.max(0, Math.min(row.percentage, 100)); // Ensure 0% shows as empty
-                    barDiv.style.width = visualWidth + '%';
-                    
-                    // Only show percentage text if > 0
-                    if (row.percentage > 0) {
-                        barDiv.textContent = row.percentage.toFixed(0) + '%';
-                    }
-                    
-                    progressDiv.appendChild(barDiv);
-                    tdProgress.appendChild(progressDiv);
-                }
-                
-                tr.appendChild(tdProgress);
-                
-                // Remaining
-                const tdRemaining = document.createElement('td');
-                tdRemaining.className = 'remaining-amount';
-                tdRemaining.style.textAlign = 'right';
-                
-                if (row.budget === 0) {
-                    tdRemaining.innerHTML = '<span class="no-budget-message">-</span>';
-                } else {
-                    tdRemaining.textContent = '$' + row.remaining.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                    tdRemaining.classList.add(row.remaining >= 0 ? 'positive' : 'negative');
-                }
-                
-                tr.appendChild(tdRemaining);
-                
+                    const tdP = document.createElement('td'); tdP.className = 'budget-progress'; tdP.innerHTML = '<span class="no-budget-message">-</span>'; tr.appendChild(tdP);
+                } else { tr.appendChild(makeProgressCell(row.percentage)); }
+                const tdRem = document.createElement('td'); tdRem.className = 'remaining-amount'; tdRem.style.textAlign = 'right';
+                if (row.budget === 0) { tdRem.innerHTML = '<span class="no-budget-message">-</span>'; }
+                else { tdRem.textContent = '$' + row.remaining.toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2}); tdRem.classList.add(row.remaining >= 0 ? 'positive' : 'negative'); }
+                tr.appendChild(tdRem);
                 tableBody.appendChild(tr);
             });
         }
+
         function updateLastUpdated() {
-            const now = new Date();
-            document.getElementById('lastUpdated').textContent = 
-                'Last updated: ' + now.toLocaleString();
+            document.getElementById('lastUpdated').textContent = 'Last updated: ' + new Date().toLocaleString();
         }
 
         async function loadData() {
             const refreshBtn = document.getElementById('refreshBtn');
-            
             try {
-                // Disable button while loading
-                refreshBtn.disabled = true;
-                refreshBtn.textContent = '⏳ Loading...';
-                
-                // Fetch both transactions and budget data
-                const [transactions, budgets] = await Promise.all([
-                    fetchGoogleSheetData(),
-                    fetchBudgetData()
-                ]);
-                
-                // Store globally
-                allTransactions = transactions;
-                allBudgets = budgets;
-                
-                console.log(`Loaded ${transactions.length} transactions and ${budgets.length} budget entries`);
-                
-                // Update last transaction date
-                updateLastTransactionDate();
-                
-                // Populate filter dropdowns
-                populateFilters();
-                
-                // Apply filters (will use default selections)
-                applyFilters();
-                
-                updateLastUpdated();
-                
-                // Save to localStorage for offline viewing
+                refreshBtn.disabled = true; refreshBtn.textContent = '⏳ Loading...';
+                const [transactions, budgets] = await Promise.all([fetchGoogleSheetData(), fetchBudgetData()]);
+                allTransactions = transactions; allBudgets = budgets;
+                updateLastTransactionDate(); populateFilters(); applyFilters(); updateLastUpdated();
                 localStorage.setItem('financeData', JSON.stringify(transactions));
                 localStorage.setItem('budgetData', JSON.stringify(budgets));
                 localStorage.setItem('lastUpdated', new Date().toISOString());
-                
-                showMessage('success', `✅ Successfully loaded ${transactions.length} transactions from Google Sheets`);
-                console.log('✅ Data loaded successfully:', transactions.length, 'transactions');
-                
+                showMessage('success', `✅ Successfully loaded ${transactions.length} transactions`);
             } catch (error) {
                 showMessage('error', '❌ Error loading data: ' + error.message);
-                console.error('Error:', error);
-                
-                // Try to load from localStorage as fallback
                 const savedData = localStorage.getItem('financeData');
                 if (savedData) {
-                    console.log('Loading cached data from localStorage');
-                    const data = JSON.parse(savedData);
-                    allTransactions = data;
-                    updateLastTransactionDate();
-                    populateFilters();
-                    applyFilters();
-                    
-                    const lastUpdated = localStorage.getItem('lastUpdated');
-                    if (lastUpdated) {
-                        document.getElementById('lastUpdated').textContent = 
-                            'Last updated: ' + new Date(lastUpdated).toLocaleString() + ' (cached)';
-                    }
-                    
-                    showMessage('error', '⚠️ Could not fetch new data. Showing cached data instead.');
+                    allTransactions = JSON.parse(savedData);
+                    allBudgets = localStorage.getItem('budgetData') ? JSON.parse(localStorage.getItem('budgetData')) : [];
+                    updateLastTransactionDate(); populateFilters(); applyFilters();
+                    showMessage('error', '⚠️ Showing cached data.');
                 }
             } finally {
-                // Re-enable button
-                refreshBtn.disabled = false;
-                refreshBtn.textContent = '🔄 Refresh Data';
+                refreshBtn.disabled = false; refreshBtn.textContent = '🔄 Refresh Data';
             }
         }
 
-        // Load data when page loads
         window.onload = function() {
-            // Check for saved mode preference
             const savedMode = localStorage.getItem('devMode');
-            if (savedMode !== null) {
-                DEV_MODE = savedMode === 'true';
-            }
-            
-            // Set up mode toggle buttons
+            if (savedMode !== null) DEV_MODE = savedMode === 'true';
             const testModeBtn = document.getElementById('testModeBtn');
             const prodModeBtn = document.getElementById('prodModeBtn');
-            
             function updateModeUI() {
                 const modeIndicator = document.getElementById('modeIndicator');
-                
                 if (DEV_MODE) {
-                    testModeBtn.classList.add('active');
-                    prodModeBtn.classList.remove('active');
+                    testModeBtn.classList.add('active'); prodModeBtn.classList.remove('active');
                     modeIndicator.textContent = '🔧 TEST MODE - Using Embedded Data';
-                    modeIndicator.style.color = '#ff9800';
-                    modeIndicator.style.fontWeight = 'bold';
+                    modeIndicator.style.color = '#ff9800'; modeIndicator.style.fontWeight = 'bold';
                 } else {
-                    testModeBtn.classList.remove('active');
-                    prodModeBtn.classList.add('active');
+                    testModeBtn.classList.remove('active'); prodModeBtn.classList.add('active');
                     modeIndicator.textContent = '✅ PRODUCTION - Connected to Google Sheets';
-                    modeIndicator.style.color = '#38a169';
-                    modeIndicator.style.fontWeight = 'bold';
+                    modeIndicator.style.color = '#38a169'; modeIndicator.style.fontWeight = 'bold';
                 }
             }
-            
-            testModeBtn.onclick = function() {
-                if (!DEV_MODE) {
-                    DEV_MODE = true;
-                    localStorage.setItem('devMode', 'true');
-                    updateModeUI();
-                    loadData();
-                }
-            };
-            
-            prodModeBtn.onclick = function() {
-                if (DEV_MODE) {
-                    DEV_MODE = false;
-                    localStorage.setItem('devMode', 'false');
-                    updateModeUI();
-                    loadData();
-                }
-            };
-            
-            // Initialize UI
+            testModeBtn.onclick = function() { if (!DEV_MODE) { DEV_MODE = true; localStorage.setItem('devMode','true'); updateModeUI(); loadData(); } };
+            prodModeBtn.onclick = function() { if (DEV_MODE) { DEV_MODE = false; localStorage.setItem('devMode','false'); updateModeUI(); loadData(); } };
             updateModeUI();
-            
-            // Try to load from localStorage first (for offline viewing)
             const savedData = localStorage.getItem('financeData');
             const savedBudgetData = localStorage.getItem('budgetData');
-            const lastUpdated = localStorage.getItem('lastUpdated');
-            
             if (savedData && !DEV_MODE) {
-                console.log('Loading cached data from localStorage');
                 allTransactions = JSON.parse(savedData);
                 allBudgets = savedBudgetData ? JSON.parse(savedBudgetData) : [];
-                updateLastTransactionDate();
-                populateFilters();
-                applyFilters();
-                
-                if (lastUpdated) {
-                    document.getElementById('lastUpdated').textContent = 
-                        'Last updated: ' + new Date(lastUpdated).toLocaleString() + ' (cached)';
-                }
-                
-                // Then fetch fresh data in the background
+                updateLastTransactionDate(); populateFilters(); applyFilters();
+                const lu = localStorage.getItem('lastUpdated');
+                if (lu) document.getElementById('lastUpdated').textContent = 'Last updated: ' + new Date(lu).toLocaleString() + ' (cached)';
                 loadData();
-            } else {
-                // If no cached data or in DEV_MODE, fetch immediately
-                loadData();
-            }
+            } else { loadData(); }
         };
         
-        // ============================================
-        // PROJECTED INCOME
-        // ============================================
-        let incomeMode = 'real';       // 'real' | 'projected'
-        let projectedIncome = 10400;   // hardcoded default, editable
-        let realIncomeValue = 0;       // set by processData
+        let incomeMode = 'real', projectedIncome = 10400, realIncomeValue = 0;
 
         function setIncomeMode(mode) {
             incomeMode = mode;
             const realBtn = document.getElementById('incomeModeReal');
             const projBtn = document.getElementById('incomeModeProjected');
             const editBtn = document.getElementById('editProjectedBtn');
-
             if (mode === 'real') {
-                realBtn.style.background = '#667eea'; realBtn.style.color = 'white'; realBtn.style.borderColor = '#667eea';
-                projBtn.style.background = 'white'; projBtn.style.color = '#718096'; projBtn.style.borderColor = '#cbd5e0';
-                editBtn.style.display = 'none';
-                cancelEditProjected();
+                realBtn.style.background='#667eea';realBtn.style.color='white';realBtn.style.borderColor='#667eea';
+                projBtn.style.background='white';projBtn.style.color='#718096';projBtn.style.borderColor='#cbd5e0';
+                editBtn.style.display='none'; cancelEditProjected();
             } else {
-                projBtn.style.background = '#667eea'; projBtn.style.color = 'white'; projBtn.style.borderColor = '#667eea';
-                realBtn.style.background = 'white'; realBtn.style.color = '#718096'; realBtn.style.borderColor = '#cbd5e0';
-                editBtn.style.display = 'inline';
+                projBtn.style.background='#667eea';projBtn.style.color='white';projBtn.style.borderColor='#667eea';
+                realBtn.style.background='white';realBtn.style.color='#718096';realBtn.style.borderColor='#cbd5e0';
+                editBtn.style.display='inline';
             }
             updateIncomeDisplay();
         }
 
         function updateIncomeDisplay() {
             const val = incomeMode === 'projected' ? projectedIncome : realIncomeValue;
-            const label = incomeMode === 'projected' ? 'Projected Income' : 'Total Income';
-            document.getElementById('incomeLabel').textContent = label;
-            document.getElementById('totalIncome').textContent = '$' + val.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-            // Update Net card too
+            document.getElementById('incomeLabel').textContent = incomeMode === 'projected' ? 'Projected Income' : 'Total Income';
+            document.getElementById('totalIncome').textContent = '$' + val.toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2});
             const expenses = parseFloat(document.getElementById('totalExpenses').textContent.replace(/[$,]/g,'')) || 0;
             const net = val - expenses;
             const netEl = document.getElementById('netValue');
-            netEl.textContent = '$' + net.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+            netEl.textContent = '$' + net.toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2});
             netEl.className = 'stat-value ' + (net >= 0 ? 'positive' : 'negative');
         }
 
         function startEditProjected() {
             const area = document.getElementById('projectedEditArea');
             const input = document.getElementById('projectedInput');
-            input.value = projectedIncome;
-            area.style.display = 'block';
-            input.focus(); input.select();
+            input.value = projectedIncome; area.style.display = 'block'; input.focus(); input.select();
         }
-
         function saveProjected() {
             const val = parseFloat(document.getElementById('projectedInput').value);
             if (!isNaN(val) && val >= 0) projectedIncome = val;
-            document.getElementById('projectedEditArea').style.display = 'none';
-            updateIncomeDisplay();
+            document.getElementById('projectedEditArea').style.display = 'none'; updateIncomeDisplay();
         }
+        function cancelEditProjected() { document.getElementById('projectedEditArea').style.display = 'none'; }
 
-        function cancelEditProjected() {
-            document.getElementById('projectedEditArea').style.display = 'none';
-        }
-
-        // ============================================
-        // TRANSACTION FILTER + SORT
-        // ============================================
-        let sortColumn = 'date';   // default: date oldest→newest
-        let sortDir = 'asc';       // 'asc' | 'desc'
-        let hasFilteredOnce = false;
+        let sortColumn = 'date', sortDir = 'asc', hasFilteredOnce = false;
 
         function updateCategoryFilter() {
-            const sel = document.getElementById('categoryFilter');
-            const prev = sel.value;
-            const cats = new Set();
-            filteredTransactions.forEach(t => { if (t.category) cats.add(t.category); });
+            const sel = document.getElementById('categoryFilter'); const prev = sel.value;
+            const cats = new Set(); filteredTransactions.forEach(t => { if (t.category) cats.add(t.category); });
             sel.innerHTML = '<option value="all">All Categories</option>';
-            Array.from(cats).sort().forEach(c => {
-                const o = document.createElement('option');
-                o.value = c; o.textContent = c;
-                sel.appendChild(o);
-            });
+            Array.from(cats).sort().forEach(c => { const o = document.createElement('option'); o.value=c; o.textContent=c; sel.appendChild(o); });
             sel.value = cats.has(prev) ? prev : 'all';
         }
 
         function setSortColumn(col) {
-            if (sortColumn === col) {
-                sortDir = sortDir === 'asc' ? 'desc' : 'asc';
-            } else {
-                sortColumn = col;
-                // Default direction per column
-                sortDir = (col === 'date') ? 'asc' : (col === 'amount') ? 'desc' : 'asc';
-            }
-            updateSortHeaders();
-            filterTransactions();
+            if (sortColumn === col) { sortDir = sortDir === 'asc' ? 'desc' : 'asc'; }
+            else { sortColumn = col; sortDir = (col === 'date') ? 'asc' : (col === 'amount') ? 'desc' : 'asc'; }
+            updateSortHeaders(); filterTransactions();
         }
 
         function updateSortHeaders() {
-            const cols = ['date', 'account', 'amount'];
-            const defaultLabels = {date: 'Date', account: 'Account', amount: 'Amount'};
-            cols.forEach(col => {
-                const el = document.getElementById('hdr-' + col);
-                if (!el) return;
+            ['date','account','amount'].forEach(col => {
+                const el = document.getElementById('hdr-'+col); if (!el) return;
                 const icon = el.querySelector('.sort-icon');
-                if (col === sortColumn) {
-                    icon.textContent = sortDir === 'asc' ? '▲' : '▼';
-                    el.style.opacity = '1';
-                } else {
-                    icon.textContent = '';
-                    el.style.opacity = '0.8';
-                }
+                if (col === sortColumn) { icon.textContent = sortDir==='asc'?'▲':'▼'; el.style.opacity='1'; }
+                else { icon.textContent=''; el.style.opacity='0.8'; }
             });
         }
 
         function filterTransactions() {
             hasFilteredOnce = true;
             const cat = document.getElementById('categoryFilter').value;
-            const rows = (cat === 'all')
-                ? filteredTransactions.slice()
-                : filteredTransactions.filter(t => t.category === cat);
-
+            const rows = (cat==='all') ? filteredTransactions.slice() : filteredTransactions.filter(t=>t.category===cat);
             const count = rows.length;
-            document.getElementById('transactionCount').textContent =
-                count + ' transaction' + (count !== 1 ? 's' : '');
-
+            document.getElementById('transactionCount').textContent = count + ' transaction' + (count!==1?'s':'');
             renderTransactionTable(rows);
         }
 
         function renderTransactionTable(rows) {
             const tbody = document.getElementById('transactionTableBody');
             tbody.innerHTML = '';
-
-            // On first load, show a prompt instead of all rows
             if (!hasFilteredOnce) {
                 tbody.innerHTML = '<tr><td colspan="6" class="no-transactions" style="color:#a0aec0;">Select a category above to view transactions</td></tr>';
                 return;
             }
-
-            if (!rows || rows.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="no-transactions">No transactions found</td></tr>';
-                return;
-            }
-
-            // Sort
+            if (!rows || rows.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="no-transactions">No transactions found</td></tr>'; return; }
             const mo = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
             function dv(d) { const p=(d||'').split('-'); return (mo[p[0]]||0)*100+parseInt(p[1]||0); }
-
-            rows.sort((a, b) => {
-                let va, vb;
-                if (sortColumn === 'date') {
-                    va = dv(a.date); vb = dv(b.date);
-                } else if (sortColumn === 'amount') {
-                    va = Math.abs(parseFloat(a.amount)); vb = Math.abs(parseFloat(b.amount));
-                } else if (sortColumn === 'account') {
-                    va = (a.account||'').toLowerCase(); vb = (b.account||'').toLowerCase();
-                    return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
-                }
-                return sortDir === 'asc' ? va - vb : vb - va;
+            rows.sort((a,b) => {
+                let va,vb;
+                if (sortColumn==='date'){va=dv(a.date);vb=dv(b.date);}
+                else if (sortColumn==='amount'){va=Math.abs(parseFloat(a.amount));vb=Math.abs(parseFloat(b.amount));}
+                else if (sortColumn==='account'){va=(a.account||'').toLowerCase();vb=(b.account||'').toLowerCase();return sortDir==='asc'?va.localeCompare(vb):vb.localeCompare(va);}
+                return sortDir==='asc'?va-vb:vb-va;
             });
-
             rows.forEach(t => {
-                const amt = parseFloat(t.amount);
-                const isIncome = amt < 0;
-                const absAmt = Math.abs(amt).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-                const amtStr = isIncome ? '($' + absAmt + ')' : '$' + absAmt;
+                const amt = parseFloat(t.amount); const isIncome = amt < 0;
+                const absAmt = Math.abs(amt).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+                const amtStr = isIncome ? '($'+absAmt+')' : '$'+absAmt;
                 const tr = document.createElement('tr');
-                tr.innerHTML =
-                    `<td class="transaction-date">${t.date}</td>` +
-                    `<td class="transaction-account">${t.account||''}</td>` +
-                    `<td class="transaction-description">${t.description||''}</td>` +
-                    `<td class="transaction-amount ${isIncome?'negative':'positive'}" style="text-align:right">${amtStr}</td>` +
-                    `<td><span class="transaction-category">${t.category||''}</span></td>` +
-                    `<td class="transaction-notes">${t.notes||'—'}</td>`;
+                tr.innerHTML = `<td class="transaction-date">${t.date}</td><td class="transaction-account">${t.account||''}</td><td class="transaction-description">${t.description||''}</td><td class="transaction-amount ${isIncome?'negative':'positive'}" style="text-align:right">${amtStr}</td><td><span class="transaction-category">${t.category||''}</span></td><td class="transaction-notes">${t.notes||'—'}</td>`;
                 tbody.appendChild(tr);
             });
         }
