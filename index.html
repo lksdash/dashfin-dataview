@@ -1046,15 +1046,23 @@ FORMAT:
         // Only sends year=2026 data
         // ============================================
         function buildAiContext() {
-            const filtered2026 = allTransactions.filter(t => t.year === '2026');
-            const budgets2026 = allBudgets.filter(b => b.year === '2026');
+            // Use loose comparison to handle year as string '2026' or number 2026
+            const filtered2026 = allTransactions.filter(t => String(t.year) === '2026');
+            const budgets2026  = allBudgets.filter(b => String(b.year) === '2026');
 
             const monthsPresent = [...new Set(filtered2026.map(t => t.month))].sort().join(', ');
             const rowCount = filtered2026.length;
 
+            // Debug log — open DevTools Console to verify
+            console.log(`[AI] Sending ${rowCount} transactions, ${budgets2026.length} budget entries`);
+            console.log(`[AI] allTransactions total: ${allTransactions.length}, allBudgets total: ${allBudgets.length}`);
+            if (rowCount > 0) console.log('[AI] Sample row:', filtered2026[0]);
+
             // Update the data info line
             document.getElementById('aiDataInfo').textContent =
-                `📊 Sending ${rowCount} transactions (2026 only) across: ${monthsPresent || 'no months'}`;
+                rowCount > 0
+                    ? `📊 Sending ${rowCount} transactions (2026) · ${monthsPresent}`
+                    : `⚠️ No 2026 transactions found — is data loaded? (${allTransactions.length} total rows)`;
 
             return `TRANSACTION DATA (${rowCount} rows, year 2026):
 ${JSON.stringify(filtered2026)}
