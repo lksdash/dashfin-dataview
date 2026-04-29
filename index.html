@@ -1,9 +1,10 @@
+<!-- v5.06 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Finance Dashboard v5
+    <title>Personal Finance Dashboard v5.06</title>
     <style>
         * {
             margin: 0;
@@ -650,11 +651,12 @@
             gap: 0;
             margin-bottom: 0;
             border-bottom: 3px solid #667eea;
+            margin-top: 20px;
         }
-
         .tab-btn {
             padding: 12px 32px;
-            border: none;
+            border: 2px solid transparent;
+            border-bottom: none;
             background: #e8ecf8;
             color: #667eea;
             font-weight: 700;
@@ -662,16 +664,9 @@
             cursor: pointer;
             border-radius: 8px 8px 0 0;
             transition: background 0.2s, color 0.2s;
-            letter-spacing: 0.2px;
-            border: 2px solid transparent;
-            border-bottom: none;
             margin-right: 4px;
         }
-
-        .tab-btn:hover {
-            background: #d4daf5;
-        }
-
+        .tab-btn:hover { background: #d4daf5; }
         .tab-btn.active {
             background: white;
             color: #667eea;
@@ -681,16 +676,8 @@
             z-index: 1;
             position: relative;
         }
-
-        .tab-panel {
-            display: none;
-        }
-
-        .tab-panel.active {
-            display: block;
-        }
-
-        /* ===================== FUNDOS STAT CARDS ===================== */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
         .fundos-stat-depositos { border-top: 4px solid #38a169; }
         .fundos-stat-retiradas { border-top: 4px solid #e53e3e; }
         .fundos-stat-net       { border-top: 4px solid #667eea; }
@@ -700,7 +687,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5</span></h1>
+            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.06</span></h1>
             <div style="display: flex; gap: 15px; align-items: center; margin: 15px 0;">
                 <div class="mode-toggle">
                     <button id="testModeBtn" class="mode-btn active">🔧 TEST</button>
@@ -715,11 +702,11 @@
         <!-- TABS -->
         <div class="tabs-container">
             <button class="tab-btn active" onclick="switchTab('mensal')">📅 Budget Mensal</button>
-            <button class="tab-btn" onclick="switchTab('fundos')" id="fundosTabBtn">💼 Fundos</button>
+            <button class="tab-btn" onclick="switchTab('fundos')">💼 Fundos</button>
         </div>
 
         <!-- ==================== TAB: BUDGET MENSAL ==================== -->
-        <div class="tab-panel active" id="tab-mensal">
+        <div class="tab-content active" id="tab-mensal">
         
         <div class="card">
             <h2>Filters</h2>
@@ -838,96 +825,90 @@
                 </table>
             </div>
         </div>
-        
-    </div> <!-- end tab-mensal -->
 
-    <!-- ==================== TAB: FUNDOS ==================== -->
-    <div class="tab-panel" id="tab-fundos">
+        </div> <!-- end tab-mensal -->
 
-        <div class="card">
-            <h2>Filters</h2>
-            <div class="filters">
-                <div class="filter-group">
-                    <label for="fundosYearFilter">Year:</label>
-                    <select id="fundosYearFilter" onchange="applyFundosFilters()">
-                        <option value="all">All Years</option>
-                    </select>
+        <!-- ==================== TAB: FUNDOS ==================== -->
+        <div class="tab-content" id="tab-fundos">
+
+            <div class="card">
+                <h2>Filters</h2>
+                <div class="filters">
+                    <div class="filter-group">
+                        <label for="fundosYearFilter">Year:</label>
+                        <select id="fundosYearFilter" onchange="applyFundosFilters()">
+                            <option value="all">All Years</option>
+                        </select>
+                    </div>
+                    <div class="filter-group" style="justify-content: flex-end;">
+                        <span class="last-transaction" id="fundosLastTransaction">📅 Last transaction: --</span>
+                    </div>
                 </div>
-                <div class="filter-group" style="justify-content: flex-end;">
-                    <span class="last-transaction" id="fundosLastTransaction">
-                        📅 Last transaction: --
-                    </span>
+            </div>
+
+            <div class="loading-message" id="fundosLoadingMessage" style="display:none;">Loading Fundos data...</div>
+            <div class="error-message" id="fundosErrorMessage" style="display:none;"></div>
+
+            <div class="stats">
+                <div class="stat-box fundos-stat-depositos">
+                    <div class="stat-label">Fundos — Depósitos</div>
+                    <div class="stat-value positive" id="fundosTabDepositos">$0.00</div>
+                </div>
+                <div class="stat-box fundos-stat-retiradas">
+                    <div class="stat-label">Fundos — Retiradas</div>
+                    <div class="stat-value negative" id="fundosTabRetiradas">$0.00</div>
+                </div>
+                <div class="stat-box fundos-stat-net">
+                    <div class="stat-label">Fundos — Net</div>
+                    <div class="stat-value" id="fundosTabNet">$0.00</div>
+                </div>
+                <div class="stat-box fundos-stat-count">
+                    <div class="stat-label">Transactions</div>
+                    <div class="stat-value" id="fundosTabCount">0</div>
                 </div>
             </div>
-        </div>
 
-        <div class="loading-message" id="fundosLoadingMessage" style="display:none;">Loading Fundos data...</div>
-        <div class="error-message" id="fundosErrorMessage" style="display:none;"></div>
-
-        <div class="stats">
-            <div class="stat-box fundos-stat-depositos">
-                <div class="stat-label">Fundos — Depósitos</div>
-                <div class="stat-value positive" id="fundosTabDepositos">$0.00</div>
-            </div>
-            <div class="stat-box fundos-stat-retiradas">
-                <div class="stat-label">Fundos — Retiradas</div>
-                <div class="stat-value negative" id="fundosTabRetiradas">$0.00</div>
-            </div>
-            <div class="stat-box fundos-stat-net">
-                <div class="stat-label">Fundos — Net</div>
-                <div class="stat-value" id="fundosTabNet">$0.00</div>
-            </div>
-            <div class="stat-box fundos-stat-count">
-                <div class="stat-label">Transactions</div>
-                <div class="stat-value" id="fundosTabCount">0</div>
-            </div>
-        </div>
-
-        <div class="card">
-            <h2>📊 Budget Overview — Fundos</h2>
-            <div class="budget-table-container">
-                <table class="budget-table">
-                    <thead>
-                        <tr>
+            <div class="card">
+                <h2>📊 Budget Overview — Fundos</h2>
+                <div class="budget-table-container">
+                    <table class="budget-table">
+                        <thead><tr>
                             <th>Categoria Fundos</th>
-                            <th style="text-align: right;">Budget</th>
-                            <th style="text-align: right;">Spent</th>
-                            <th style="text-align: center;">Progress</th>
-                            <th style="text-align: right;">Remaining</th>
-                        </tr>
-                    </thead>
-                    <tbody id="fundosBudgetTableBody"></tbody>
-                </table>
+                            <th style="text-align:right;">Budget</th>
+                            <th style="text-align:right;">Spent</th>
+                            <th style="text-align:center;">Progress</th>
+                            <th style="text-align:right;">Remaining</th>
+                        </tr></thead>
+                        <tbody id="fundosBudgetTableBody"></tbody>
+                    </table>
+                </div>
             </div>
-        </div>
 
-        <div class="card">
-            <h2>🔍 Transaction Details — Fundos</h2>
-            <div class="transaction-filter">
-                <label for="fundosCategoryFilter">Filter by Categoria Fundos:</label>
-                <select id="fundosCategoryFilter" onchange="filterFundosTransactions()">
-                    <option value="all">All Categories</option>
-                </select>
-                <span id="fundosTransactionCount" style="margin-left: 15px; color: #666; font-size: 14px;"></span>
-            </div>
-            <div class="transaction-table-container">
-                <table class="transaction-table">
-                    <thead>
-                        <tr>
+            <div class="card">
+                <h2>🔍 Transaction Details — Fundos</h2>
+                <div class="transaction-filter">
+                    <label for="fundosCategoryFilter">Filter by Categoria Fundos:</label>
+                    <select id="fundosCategoryFilter" onchange="filterFundosTransactions()">
+                        <option value="all">All Categories</option>
+                    </select>
+                    <span id="fundosTransactionCount" style="margin-left:15px;color:#666;font-size:14px;"></span>
+                </div>
+                <div class="transaction-table-container">
+                    <table class="transaction-table">
+                        <thead><tr>
                             <th class="sortable-header" onclick="setFundosSortColumn('date')" id="f-hdr-date">Date <span class="sort-icon">▲</span></th>
                             <th class="sortable-header" onclick="setFundosSortColumn('account')" id="f-hdr-account">Account <span class="sort-icon"></span></th>
                             <th>Description</th>
-                            <th class="sortable-header" onclick="setFundosSortColumn('amount')" id="f-hdr-amount" style="text-align: right;">Amount <span class="sort-icon"></span></th>
+                            <th class="sortable-header" onclick="setFundosSortColumn('amount')" id="f-hdr-amount" style="text-align:right;">Amount <span class="sort-icon"></span></th>
                             <th>Categoria Fundos</th>
                             <th>Notes</th>
-                        </tr>
-                    </thead>
-                    <tbody id="fundosTransactionTableBody"></tbody>
-                </table>
+                        </tr></thead>
+                        <tbody id="fundosTransactionTableBody"></tbody>
+                    </table>
+                </div>
             </div>
-        </div>
 
-    </div> <!-- end tab-fundos -->
+        </div> <!-- end tab-fundos -->
 
     </div> <!-- end container -->
 
@@ -1913,17 +1894,18 @@
                 tbody.appendChild(tr);
             });
         }
+
         // ============================================
         // TAB SWITCHING
         // ============================================
         function switchTab(tabName) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(p => p.classList.remove('active'));
             document.getElementById('tab-' + tabName).classList.add('active');
-            document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
-            if (tabName === 'fundos' && allFundosTransactions.length === 0) {
-                loadFundosData();
-            }
+            document.querySelectorAll('.tab-btn').forEach(b => {
+                if (b.getAttribute('onclick') === "switchTab('" + tabName + "')") b.classList.add('active');
+            });
+            if (tabName === 'fundos' && allFundosTransactions.length === 0) loadFundosData();
         }
 
         // ============================================
@@ -1932,7 +1914,6 @@
         const FUNDOS_SHEET_ID  = '1rhO_nnuE_m2JkCGEmLFh26o9LO-9y16q_rOxjZpyKm4';
         const FUNDOS_GID       = '626518571';
         const FUNDOS_API_URL   = `https://docs.google.com/spreadsheets/d/${FUNDOS_SHEET_ID}/gviz/tq?tqx=out:json&gid=${FUNDOS_GID}`;
-        // Fundos budgets: same budget_db sheet, columns G-I (offset 6-8 in 0-indexed)
         const FUNDOS_BUDGET_API_URL = `https://docs.google.com/spreadsheets/d/${FUNDOS_SHEET_ID}/gviz/tq?tqx=out:json&sheet=budget_db`;
 
         const FUNDOS_CATEGORY_ORDER = [
@@ -1946,20 +1927,37 @@
             'Atividades Lila','Entrada','Escola Luke/Olivia','Saúde','Fundo Surpresa'
         ];
 
-        // TEST DATA for Fundos tab
         const TEST_FUNDOS_DATA = [
-            {year:"2026",month:"03-March",date:"Mar-6",account:"Amex - Credit Card",description:"Luxe nail Bar",amount:69.8,category:"Fundos (Retiradas)",notes:"Grooming",categoriaFundos:"Grooming (Lila + Kids)"},
-            {year:"2026",month:"03-March",date:"Mar-10",account:"BMO - Credit Card",description:"ACT*KITCHENER PROG REG",amount:32.06,category:"Fundos (Retiradas)",notes:"Kids Activities",categoriaFundos:"Cursos + Atividades Crianças"},
-            {year:"2026",month:"03-March",date:"Mar-10",account:"BMO - Credit Card",description:"ACT*KITCHENER PROG REG 1",amount:36.0,category:"Fundos (Retiradas)",notes:"Kids Activities",categoriaFundos:"Cursos + Atividades Crianças"},
-            {year:"2026",month:"03-March",date:"Mar-10",account:"BMO - Credit Card",description:"ACT*KITCHENER PROG REG 2",amount:36.0,category:"Fundos (Retiradas)",notes:"Kids Activities",categoriaFundos:"Cursos + Atividades Crianças"},
-            {year:"2026",month:"03-March",date:"Mar-17",account:"R$ - Brasil",description:"Pediatra Taico x2",amount:164.84,category:"Fundos (Retiradas)",notes:"Health",categoriaFundos:"Saúde"},
-            {year:"2026",month:"03-March",date:"Mar-24",account:"BMO - Credit Card",description:"ACT*KITCHENER Summer Camp",amount:103.13,category:"Fundos (Retiradas)",notes:"Summer Camp",categoriaFundos:"Summer Camps - Luke"},
-            {year:"2026",month:"03-March",date:"Mar-24",account:"BMO - Credit Card",description:"ACT*KITCHENER Summer Camp 2",amount:128.91,category:"Fundos (Retiradas)",notes:"Summer Camp",categoriaFundos:"Summer Camps - Luke"},
-            {year:"2026",month:"03-March",date:"Mar-24",account:"BMO - Credit Card",description:"ACT*KITCHENER Summer Camp 3",amount:128.91,category:"Fundos (Retiradas)",notes:"Summer Camp",categoriaFundos:"Summer Camps - Luke"},
-            {year:"2026",month:"03-March",date:"Mar-24",account:"BMO - Credit Card",description:"ACT*KITCHENER Summer Camp 4",amount:128.91,category:"Fundos (Retiradas)",notes:"Summer Camp",categoriaFundos:"Summer Camps - Luke"},
-            {year:"2026",month:"03-March",date:"Mar-24",account:"BMO - Credit Card",description:"ACT*KITCHENER Summer Camp 5",amount:128.91,category:"Fundos (Retiradas)",notes:"Summer Camp",categoriaFundos:"Summer Camps - Luke"},
-            {year:"2026",month:"03-March",date:"Mar-24",account:"BMO - Credit Card",description:"ACT*KITCHENER Summer Camp 6",amount:128.91,category:"Fundos (Retiradas)",notes:"Summer Camp",categoriaFundos:"Summer Camps - Luke"},
-            {year:"2026",month:"03-March",date:"Mar-27",account:"R$ - Brasil",description:"Festa Luke",amount:555.77,category:"Fundos (Retiradas)",notes:"Festas",categoriaFundos:"Festas"}
+            // January 2026
+            {year:"2026",month:"01-January",date:"Jan-4", account:"TG - Credit Card",  description:"Rookie Ace kitchener",         amount:141.25,   category:"Fundos (Retiradas)", notes:"Aula Pickeball? Fundo Fitness",            categoriaFundos:"Fitness/Sports"},
+            {year:"2026",month:"01-January",date:"Jan-6", account:"BMO - Credit Card", description:"Tosa Max",                      amount:115.66,   category:"Fundos (Retiradas)", notes:"Tosa Max",                                 categoriaFundos:"Max Vet + Grooming"},
+            {year:"2026",month:"01-January",date:"Jan-6", account:"BMO - Credit Card", description:"Envio Docs Passaportes",        amount:28.82,    category:"Fundos (Retiradas)", notes:"Docs - Passaportes",                       categoriaFundos:"Docs"},
+            {year:"2026",month:"01-January",date:"Jan-13",account:"BMO - Credit Card", description:"DK Automative",                 amount:1078.43,  category:"Fundos (Retiradas)", notes:"Carro Freios e suspensao",                 categoriaFundos:"Carro"},
+            {year:"2026",month:"01-January",date:"Jan-13",account:"BMO - Credit Card", description:"Uber - Carro",                  amount:23.03,    category:"Fundos (Retiradas)", notes:"Carro Uber Mecanico",                      categoriaFundos:"Carro"},
+            {year:"2026",month:"01-January",date:"Jan-18",account:"TG - Credit Card",  description:"Marshalls Homesense $94.05",    amount:63.23,    category:"Fundos (Retiradas)", notes:"Presentes (outros?)",                      categoriaFundos:"Presentes (Outros)"},
+            {year:"2026",month:"01-January",date:"Jan-20",account:"BMO - Credit Card", description:"Fionas Music Studio - Summer Camp", amount:300.00, category:"Fundos (Retiradas)", notes:"Summer Camp",                            categoriaFundos:"Summer Camps - Luke"},
+            {year:"2026",month:"01-January",date:"Jan-21",account:"BMO - Credit Card", description:"Good Fellaz Barbershop Luke",   amount:51.60,    category:"Fundos (Retiradas)", notes:"Fundos - Hair cut",                        categoriaFundos:"Grooming (Lila + Kids)"},
+            {year:"2026",month:"01-January",date:"Jan-21",account:"TG - Credit Card",  description:"Mini Play Town (Princess event)", amount:39.54,  category:"Fundos (Retiradas)", notes:"entretenimento extra",                     categoriaFundos:"Entretenimento Extra"},
+            {year:"2026",month:"01-January",date:"Jan-24",account:"Other method",      description:"Amazon Gift Card Bell",         amount:-200.00,  category:"Fundos (depósitos)", notes:"Ver como registrar isso nas contas",       categoriaFundos:"[TBD]"},
+            {year:"2026",month:"01-January",date:"Jan-26",account:"BMO - Credit Card", description:"Cambridge Audiology",           amount:40.00,    category:"Fundos (Retiradas)", notes:"Health - reembolsado",                     categoriaFundos:"Saúde"},
+            {year:"2026",month:"01-January",date:"Jan-26",account:"BMO - Credit Card", description:"Carespace - Dietitian",         amount:119.00,   category:"Fundos (Retiradas)", notes:"Health",                                   categoriaFundos:"Saúde"},
+            {year:"2026",month:"01-January",date:"Jan-26",account:"BMO - Checking",    description:"Leticia - Cleaning",            amount:150.00,   category:"Fundos (Retiradas)", notes:"Pago em cash",                             categoriaFundos:"House Cleaning"},
+            {year:"2026",month:"01-January",date:"Jan-29",account:"TG - Checking",     description:"Apex Systems",                  amount:-1024.04, category:"Fundos (depósitos)", notes:"Maybe Fundos? ver como programei",         categoriaFundos:"Entrada"},
+            {year:"2026",month:"01-January",date:"Jan-30",account:"BMO - Checking",    description:"CDW Canada",                    amount:-2700.07, category:"Fundos (depósitos)", notes:"",                                         categoriaFundos:"Entrada"},
+            {year:"2026",month:"01-January",date:"Feb-2", account:"BMO - Credit Card", description:"Refund Canada Life Audiology",  amount:-40.00,   category:"Fundos (Retiradas)", notes:"Reembolso",                                categoriaFundos:"Saúde"},
+            // March 2026
+            {year:"2026",month:"03-March",date:"Mar-6", account:"Amex - Credit Card", description:"Luxe nail Bar",                  amount:69.80,    category:"Fundos (Retiradas)", notes:"Grooming",                                categoriaFundos:"Grooming (Lila + Kids)"},
+            {year:"2026",month:"03-March",date:"Mar-10",account:"BMO - Credit Card",  description:"ACT*KITCHENER PROG REG",          amount:32.06,    category:"Fundos (Retiradas)", notes:"Kids Activities",                         categoriaFundos:"Cursos + Atividades Crianças"},
+            {year:"2026",month:"03-March",date:"Mar-10",account:"BMO - Credit Card",  description:"ACT*KITCHENER PROG REG 1",        amount:36.00,    category:"Fundos (Retiradas)", notes:"Kids Activities",                         categoriaFundos:"Cursos + Atividades Crianças"},
+            {year:"2026",month:"03-March",date:"Mar-10",account:"BMO - Credit Card",  description:"ACT*KITCHENER PROG REG 2",        amount:36.00,    category:"Fundos (Retiradas)", notes:"Kids Activities",                         categoriaFundos:"Cursos + Atividades Crianças"},
+            {year:"2026",month:"03-March",date:"Mar-17",account:"R$ - Brasil",        description:"Pediatra Taico x2",               amount:164.84,   category:"Fundos (Retiradas)", notes:"Health",                                  categoriaFundos:"Saúde"},
+            {year:"2026",month:"03-March",date:"Mar-24",account:"BMO - Credit Card",  description:"ACT*KITCHENER Summer Camp",       amount:103.13,   category:"Fundos (Retiradas)", notes:"Summer Camp",                             categoriaFundos:"Summer Camps - Luke"},
+            {year:"2026",month:"03-March",date:"Mar-24",account:"BMO - Credit Card",  description:"ACT*KITCHENER Summer Camp 2",     amount:128.91,   category:"Fundos (Retiradas)", notes:"Summer Camp",                             categoriaFundos:"Summer Camps - Luke"},
+            {year:"2026",month:"03-March",date:"Mar-24",account:"BMO - Credit Card",  description:"ACT*KITCHENER Summer Camp 3",     amount:128.91,   category:"Fundos (Retiradas)", notes:"Summer Camp",                             categoriaFundos:"Summer Camps - Luke"},
+            {year:"2026",month:"03-March",date:"Mar-24",account:"BMO - Credit Card",  description:"ACT*KITCHENER Summer Camp 4",     amount:128.91,   category:"Fundos (Retiradas)", notes:"Summer Camp",                             categoriaFundos:"Summer Camps - Luke"},
+            {year:"2026",month:"03-March",date:"Mar-24",account:"BMO - Credit Card",  description:"ACT*KITCHENER Summer Camp 5",     amount:128.91,   category:"Fundos (Retiradas)", notes:"Summer Camp",                             categoriaFundos:"Summer Camps - Luke"},
+            {year:"2026",month:"03-March",date:"Mar-24",account:"BMO - Credit Card",  description:"ACT*KITCHENER Summer Camp 6",     amount:128.91,   category:"Fundos (Retiradas)", notes:"Summer Camp",                             categoriaFundos:"Summer Camps - Luke"},
+            {year:"2026",month:"03-March",date:"Mar-27",account:"R$ - Brasil",        description:"Festa Luke",                      amount:555.77,   category:"Fundos (Retiradas)", notes:"Festas",                                  categoriaFundos:"Festas"}
         ];
 
         const TEST_FUNDOS_BUDGET_DATA = [
@@ -2001,70 +1999,50 @@
         let fundosSortDir = 'asc';
         let fundosHasFilteredOnce = false;
 
-        // ============================================
-        // FUNDOS DATA FETCH & CONVERT
-        // ============================================
         function convertFundosData(googleData) {
-            if (!googleData.table || !googleData.table.rows) throw new Error('No fundos data found');
-            const rows = googleData.table.rows;
-            const transactions = [];
-            rows.forEach(row => {
-                const cells = row.c;
-                if (!cells || cells.length < 8) return;
-                transactions.push({
-                    year:            cells[0]?.v?.toString() || '',
-                    month:           cells[1]?.v || '',
-                    date:            cells[2]?.f || cells[2]?.v || '',
-                    account:         cells[3]?.v || '',
-                    description:     cells[4]?.v || '',
-                    amount:          cells[5]?.v || 0,
-                    category:        cells[6]?.v || '',
-                    notes:           cells[7]?.v || '',
-                    categoriaFundos: cells[8]?.v || ''
-                });
-            });
-            return transactions;
+            if (!googleData.table || !googleData.table.rows) throw new Error('No fundos data');
+            return googleData.table.rows.map(row => {
+                const c = row.c || [];
+                return {
+                    year:            (c[0]?.v ?? '').toString(),
+                    month:           c[1]?.v || '',
+                    date:            c[2]?.f || c[2]?.v || '',
+                    account:         c[3]?.v || '',
+                    description:     c[4]?.v || '',
+                    amount:          c[5]?.v || 0,
+                    category:        c[6]?.v || '',
+                    notes:           c[7]?.v || '',
+                    categoriaFundos: c[8]?.v || ''
+                };
+            }).filter(t => t.year);
         }
 
         function convertFundosBudgetData(googleData) {
             if (!googleData.table || !googleData.table.rows) return [];
-            const rows = googleData.table.rows;
-            const budgets = [];
-            rows.forEach(row => {
-                const cells = row.c;
-                // Fundos budget is in columns G,H,I = indices 6,7,8
-                if (!cells || cells.length < 9) return;
-                const year = cells[6]?.v?.toString() || '';
-                const cat  = cells[7]?.v || '';
-                const bud  = cells[8]?.v || 0;
-                if (!year || !cat) return;
-                budgets.push({ year, categoriaFundos: cat, budget: parseFloat(bud) || 0 });
-            });
-            return budgets;
+            return googleData.table.rows.map(row => {
+                const c = row.c || [];
+                const year = (c[6]?.v ?? '').toString();
+                const cat  = c[7]?.v || '';
+                const bud  = c[8]?.v || 0;
+                if (!year || !cat) return null;
+                return { year, categoriaFundos: cat, budget: parseFloat(bud) || 0 };
+            }).filter(Boolean);
         }
 
         async function fetchFundosData() {
-            if (DEV_MODE) {
-                await new Promise(r => setTimeout(r, 200));
-                return TEST_FUNDOS_DATA;
-            }
-            const response = await fetch(FUNDOS_API_URL);
-            if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-            const text = await response.text();
-            const data = parseGoogleSheetsJSON(text);
-            if (data.status !== 'ok') throw new Error('Fundos API error: ' + (data.errors?.[0]?.detailed_message || data.status));
+            if (DEV_MODE) { await new Promise(r => setTimeout(r, 200)); return TEST_FUNDOS_DATA; }
+            const res = await fetch(FUNDOS_API_URL);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const data = parseGoogleSheetsJSON(await res.text());
+            if (data.status !== 'ok') throw new Error('Fundos API error');
             return convertFundosData(data);
         }
 
         async function fetchFundosBudgetData() {
-            if (DEV_MODE) {
-                await new Promise(r => setTimeout(r, 150));
-                return TEST_FUNDOS_BUDGET_DATA;
-            }
-            const response = await fetch(FUNDOS_BUDGET_API_URL);
-            if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-            const text = await response.text();
-            const data = parseGoogleSheetsJSON(text);
+            if (DEV_MODE) { await new Promise(r => setTimeout(r, 150)); return TEST_FUNDOS_BUDGET_DATA; }
+            const res = await fetch(FUNDOS_BUDGET_API_URL);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const data = parseGoogleSheetsJSON(await res.text());
             if (data.status !== 'ok') throw new Error('Fundos budget API error');
             return convertFundosBudgetData(data);
         }
@@ -2072,8 +2050,7 @@
         async function loadFundosData() {
             const loadMsg = document.getElementById('fundosLoadingMessage');
             const errMsg  = document.getElementById('fundosErrorMessage');
-            loadMsg.style.display = 'block';
-            errMsg.style.display = 'none';
+            loadMsg.style.display = 'block'; errMsg.style.display = 'none';
             try {
                 const [txns, budgets] = await Promise.all([fetchFundosData(), fetchFundosBudgetData()]);
                 allFundosTransactions = txns;
@@ -2081,24 +2058,18 @@
                 populateFundosFilters();
                 applyFundosFilters();
                 loadMsg.style.display = 'none';
-            } catch (err) {
+            } catch(err) {
                 loadMsg.style.display = 'none';
-                errMsg.textContent = '❌ Error loading Fundos data: ' + err.message;
-                errMsg.style.display = 'block';
+                errMsg.textContent = '❌ ' + err.message; errMsg.style.display = 'block';
             }
         }
 
-        // ============================================
-        // FUNDOS FILTERS & PROCESS
-        // ============================================
         function populateFundosFilters() {
             const years = [...new Set(allFundosTransactions.map(t => t.year))].sort((a,b) => b - a);
             const sel = document.getElementById('fundosYearFilter');
             sel.innerHTML = '<option value="all">All Years</option>';
             years.forEach(y => sel.innerHTML += `<option value="${y}">${y}</option>`);
             if (years.length > 0) sel.value = years[0];
-
-            // last transaction indicator
             if (allFundosTransactions.length > 0) {
                 const last = allFundosTransactions[allFundosTransactions.length - 1];
                 document.getElementById('fundosLastTransaction').textContent =
@@ -2107,28 +2078,26 @@
         }
 
         function applyFundosFilters() {
-            const selectedYear = document.getElementById('fundosYearFilter').value;
-            filteredFundosTransactions = allFundosTransactions.filter(t =>
-                selectedYear === 'all' || t.year === selectedYear
-            );
+            const yr = document.getElementById('fundosYearFilter').value;
+            filteredFundosTransactions = allFundosTransactions.filter(t => yr === 'all' || t.year === yr);
             processFundosData(filteredFundosTransactions);
-            createFundosBudgetTable(filteredFundosTransactions, allFundosBudgets, selectedYear);
+            createFundosBudgetTable(filteredFundosTransactions, allFundosBudgets, yr);
             fundosHasFilteredOnce = false;
             updateFundosCategoryFilter();
             filterFundosTransactions();
         }
 
         function processFundosData(data) {
-            let depositos = 0, retiradas = 0;
+            let dep = 0, ret = 0;
             data.forEach(t => {
-                const amt = parseFloat(t.amount) || 0;
-                if (t.category === 'Fundos (depósitos)' && amt < 0) depositos += Math.abs(amt);
-                else if (t.category === 'Fundos (Retiradas)' && amt > 0)  retiradas += amt;
+                const a = parseFloat(t.amount) || 0;
+                if (t.category === 'Fundos (depósitos)' && a < 0) dep += Math.abs(a);
+                else if (t.category === 'Fundos (Retiradas)' && a > 0) ret += a;
             });
-            const net = depositos - retiradas;
-            const fmt = v => '$' + Math.abs(v).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-            document.getElementById('fundosTabDepositos').textContent = fmt(depositos);
-            document.getElementById('fundosTabRetiradas').textContent = fmt(retiradas);
+            const net = dep - ret;
+            const fmt = v => '$' + Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+            document.getElementById('fundosTabDepositos').textContent = fmt(dep);
+            document.getElementById('fundosTabRetiradas').textContent = fmt(ret);
             const netEl = document.getElementById('fundosTabNet');
             netEl.textContent = (net < 0 ? '-' : '') + fmt(net);
             netEl.className = 'stat-value ' + (net >= 0 ? 'positive' : 'negative');
@@ -2138,112 +2107,74 @@
         function createFundosBudgetTable(transactions, budgets, selectedYear) {
             const tbody = document.getElementById('fundosBudgetTableBody');
             tbody.innerHTML = '';
-
-            const spendingByCat = {};
+            const spending = {};
             transactions.forEach(t => {
                 if (t.category !== 'Fundos (Retiradas)') return;
                 const cat = t.categoriaFundos || '(sem categoria)';
-                if (!spendingByCat[cat]) spendingByCat[cat] = 0;
-                spendingByCat[cat] += parseFloat(t.amount) || 0;
+                spending[cat] = (spending[cat] || 0) + (parseFloat(t.amount) || 0);
             });
-
-            const currentBudgets = budgets.filter(b => selectedYear === 'all' || b.year === selectedYear);
-
-            const allCats = new Set([
-                ...currentBudgets.map(b => b.categoriaFundos),
-                ...Object.keys(spendingByCat)
-            ]);
-
+            const cb = budgets.filter(b => selectedYear === 'all' || b.year === selectedYear);
+            const allCats = new Set([...cb.map(b => b.categoriaFundos), ...Object.keys(spending)]);
             const rows = [];
-            let totalBudget = 0, totalSpent = 0;
+            let totBudget = 0, totSpent = 0;
 
-            FUNDOS_CATEGORY_ORDER.forEach(cat => {
-                if (!allCats.has(cat)) return;
-                const budget = currentBudgets.find(b => b.categoriaFundos === cat)?.budget || 0;
-                const spent  = spendingByCat[cat] || 0;
-                totalSpent  += spent;
-                if (budget > 0) totalBudget += budget;
-                rows.push({ category: cat, budget, spent, remaining: budget - spent, percentage: budget > 0 ? (spent/budget)*100 : 0 });
-            });
+            const addRow = cat => {
+                const budget = cb.find(b => b.categoriaFundos === cat)?.budget || 0;
+                const spent  = spending[cat] || 0;
+                totSpent  += spent;
+                if (budget > 0) totBudget += budget;
+                rows.push({ category: cat, budget, spent, remaining: budget - spent, pct: budget > 0 ? (spent/budget)*100 : 0 });
+            };
+            FUNDOS_CATEGORY_ORDER.forEach(cat => { if (allCats.has(cat)) addRow(cat); });
+            allCats.forEach(cat => { if (!FUNDOS_CATEGORY_ORDER.includes(cat)) addRow(cat); });
 
-            allCats.forEach(cat => {
-                if (FUNDOS_CATEGORY_ORDER.includes(cat)) return;
-                const budget = currentBudgets.find(b => b.categoriaFundos === cat)?.budget || 0;
-                const spent  = spendingByCat[cat] || 0;
-                totalSpent  += spent;
-                if (budget > 0) totalBudget += budget;
-                rows.push({ category: cat, budget, spent, remaining: budget - spent, percentage: budget > 0 ? (spent/budget)*100 : 0 });
-            });
+            const totRem = totBudget - totSpent;
+            const totPct = totBudget > 0 ? (totSpent/totBudget)*100 : 0;
 
-            const totalRemaining   = totalBudget - totalSpent;
-            const totalPercentage  = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
-
-            function makeProgressCell(pct, isTotals) {
+            const mkProgress = pct => {
                 const td = document.createElement('td');
-                td.className = 'budget-progress';
-                const wrap = document.createElement('div');
-                wrap.className = 'progress-bar-container';
-                const bar = document.createElement('div');
+                const wrap = document.createElement('div'); wrap.className = 'progress-bar-container';
+                const bar  = document.createElement('div');
                 bar.className = 'progress-bar ' + (pct <= 75 ? 'low' : pct <= 100 ? 'medium' : 'high');
-                bar.style.width = Math.min(pct, 100) + '%';
+                bar.style.width = Math.min(pct,100) + '%';
                 if (pct > 0) bar.textContent = pct.toFixed(0) + '%';
                 wrap.appendChild(bar); td.appendChild(wrap);
                 return td;
-            }
-
-            function makeAmountCell(val, cls, isRemaining) {
+            };
+            const mkAmt = (val, cls, colored) => {
                 const td = document.createElement('td');
-                td.style.textAlign = 'right';
-                td.className = cls;
-                td.textContent = '$' + val.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-                if (isRemaining) td.classList.add(val >= 0 ? 'positive' : 'negative');
+                td.style.textAlign = 'right'; td.className = cls;
+                td.textContent = '$' + val.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+                if (colored) td.classList.add(val >= 0 ? 'positive' : 'negative');
                 return td;
-            }
+            };
 
             // Totals row
-            const tr0 = document.createElement('tr');
-            tr0.classList.add('totals-row');
-            const tdLbl = document.createElement('td');
-            tdLbl.className = 'budget-category totals-label'; tdLbl.textContent = 'TOTALS';
-            tr0.appendChild(tdLbl);
-            tr0.appendChild(makeAmountCell(totalBudget, 'budget-amount totals-value', false));
-            tr0.appendChild(makeAmountCell(totalSpent,  'spent-amount totals-value',  false));
-            tr0.appendChild(makeProgressCell(totalPercentage, true));
-            tr0.appendChild(makeAmountCell(totalRemaining, 'remaining-amount totals-value', true));
+            const tr0 = document.createElement('tr'); tr0.className = 'totals-row';
+            const lbl = document.createElement('td'); lbl.className = 'budget-category totals-label'; lbl.textContent = 'TOTALS';
+            tr0.appendChild(lbl);
+            tr0.appendChild(mkAmt(totBudget,'budget-amount totals-value',false));
+            tr0.appendChild(mkAmt(totSpent,'spent-amount totals-value',false));
+            tr0.appendChild(mkProgress(totPct));
+            tr0.appendChild(mkAmt(totRem,'remaining-amount totals-value',true));
             tbody.appendChild(tr0);
 
             rows.forEach(row => {
                 const tr = document.createElement('tr');
                 if (row.remaining < 0) tr.classList.add('over-budget');
-
-                const tdCat = document.createElement('td');
-                tdCat.className = 'budget-category'; tdCat.textContent = row.category;
-                tr.appendChild(tdCat);
-
-                const tdBud = document.createElement('td');
-                tdBud.className = 'budget-amount'; tdBud.style.textAlign = 'right';
-                if (row.budget === 0) tdBud.innerHTML = '<span class="no-budget-message">-</span>';
-                else tdBud.textContent = '$' + row.budget.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-                tr.appendChild(tdBud);
-
-                tr.appendChild(makeAmountCell(row.spent, 'spent-amount', false));
-
-                if (row.budget === 0) {
-                    const td = document.createElement('td');
-                    td.innerHTML = '<span class="no-budget-message">-</span>';
-                    tr.appendChild(td);
-                } else {
-                    tr.appendChild(makeProgressCell(row.percentage, false));
-                }
-
-                const tdRem = document.createElement('td');
-                tdRem.className = 'remaining-amount'; tdRem.style.textAlign = 'right';
-                if (row.budget === 0) tdRem.innerHTML = '<span class="no-budget-message">-</span>';
-                else {
-                    tdRem.textContent = '$' + row.remaining.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-                    tdRem.classList.add(row.remaining >= 0 ? 'positive' : 'negative');
-                }
-                tr.appendChild(tdRem);
+                const tdC = document.createElement('td'); tdC.className = 'budget-category'; tdC.textContent = row.category;
+                tr.appendChild(tdC);
+                const tdB = document.createElement('td'); tdB.className = 'budget-amount'; tdB.style.textAlign = 'right';
+                if (row.budget === 0) tdB.innerHTML = '<span class="no-budget-message">-</span>';
+                else tdB.textContent = '$' + row.budget.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+                tr.appendChild(tdB);
+                tr.appendChild(mkAmt(row.spent,'spent-amount',false));
+                if (row.budget === 0) { const td = document.createElement('td'); td.innerHTML = '<span class="no-budget-message">-</span>'; tr.appendChild(td); }
+                else tr.appendChild(mkProgress(row.pct));
+                const tdR = document.createElement('td'); tdR.className = 'remaining-amount'; tdR.style.textAlign = 'right';
+                if (row.budget === 0) tdR.innerHTML = '<span class="no-budget-message">-</span>';
+                else { tdR.textContent = '$' + row.remaining.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); tdR.classList.add(row.remaining >= 0 ? 'positive' : 'negative'); }
+                tr.appendChild(tdR);
                 tbody.appendChild(tr);
             });
         }
@@ -2251,97 +2182,62 @@
         function updateFundosCategoryFilter() {
             const sel = document.getElementById('fundosCategoryFilter');
             const prev = sel.value;
-            const cats = new Set();
-            filteredFundosTransactions.forEach(t => { if (t.categoriaFundos) cats.add(t.categoriaFundos); });
+            const cats = new Set(filteredFundosTransactions.map(t => t.categoriaFundos).filter(Boolean));
             sel.innerHTML = '<option value="all">All Categories</option>';
-            Array.from(cats).sort().forEach(c => {
-                const o = document.createElement('option');
-                o.value = c; o.textContent = c;
-                sel.appendChild(o);
-            });
+            Array.from(cats).sort().forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o); });
             sel.value = cats.has(prev) ? prev : 'all';
         }
 
         function setFundosSortColumn(col) {
-            if (fundosSortColumn === col) {
-                fundosSortDir = fundosSortDir === 'asc' ? 'desc' : 'asc';
-            } else {
-                fundosSortColumn = col;
-                fundosSortDir = col === 'date' ? 'asc' : col === 'amount' ? 'desc' : 'asc';
-            }
-            updateFundosSortHeaders();
-            filterFundosTransactions();
-        }
-
-        function updateFundosSortHeaders() {
-            ['date','account','amount'].forEach(col => {
-                const el = document.getElementById('f-hdr-' + col);
+            fundosSortDir = fundosSortColumn === col ? (fundosSortDir === 'asc' ? 'desc' : 'asc') : (col === 'amount' ? 'desc' : 'asc');
+            fundosSortColumn = col;
+            ['date','account','amount'].forEach(c => {
+                const el = document.getElementById('f-hdr-' + c);
                 if (!el) return;
-                const icon = el.querySelector('.sort-icon');
-                if (col === fundosSortColumn) {
-                    icon.textContent = fundosSortDir === 'asc' ? '▲' : '▼';
-                    el.style.opacity = '1';
-                } else {
-                    icon.textContent = '';
-                    el.style.opacity = '0.8';
-                }
+                el.querySelector('.sort-icon').textContent = c === col ? (fundosSortDir === 'asc' ? '▲' : '▼') : '';
+                el.style.opacity = c === col ? '1' : '0.8';
             });
+            filterFundosTransactions();
         }
 
         function filterFundosTransactions() {
             fundosHasFilteredOnce = true;
             const cat = document.getElementById('fundosCategoryFilter').value;
-            const rows = cat === 'all'
-                ? filteredFundosTransactions.slice()
-                : filteredFundosTransactions.filter(t => t.categoriaFundos === cat);
-            document.getElementById('fundosTransactionCount').textContent =
-                rows.length + ' transaction' + (rows.length !== 1 ? 's' : '');
+            const rows = cat === 'all' ? filteredFundosTransactions.slice() : filteredFundosTransactions.filter(t => t.categoriaFundos === cat);
+            document.getElementById('fundosTransactionCount').textContent = rows.length + ' transaction' + (rows.length !== 1 ? 's' : '');
             renderFundosTransactionTable(rows);
         }
 
         function renderFundosTransactionTable(rows) {
             const tbody = document.getElementById('fundosTransactionTableBody');
             tbody.innerHTML = '';
-
-            if (!fundosHasFilteredOnce) {
-                tbody.innerHTML = '<tr><td colspan="6" class="no-transactions" style="color:#a0aec0;">Select a category above to view transactions</td></tr>';
-                return;
-            }
-            if (!rows || rows.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="no-transactions">No transactions found</td></tr>';
-                return;
-            }
-
+            if (!fundosHasFilteredOnce) { tbody.innerHTML = '<tr><td colspan="6" class="no-transactions" style="color:#a0aec0;">Select a category above to view transactions</td></tr>'; return; }
+            if (!rows || rows.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="no-transactions">No transactions found</td></tr>'; return; }
             const mo = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
-            function dv(d) { const p=(d||'').split('-'); return (mo[p[0]]||0)*100+parseInt(p[1]||0); }
-
-            rows.sort((a, b) => {
-                let va, vb;
-                if (fundosSortColumn === 'date') { va = dv(a.date); vb = dv(b.date); }
-                else if (fundosSortColumn === 'amount') { va = Math.abs(parseFloat(a.amount)); vb = Math.abs(parseFloat(b.amount)); }
-                else {
-                    va = (a.account||'').toLowerCase(); vb = (b.account||'').toLowerCase();
-                    return fundosSortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
-                }
-                return fundosSortDir === 'asc' ? va - vb : vb - va;
+            const dv = d => { const p=(d||'').split('-'); return (mo[p[0]]||0)*100+parseInt(p[1]||0); };
+            rows.sort((a,b) => {
+                if (fundosSortColumn === 'date') return fundosSortDir === 'asc' ? dv(a.date)-dv(b.date) : dv(b.date)-dv(a.date);
+                if (fundosSortColumn === 'amount') { const va=Math.abs(parseFloat(a.amount)),vb=Math.abs(parseFloat(b.amount)); return fundosSortDir === 'asc' ? va-vb : vb-va; }
+                const va=(a.account||'').toLowerCase(),vb=(b.account||'').toLowerCase();
+                return fundosSortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
             });
-
             rows.forEach(t => {
                 const amt = parseFloat(t.amount);
                 const isIncome = amt < 0;
-                const absAmt = Math.abs(amt).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-                const amtStr = isIncome ? '($' + absAmt + ')' : '$' + absAmt;
+                const absAmt = Math.abs(amt).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
                 const tr = document.createElement('tr');
                 tr.innerHTML =
                     `<td class="transaction-date">${t.date}</td>` +
                     `<td class="transaction-account">${t.account||''}</td>` +
                     `<td class="transaction-description">${t.description||''}</td>` +
-                    `<td class="transaction-amount ${isIncome?'negative':'positive'}" style="text-align:right">${amtStr}</td>` +
+                    `<td class="transaction-amount ${isIncome?'negative':'positive'}" style="text-align:right">${isIncome?'(':''}$${absAmt}${isIncome?')':''}</td>` +
                     `<td><span class="transaction-category">${t.categoriaFundos||'—'}</span></td>` +
                     `<td class="transaction-notes">${t.notes||'—'}</td>`;
                 tbody.appendChild(tr);
             });
         }
+
     </script>
 </body>
 </html>
+<!-- v5.06 -->
