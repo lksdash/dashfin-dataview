@@ -1,10 +1,10 @@
-<!-- v5.11 -->
+<!-- v5.12 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Finance Dashboard v5.11</title>
+    <title>Personal Finance Dashboard v5.12</title>
     <style>
         * {
             margin: 0;
@@ -682,12 +682,54 @@
         .fundos-stat-retiradas { border-top: 4px solid #e53e3e; }
         .fundos-stat-net       { border-top: 4px solid #667eea; }
         .fundos-stat-count     { border-top: 4px solid #d69e2e; }
+
+        /* ===================== FUNDOS COLLAPSIBLE ROWS ===================== */
+        .fundos-cat-row { cursor: pointer; }
+        .fundos-cat-row:hover { background-color: #f0f4ff !important; }
+        .fundos-cat-toggle {
+            display: inline-block;
+            width: 16px;
+            font-size: 11px;
+            color: #667eea;
+            user-select: none;
+            margin-right: 6px;
+        }
+        .fundos-detail-row { display: none; }
+        .fundos-detail-row.open { display: table-row; }
+        .fundos-detail-cell {
+            padding: 0 !important;
+            background: #f7fafc;
+            border-bottom: 2px solid #667eea;
+        }
+        .fundos-detail-inner { padding: 10px 16px; }
+        .fundos-detail-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .fundos-detail-table th {
+            background: #edf2f7;
+            padding: 8px 10px;
+            text-align: left;
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .fundos-detail-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #e2e8f0;
+            color: #2d3748;
+        }
+        .fundos-detail-table tr:last-child td { border-bottom: none; }
+        .fundos-detail-table tr:hover td { background: #edf2f7; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.11</span></h1>
+            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.12</span></h1>
             <div style="display: flex; gap: 15px; align-items: center; margin: 15px 0;">
                 <div class="mode-toggle">
                     <button id="testModeBtn" class="mode-btn active">🔧 TEST</button>
@@ -949,7 +991,7 @@
         let allBudgets = [];
 
         // Categories to exclude from monthly budget (yearly budget items)
-        const EXCLUDED_CATEGORIES = ['Fundos (depósitos)', 'Fundos (Retiradas)', 'Transferência'];
+        const EXCLUDED_CATEGORIES = ['Fundos (depósitos)', 'Fundos (Retiradas)', '*Transfer*'];
         
         // Custom category order for budget table
         const BUDGET_CATEGORY_ORDER = [
@@ -2077,22 +2119,44 @@
             tbody.appendChild(tr0);
 
             rows.forEach(row => {
+                const rowId = 'fd-' + row.category.replace(/[^a-zA-Z0-9]/g,'_');
+
+                // Category row (clickable)
                 const tr = document.createElement('tr');
-                if (row.remaining < 0) tr.classList.add('over-budget');
-                const tdC = document.createElement('td'); tdC.className = 'budget-category'; tdC.textContent = row.category;
+                tr.className = 'fundos-cat-row' + (row.remaining < 0 ? ' over-budget' : '');
+                tr.onclick = () => toggleFundosDetail(rowId, row.category, transactions);
+
+                const tdC = document.createElement('td');
+                tdC.className = 'budget-category';
+                tdC.innerHTML = '<span class="fundos-cat-toggle" id="tog-' + rowId + '">&#9658;</span>' + row.category;
                 tr.appendChild(tdC);
+
                 const tdB = document.createElement('td'); tdB.className = 'budget-amount'; tdB.style.textAlign = 'right';
                 if (row.budget === 0) tdB.innerHTML = '<span class="no-budget-message">-</span>';
                 else tdB.textContent = '$' + row.budget.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
                 tr.appendChild(tdB);
+
                 tr.appendChild(mkAmt(row.spent,'spent-amount',false));
+
                 if (row.budget === 0) { const td = document.createElement('td'); td.innerHTML = '<span class="no-budget-message">-</span>'; tr.appendChild(td); }
                 else tr.appendChild(mkProgress(row.pct));
+
                 const tdR = document.createElement('td'); tdR.className = 'remaining-amount'; tdR.style.textAlign = 'right';
                 if (row.budget === 0) tdR.innerHTML = '<span class="no-budget-message">-</span>';
                 else { tdR.textContent = '$' + row.remaining.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); tdR.classList.add(row.remaining >= 0 ? 'positive' : 'negative'); }
                 tr.appendChild(tdR);
                 tbody.appendChild(tr);
+
+                // Detail row (collapsed by default)
+                const detailTr = document.createElement('tr');
+                detailTr.className = 'fundos-detail-row';
+                detailTr.id = rowId;
+                const detailTd = document.createElement('td');
+                detailTd.className = 'fundos-detail-cell';
+                detailTd.colSpan = 5;
+                detailTd.innerHTML = '<div class="fundos-detail-inner"></div>';
+                detailTr.appendChild(detailTd);
+                tbody.appendChild(detailTr);
             });
         }
 
@@ -2154,7 +2218,61 @@
             });
         }
 
+
+        // ============================================
+        // FUNDOS COLLAPSIBLE DETAIL ROWS
+        // ============================================
+        function toggleFundosDetail(rowId, category, transactions) {
+            const detailRow = document.getElementById(rowId);
+            const toggle    = document.getElementById('tog-' + rowId);
+            const isOpen    = detailRow.classList.contains('open');
+
+            if (isOpen) {
+                detailRow.classList.remove('open');
+                toggle.innerHTML = '&#9658;';
+                return;
+            }
+
+            detailRow.classList.add('open');
+            toggle.innerHTML = '&#9660;';
+
+            const rows = transactions.filter(t =>
+                t.categoriaFundos === category && t.category === 'Fundos (Retiradas)'
+            );
+            const cell = detailRow.querySelector('.fundos-detail-inner');
+
+            if (rows.length === 0) {
+                cell.innerHTML = '<em style="color:#a0aec0;font-size:13px;padding:4px 0;display:block;">No transactions for this category</em>';
+                return;
+            }
+
+            const mo = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
+            const dv = d => { const p = (d||'').split('-'); return (mo[p[0]]||0)*100 + parseInt(p[1]||0); };
+            rows.sort((a,b) => dv(a.date) - dv(b.date));
+
+            let html = '<table class="fundos-detail-table"><thead><tr>' +
+                '<th>Date</th><th>Account</th><th>Description</th>' +
+                '<th style="text-align:right">Amount</th><th>Notes</th>' +
+                '</tr></thead><tbody>';
+
+            rows.forEach(t => {
+                const amt    = parseFloat(t.amount);
+                const absAmt = Math.abs(amt).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+                const amtStr = amt < 0 ? '($' + absAmt + ')' : '$' + absAmt;
+                const amtCls = amt < 0 ? 'color:#38a169' : 'color:#e53e3e';
+                html += '<tr>' +
+                    '<td style="white-space:nowrap;font-weight:600;">' + (t.date||'') + '</td>' +
+                    '<td style="color:#718096;font-size:12px;">' + (t.account||'') + '</td>' +
+                    '<td>' + (t.description||'') + '</td>' +
+                    '<td style="text-align:right;font-weight:700;' + amtCls + ';white-space:nowrap;">' + amtStr + '</td>' +
+                    '<td style="color:#718096;font-style:italic;font-size:12px;">' + (t.notes||'&mdash;') + '</td>' +
+                    '</tr>';
+            });
+
+            html += '</tbody></table>';
+            cell.innerHTML = html;
+        }
     </script>
 </body>
 </html>
-<!-- v5.11 -->
+<!-- v5.12 -->
