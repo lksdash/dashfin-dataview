@@ -1,10 +1,10 @@
-<!-- v5.13 -->
+<!-- v5.14 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Finance Dashboard v5.13</title>
+    <title>Personal Finance Dashboard v5.14</title>
     <style>
         * {
             margin: 0;
@@ -749,7 +749,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.13</span></h1>
+            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.14</span></h1>
             <div style="display: flex; gap: 15px; align-items: center; margin: 15px 0;">
                 <div class="mode-toggle">
                     <button id="testModeBtn" class="mode-btn active">🔧 TEST</button>
@@ -2489,6 +2489,7 @@
                     !EXCLUDED_CATEGORIES.includes(t.category)
                 );
                 const spent = txns.reduce((s,t) => s + (parseFloat(t.amount)||0), 0);
+                // Net spend: positive = expense, negative = reimbursement (reduces spend)
 
                 // Budget: look up from allBudgets (only 2026 has budgets)
                 const budgetEntry = allBudgets.find(b => b.year === m.year && b.month === m.month && b.category === cat);
@@ -2497,11 +2498,8 @@
                 return { label: m.label, year: m.year, month: m.month, spent, budget };
             });
 
-            // Only keep months that have data or are in 2026 (to show budget line)
-            // Trim leading months with no data
-            let firstData = monthData.findIndex(m => m.spent > 0 || m.budget !== null);
-            if (firstData < 0) firstData = 0;
-            const visibleMonths = monthData.slice(firstData);
+            // Show all months from Jan 2025 onward — no trimming
+            const visibleMonths = monthData;
 
             // Stat cards
             const spentMonths = visibleMonths.filter(m => m.spent > 0);
@@ -2648,4 +2646,4 @@
     </script>
 </body>
 </html>
-<!-- v5.13 -->
+<!-- v5.14 -->
