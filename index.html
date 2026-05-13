@@ -1,10 +1,10 @@
-<!-- v5.15 -->
+<!-- v5.16 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Finance Dashboard v5.15</title>
+    <title>Personal Finance Dashboard v5.16</title>
     <style>
         * {
             margin: 0;
@@ -749,7 +749,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.15</span></h1>
+            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.16</span></h1>
             <div style="display: flex; gap: 15px; align-items: center; margin: 15px 0;">
                 <div class="mode-toggle">
                     <button id="testModeBtn" class="mode-btn active">🔧 TEST</button>
@@ -2486,14 +2486,14 @@
             console.log('MoM renderMoM: allTransactions count =', allTransactions.length, 'category =', cat);
             const monthData = MOM_MONTHS.map(m => {
                 const txns = allTransactions.filter(t =>
-                    t.category === cat && t.year === m.year && t.month === m.month &&
+                    t.category === cat && String(t.year) === m.year && t.month === m.month &&
                     !EXCLUDED_CATEGORIES.includes(t.category)
                 );
                 const spent = txns.reduce((s,t) => s + (parseFloat(t.amount)||0), 0);
                 if (txns.length > 0) console.log('MoM match:', m.year, m.month, cat, 'txns:', txns.length, 'spent:', spent);
 
                 // Budget: look up from allBudgets (only 2026 has budgets)
-                const budgetEntry = allBudgets.find(b => b.year === m.year && b.month === m.month && b.category === cat);
+                const budgetEntry = allBudgets.find(b => String(b.year) === m.year && b.month === m.month && b.category === cat);
                 const budget = budgetEntry ? budgetEntry.budget : null;
 
                 return { label: m.label, year: m.year, month: m.month, spent, budget };
@@ -2647,4 +2647,4 @@
     </script>
 </body>
 </html>
-<!-- v5.15 -->
+<!-- v5.16 -->
