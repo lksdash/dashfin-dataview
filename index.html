@@ -1,10 +1,10 @@
-<!-- v5.14 -->
+<!-- v5.15 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Finance Dashboard v5.14</title>
+    <title>Personal Finance Dashboard v5.15</title>
     <style>
         * {
             margin: 0;
@@ -749,7 +749,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.14</span></h1>
+            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.15</span></h1>
             <div style="display: flex; gap: 15px; align-items: center; margin: 15px 0;">
                 <div class="mode-toggle">
                     <button id="testModeBtn" class="mode-btn active">🔧 TEST</button>
@@ -2483,13 +2483,14 @@
             document.getElementById('momChartTitle').textContent = '📊 ' + cat + ' — Monthly Spend';
 
             // Build per-month data
+            console.log('MoM renderMoM: allTransactions count =', allTransactions.length, 'category =', cat);
             const monthData = MOM_MONTHS.map(m => {
                 const txns = allTransactions.filter(t =>
                     t.category === cat && t.year === m.year && t.month === m.month &&
                     !EXCLUDED_CATEGORIES.includes(t.category)
                 );
                 const spent = txns.reduce((s,t) => s + (parseFloat(t.amount)||0), 0);
-                // Net spend: positive = expense, negative = reimbursement (reduces spend)
+                if (txns.length > 0) console.log('MoM match:', m.year, m.month, cat, 'txns:', txns.length, 'spent:', spent);
 
                 // Budget: look up from allBudgets (only 2026 has budgets)
                 const budgetEntry = allBudgets.find(b => b.year === m.year && b.month === m.month && b.category === cat);
@@ -2538,8 +2539,8 @@
                 trendEl.textContent = '—'; trendDesc.textContent = 'Not enough data';
             }
 
-            // Draw chart
-            drawMoMChart(visibleMonths);
+            // Draw chart — defer until after display:block takes effect
+            requestAnimationFrame(() => drawMoMChart(visibleMonths));
 
             // Build table
             buildMoMTable(visibleMonths);
@@ -2549,7 +2550,7 @@
             const canvas = document.getElementById('momChart');
             const ctx    = canvas.getContext('2d');
             const dpr    = window.devicePixelRatio || 1;
-            const W      = canvas.clientWidth || canvas.offsetWidth || 600;
+            const W      = canvas.getBoundingClientRect().width || canvas.clientWidth || canvas.offsetWidth || 800;
             const H      = 280;
             canvas.width  = W * dpr;
             canvas.height = H * dpr;
@@ -2646,4 +2647,4 @@
     </script>
 </body>
 </html>
-<!-- v5.14 -->
+<!-- v5.15 -->
