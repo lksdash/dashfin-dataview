@@ -1,10 +1,10 @@
-<!-- v5.16 -->
+<!-- v5.20 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Finance Dashboard v5.16</title>
+    <title>Personal Finance Dashboard v5.20</title>
     <style>
         * {
             margin: 0;
@@ -749,7 +749,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.16</span></h1>
+            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.20</span></h1>
             <div style="display: flex; gap: 15px; align-items: center; margin: 15px 0;">
                 <div class="mode-toggle">
                     <button id="testModeBtn" class="mode-btn active">🔧 TEST</button>
@@ -766,6 +766,7 @@
             <button class="tab-btn active" onclick="switchTab('mensal')">📅 Budget Mensal</button>
             <button class="tab-btn" onclick="switchTab('fundos')">💼 Fundos</button>
             <button class="tab-btn" onclick="switchTab('mom')">📈 Month-Over-Month</button>
+            <button class="tab-btn" onclick="switchTab('invest')">💹 Investments</button>
         </div>
 
         <!-- ==================== TAB: BUDGET MENSAL ==================== -->
@@ -1047,6 +1048,143 @@
             </div>
 
         </div> <!-- end tab-mom -->
+
+        <!-- ==================== TAB: INVESTMENTS ==================== -->
+        <div class="tab-content" id="tab-invest">
+
+            <div class="card">
+                <h2>Filters</h2>
+                <div class="filters">
+                    <div class="filter-group">
+                        <label for="investMonthFilter">Month:</label>
+                        <select id="investMonthFilter" onchange="renderInvestments()">
+                            <option value="">— Select month —</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div id="investContent" style="display:none;">
+
+                <!-- Stat cards row 1: Portfolio totals -->
+                <div class="stats">
+                    <div class="stat-box" style="border-top:4px solid #667eea;">
+                        <div class="stat-label">Total Portfolio</div>
+                        <div class="stat-value" id="investTotal">$0.00</div>
+                    </div>
+                    <div class="stat-box" style="border-top:4px solid #38a169;">
+                        <div class="stat-label">Portfolio Growth</div>
+                        <div class="stat-value" id="investGrowthPct">—</div>
+                        <div class="stat-label" id="investGrowthAmt" style="font-size:12px;margin-top:4px;"></div>
+                    </div>
+                    <div class="stat-box" style="border-top:4px solid #d69e2e;">
+                        <div class="stat-label">Deposits This Month</div>
+                        <div class="stat-value" id="investDeposits">$0.00</div>
+                    </div>
+                    <div class="stat-box" style="border-top:4px solid #805ad5;">
+                        <div class="stat-label">MoM Change ($)</div>
+                        <div class="stat-value" id="investMoMChange">—</div>
+                    </div>
+                </div>
+
+                <!-- Stat cards row 2: Account groups -->
+                <div class="stats">
+                    <div class="stat-box" style="border-top:4px solid #2b6cb0;background:linear-gradient(135deg,#ebf8ff 0%,#fff 100%);">
+                        <div class="stat-label" style="color:#2b6cb0;font-weight:700;">🏠 House Buying Funds</div>
+                        <div class="stat-value" id="investHouseTotal">$0.00</div>
+                        <div style="display:flex;justify-content:space-between;margin-top:6px;">
+                            <span class="stat-label" id="investHouseGrowth" style="font-size:12px;"></span>
+                            <span class="stat-label" id="investHouseMoM" style="font-size:12px;"></span>
+                        </div>
+                    </div>
+                    <div class="stat-box" style="border-top:4px solid #2b6cb0;background:linear-gradient(135deg,#ebf8ff 0%,#fff 100%);">
+                        <div class="stat-label" style="color:#2b6cb0;font-weight:700;">🏠 House Funds Growth</div>
+                        <div class="stat-value" id="investHouseGrowthPct">—</div>
+                        <div class="stat-label" id="investHouseGrowthAmt" style="font-size:12px;margin-top:4px;"></div>
+                    </div>
+                    <div class="stat-box" style="border-top:4px solid #6b46c1;background:linear-gradient(135deg,#faf5ff 0%,#fff 100%);">
+                        <div class="stat-label" style="color:#6b46c1;font-weight:700;">💰 Extra Funds</div>
+                        <div class="stat-value" id="investExtraTotal">$0.00</div>
+                        <div style="display:flex;justify-content:space-between;margin-top:6px;">
+                            <span class="stat-label" id="investExtraGrowth" style="font-size:12px;"></span>
+                            <span class="stat-label" id="investExtraMoM" style="font-size:12px;"></span>
+                        </div>
+                    </div>
+                    <div class="stat-box" style="border-top:4px solid #276749;background:linear-gradient(135deg,#f0fff4 0%,#fff 100%);">
+                        <div class="stat-label" style="color:#276749;font-weight:700;">🎓 RESPs</div>
+                        <div class="stat-value" id="investRespTotal">$0.00</div>
+                        <div style="display:flex;justify-content:space-between;margin-top:6px;">
+                            <span class="stat-label" id="investRespGrowth" style="font-size:12px;"></span>
+                            <span class="stat-label" id="investRespMoM" style="font-size:12px;"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Portfolio over time chart -->
+                <div class="card">
+                    <h2>📈 Total Portfolio Value Over Time</h2>
+                    <div style="overflow-x:auto;">
+                        <canvas id="investTimeChart" height="260" style="width:100%;min-width:400px;display:block;"></canvas>
+                    </div>
+                </div>
+
+                <!-- Per-account growth chart with date slicer -->
+                <div class="card">
+                    <h2>📊 Account Growth % — Period</h2>
+                    <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
+                        <div class="filter-group">
+                            <label for="growthFromFilter">From:</label>
+                            <select id="growthFromFilter" onchange="onGrowthSlicerChange()">
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="growthToFilter">To:</label>
+                            <select id="growthToFilter" onchange="onGrowthSlicerChange()">
+                            </select>
+                        </div>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <canvas id="investGrowthChart" height="240" style="width:100%;min-width:400px;display:block;"></canvas>
+                    </div>
+                    <div style="font-size:12px;color:#718096;margin-top:8px;">
+                        Cumulative growth = (End Position − Net Deposits Over Period) ÷ Start Position − 1. Accounts with withdrawals in range shown as —
+                    </div>
+                </div>
+
+                <!-- Chart 3b: Selector growth over time -->
+                <div class="card">
+                    <h2>🔍 Account Growth % Over Time — Compare Accounts</h2>
+                    <div style="margin-bottom:12px;display:flex;flex-wrap:wrap;gap:8px;" id="investAccountSelector"></div>
+                    <div style="overflow-x:auto;">
+                        <canvas id="investGrowthTimeSelectorChart" height="260" style="width:100%;min-width:400px;display:block;"></canvas>
+                    </div>
+                    <div id="investGrowthTimeSelectorLegend" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;font-size:12px;"></div>
+                </div>
+
+                <!-- Account table -->
+                <div class="card">
+                    <h2>🗂️ Account Detail</h2>
+                    <div class="budget-table-container">
+                        <table class="budget-table">
+                            <thead><tr>
+                                <th>Account</th>
+                                <th style="text-align:right">Position</th>
+                                <th style="text-align:right">Deposits</th>
+                                <th style="text-align:right">Growth %</th>
+                                <th style="text-align:right">MoM Change ($)</th>
+                            </tr></thead>
+                            <tbody id="investTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+            <div id="investPlaceholder" style="text-align:center;padding:60px 20px;color:#a0aec0;font-size:16px;">
+                ☝️ Select a month above to view investment data
+            </div>
+
+        </div> <!-- end tab-invest -->
 
     </div> <!-- end container -->
 
@@ -2060,6 +2198,7 @@
             });
             if (tabName === 'fundos') { applyFundosFilters(); }
             if (tabName === 'mom') { populateMoMCategoryFilter(); }
+            if (tabName === 'invest') { renderInvestments(); }
         }
 
         // ============================================
@@ -2644,7 +2783,784 @@
             });
         }
 
+
+        // ============================================
+        // INVESTMENTS TAB
+        // ============================================
+
+        const TEST_INVEST_DATA = [
+            {ym:"2026-Jan",account:"TFSA Le",        position:109.78,    deposits:0},
+            {ym:"2026-Jan",account:"FHSA Leandro",   position:19022.21,  deposits:0},
+            {ym:"2026-Jan",account:"RRSP Le",        position:1317.46,   deposits:0},
+            {ym:"2026-Jan",account:"RESPs",          position:15364.64,  deposits:320.00},
+            {ym:"2026-Jan",account:"FHSA Lila",      position:18902.71,  deposits:0},
+            {ym:"2026-Jan",account:"RRSP Lila",      position:1218.83,   deposits:0},
+            {ym:"2026-Jan",account:"RRSP Le CDW",    position:8977.43,   deposits:504.09},
+            {ym:"2026-Jan",account:"DSP Le CDW",     position:2244.36,   deposits:126.03},
+            {ym:"2026-Jan",account:"TFSA Lila",      position:5324.82,   deposits:0},
+            {ym:"2026-Feb",account:"TFSA Le",        position:111.92,    deposits:0},
+            {ym:"2026-Feb",account:"FHSA Leandro",   position:19455.21,  deposits:0},
+            {ym:"2026-Feb",account:"RRSP Le",        position:1353.09,   deposits:0},
+            {ym:"2026-Feb",account:"RESPs",          position:15765.03,  deposits:0},
+            {ym:"2026-Feb",account:"FHSA Lila",      position:19201.86,  deposits:0},
+            {ym:"2026-Feb",account:"RRSP Lila",      position:1251.53,   deposits:0},
+            {ym:"2026-Feb",account:"RRSP Le CDW",    position:9389.78,   deposits:168.03},
+            {ym:"2026-Feb",account:"DSP Le CDW",     position:2347.46,   deposits:42.01},
+            {ym:"2026-Feb",account:"TFSA Lila",      position:0,         deposits:-5324.82},
+            {ym:"2026-Mar",account:"TFSA Le",        position:108.63,    deposits:0},
+            {ym:"2026-Mar",account:"FHSA Leandro",   position:18809.99,  deposits:0},
+            {ym:"2026-Mar",account:"RRSP Le",        position:1272.34,   deposits:0},
+            {ym:"2026-Mar",account:"RESPs",          position:15228.56,  deposits:0},
+            {ym:"2026-Mar",account:"FHSA Lila",      position:18644.65,  deposits:0},
+            {ym:"2026-Mar",account:"RRSP Lila",      position:1232.92,   deposits:0},
+            {ym:"2026-Mar",account:"RRSP Le CDW",    position:9514.37,   deposits:343.62},
+            {ym:"2026-Mar",account:"DSP Le CDW",     position:2378.61,   deposits:85.91},
+            {ym:"2026-Mar",account:"TFSA Lila",      position:0,         deposits:0},
+            {ym:"2026-Apr",account:"TFSA Le",        position:111.77,    deposits:0},
+            {ym:"2026-Apr",account:"FHSA Leandro",   position:19515.33,  deposits:0},
+            {ym:"2026-Apr",account:"RRSP Le",        position:1367.58,   deposits:0},
+            {ym:"2026-Apr",account:"RESPs",          position:15885.27,  deposits:0},
+            {ym:"2026-Apr",account:"FHSA Lila",      position:19529.43,  deposits:0},
+            {ym:"2026-Apr",account:"RRSP Lila",      position:1247.59,   deposits:0},
+            {ym:"2026-Apr",account:"RRSP Le CDW",    position:10427.43,  deposits:346.14},
+            {ym:"2026-Apr",account:"DSP Le CDW",     position:2606.88,   deposits:86.54},
+            {ym:"2026-Apr",account:"TFSA Lila",      position:0,         deposits:0},
+        ];
+
+        let allInvestData = [];
+
+        async function loadInvestData() {
+            try {
+                allInvestData = await fetchInvestData();
+            } catch(err) {
+                console.error('Investment data load error:', err);
+                allInvestData = DEV_MODE ? TEST_INVEST_DATA : [];
+            }
+        }
+
+        function populateInvestMonthFilter() {
+            const sel  = document.getElementById('investMonthFilter');
+            const prev = sel.value;
+            const months = [...new Set(allInvestData.map(r => r.ym))].sort((a,b) => {
+                const order = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
+                const pa = a.split('-'), pb = b.split('-');
+                return pa[0] !== pb[0] ? pa[0].localeCompare(pb[0]) : order[pa[1]] - order[pb[1]];
+            });
+            sel.innerHTML = '<option value="">— Select month —</option>';
+            months.forEach(m => {
+                const o = document.createElement('option');
+                o.value = m; o.textContent = m;
+                sel.appendChild(o);
+            });
+            // Default to most recent month
+            sel.value = prev || months[months.length - 1] || '';
+        }
+
+        function getPrevYM(ym) {
+            const monthOrder = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            const [yr, mon] = ym.split('-');
+            const idx = monthOrder.indexOf(mon);
+            if (idx === 0) return (parseInt(yr) - 1) + '-Dec';
+            return yr + '-' + monthOrder[idx - 1];
+        }
+
+        function calcGrowth(row, prevData) {
+            // Withdrawal: deposits < 0 → show —
+            if (row.deposits < 0) return null;
+            const prev = prevData.find(r => r.account === row.account);
+            if (!prev || prev.position === 0) return null;
+            const preDeposit = row.position - row.deposits;
+            return (preDeposit / prev.position) - 1;
+        }
+
+        async function renderInvestments() {
+            if (allInvestData.length === 0) await loadInvestData();
+            populateInvestMonthFilter();
+
+            const ym  = document.getElementById('investMonthFilter').value;
+            document.getElementById('investContent').style.display     = ym ? 'block' : 'none';
+            document.getElementById('investPlaceholder').style.display = ym ? 'none'  : 'block';
+            if (!ym) return;
+
+            const curData  = allInvestData.filter(r => r.ym === ym);
+            const prevYM   = getPrevYM(ym);
+            const prevData = allInvestData.filter(r => r.ym === prevYM);
+
+            const fmt = v => '$' + Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+            const fmtPct = v => (v >= 0 ? '+' : '') + (v * 100).toFixed(2) + '%';
+
+            // ── Stat cards ──
+            const totalPos    = curData.reduce((s,r) => s + r.position, 0);
+            const totalDep    = curData.reduce((s,r) => s + r.deposits, 0);
+            const prevTotalPos = prevData.reduce((s,r) => s + r.position, 0);
+            const momChange   = prevTotalPos > 0 ? totalPos - prevTotalPos : null;
+
+            // Weighted portfolio growth (exclude accounts with withdrawals)
+            const growthRows = curData.filter(r => r.deposits >= 0 && prevData.find(p => p.account === r.account && p.position > 0));
+            const weightedGrowth = growthRows.length > 0
+                ? growthRows.reduce((s,r) => {
+                    const prev = prevData.find(p => p.account === r.account);
+                    return s + ((r.position - r.deposits) - prev.position);
+                  }, 0) / growthRows.reduce((s,r) => {
+                    const prev = prevData.find(p => p.account === r.account);
+                    return s + prev.position;
+                  }, 0)
+                : null;
+
+            document.getElementById('investTotal').textContent = fmt(totalPos);
+
+            const growthEl = document.getElementById('investGrowthPct');
+            const growthAmtEl = document.getElementById('investGrowthAmt');
+            if (weightedGrowth !== null) {
+                growthEl.textContent = fmtPct(weightedGrowth);
+                growthEl.style.color = weightedGrowth >= 0 ? '#38a169' : '#e53e3e';
+                const growthAmt = growthRows.reduce((s,r) => {
+                    const prev = prevData.find(p => p.account === r.account);
+                    return s + ((r.position - r.deposits) - prev.position);
+                }, 0);
+                growthAmtEl.textContent = (growthAmt >= 0 ? '+' : '-') + fmt(growthAmt) + ' in gains';
+            } else {
+                growthEl.textContent = '—'; growthAmtEl.textContent = 'No prior month data';
+            }
+
+            const depEl = document.getElementById('investDeposits');
+            depEl.textContent = (totalDep < 0 ? '-' : '') + fmt(totalDep);
+            depEl.style.color = totalDep < 0 ? '#e53e3e' : totalDep === 0 ? '' : '#38a169';
+
+            const momEl = document.getElementById('investMoMChange');
+            if (momChange !== null) {
+                momEl.textContent = (momChange >= 0 ? '+' : '-') + fmt(momChange);
+                momEl.style.color = momChange >= 0 ? '#38a169' : '#e53e3e';
+            } else {
+                momEl.textContent = '—';
+            }
+
+            // ── Account table ──
+            const tbody = document.getElementById('investTableBody');
+            tbody.innerHTML = '';
+            curData.forEach(row => {
+                const growth = calcGrowth(row, prevData);
+                const prev   = prevData.find(r => r.account === row.account);
+                const momChg = prev ? row.position - prev.position : null;
+                const tr = document.createElement('tr');
+
+                const growthHtml = growth === null
+                    ? '<span style="color:#a0aec0">—</span>'
+                    : `<span style="font-weight:700;color:${growth>=0?'#38a169':'#e53e3e'}">${fmtPct(growth)}</span>`;
+
+                const momHtml = momChg === null
+                    ? '<span style="color:#a0aec0">—</span>'
+                    : `<span style="color:${momChg>=0?'#38a169':'#e53e3e'}">${momChg>=0?'+':'-'}${fmt(momChg)}</span>`;
+
+                const depHtml = row.deposits < 0
+                    ? `<span style="color:#e53e3e">-${fmt(row.deposits)}</span>`
+                    : row.deposits === 0
+                    ? '<span style="color:#a0aec0">—</span>'
+                    : `<span style="color:#38a169">+${fmt(row.deposits)}</span>`;
+
+                tr.innerHTML =
+                    `<td style="font-weight:600;">${row.account}</td>` +
+                    `<td style="text-align:right;font-weight:700;">${fmt(row.position)}</td>` +
+                    `<td style="text-align:right;">${depHtml}</td>` +
+                    `<td style="text-align:right;">${growthHtml}</td>` +
+                    `<td style="text-align:right;">${momHtml}</td>`;
+                tbody.appendChild(tr);
+            });
+
+            // ── Group stat cards ──
+            const fmt2 = v => '$' + Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+            const fmtPct2 = v => v === null ? '—' : (v>=0?'+':'') + (v*100).toFixed(2)+'%';
+            const prevYM2 = getPrevYM(ym);
+
+            [[HOUSE_ACCOUNTS,'House'],[ EXTRA_ACCOUNTS,'Extra'],[ RESP_ACCOUNTS,'Resp']].forEach(([accts, key]) => {
+                const total   = curData.filter(r=>accts.includes(r.account)).reduce((s,r)=>s+r.position,0);
+                const prevTot = allInvestData.filter(r=>r.ym===prevYM2&&accts.includes(r.account)).reduce((s,r)=>s+r.position,0);
+                const momChg  = prevTot > 0 ? total - prevTot : null;
+                const growth  = calcGroupGrowth(accts, prevYM2, ym);
+
+                const totalEl = document.getElementById('invest'+key+'Total');
+                if (totalEl) totalEl.textContent = fmt2(total);
+                const growthEl2 = document.getElementById('invest'+key+'Growth');
+                if (growthEl2) { growthEl2.textContent = growth!==null ? fmtPct2(growth) : '—'; growthEl2.style.color = growth!==null&&growth>=0?'#38a169':'#e53e3e'; }
+                const momEl2 = document.getElementById('invest'+key+'MoM');
+                if (momEl2) { momEl2.textContent = momChg!==null?(momChg>=0?'+':'-')+fmt2(momChg)+' MoM':''; momEl2.style.color = momChg!==null&&momChg>=0?'#38a169':'#e53e3e'; }
+
+                // House group also has separate growth % card
+                if (key==='House') {
+                    const hgEl = document.getElementById('investHouseGrowthPct');
+                    const hgAmt = document.getElementById('investHouseGrowthAmt');
+                    if (hgEl) { hgEl.textContent = growth!==null?fmtPct2(growth):'—'; hgEl.style.color = growth!==null&&growth>=0?'#38a169':'#e53e3e'; }
+                    if (hgAmt&&growth!==null) {
+                        const gainAmt = accts.reduce((s,acct)=>{
+                            const r = curData.find(d=>d.account===acct);
+                            const p = allInvestData.find(d=>d.ym===prevYM2&&d.account===acct);
+                            if(!r||!p||p.position===0) return s;
+                            return s + (r.position - r.deposits) - p.position;
+                        },0);
+                        hgAmt.textContent = (gainAmt>=0?'+':'-')+fmt2(gainAmt)+' in gains';
+                    }
+                }
+            });
+
+            // ── Charts (defer for canvas sizing) ──
+            const months = getSortedInvestMonths();
+            const allSeries = buildGrowthHistory(months);
+            const accounts  = [...new Set(allInvestData.map(r => r.account))].sort((a,b)=>a.localeCompare(b));
+            buildAccountSelector(accounts);
+            const selSeries = allSeries.filter(s => selectedInvestAccounts.has(s.account));
+            populateGrowthSlicer(ym);
+
+            requestAnimationFrame(() => {
+                drawInvestTimeChart(ym);
+                drawInvestGrowthChartRange(ym, ym);
+                drawGrowthTimeChart('investGrowthTimeSelectorChart', months, selSeries, 'investGrowthTimeSelectorLegend');
+            });
+        }
+
+
+
+
+        // ── Investments API ──
+        const INVEST_SHEET_ID  = '1rhO_nnuE_m2JkCGEmLFh26o9LO-9y16q_rOxjZpyKm4';
+        const INVEST_GID       = '1763390879';
+        const INVEST_API_URL   = `https://docs.google.com/spreadsheets/d/${INVEST_SHEET_ID}/gviz/tq?tqx=out:json&gid=${INVEST_GID}`;
+
+        function convertInvestData(googleData) {
+            if (!googleData.table || !googleData.table.rows) throw new Error('No investment data found');
+            return googleData.table.rows.map(row => {
+                const c = row.c || [];
+                const ym       = c[0]?.v || '';
+                const account  = c[1]?.v || '';
+                const position = parseFloat(c[2]?.v) || 0;
+                const deposits = parseFloat(c[3]?.v) || 0;
+                if (!ym || !account) return null;
+                return { ym, account, position, deposits };
+            }).filter(Boolean);
+        }
+
+        async function fetchInvestData() {
+            if (DEV_MODE) {
+                await new Promise(r => setTimeout(r, 150));
+                return TEST_INVEST_DATA;
+            }
+            const res = await fetch(INVEST_API_URL);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const data = parseGoogleSheetsJSON(await res.text());
+            if (data.status !== 'ok') throw new Error('Investment API error: ' + (data.errors?.[0]?.detailed_message || data.status));
+            return convertInvestData(data);
+        }
+
+        // ── Account groups ──
+        const HOUSE_ACCOUNTS  = ['FHSA Leandro','FHSA Lila','RRSP Lila','RRSP Le','RRSP Le CDW','DSP Le CDW'];
+        const EXTRA_ACCOUNTS  = ['TFSA Le','TFSA Lila'];
+        const RESP_ACCOUNTS   = ['RESPs'];
+
+        const GROUP_ORDER = { house: 0, extra: 1, resp: 2 };
+
+        function groupLabel(account) {
+            if (HOUSE_ACCOUNTS.includes(account)) return 'house';
+            if (EXTRA_ACCOUNTS.includes(account)) return 'extra';
+            return 'resp';
+        }
+
+        // ── Cumulative growth over a date range ──
+        function calcCumulativeGrowth(account, fromYM, toYM) {
+            const months = getSortedInvestMonths();
+            const fromIdx = months.indexOf(fromYM);
+            const toIdx   = months.indexOf(toYM);
+            if (fromIdx < 0 || toIdx < 0 || toIdx <= fromIdx) return null;
+
+            const startRow = allInvestData.find(r => r.ym === fromYM && r.account === account);
+            const endRow   = allInvestData.find(r => r.ym === toYM   && r.account === account);
+            if (!startRow || !endRow || startRow.position === 0) return null;
+
+            // Check for any withdrawal in range
+            const rangeMonths = months.slice(fromIdx + 1, toIdx + 1);
+            const hasWithdrawal = rangeMonths.some(m => {
+                const r = allInvestData.find(d => d.ym === m && d.account === account);
+                return r && r.deposits < 0;
+            });
+            if (hasWithdrawal) return null;
+
+            // Net deposits over range (excluding start month)
+            const netDeposits = rangeMonths.reduce((s, m) => {
+                const r = allInvestData.find(d => d.ym === m && d.account === account);
+                return s + (r ? r.deposits : 0);
+            }, 0);
+
+            return (endRow.position - netDeposits) / startRow.position - 1;
+        }
+
+        function calcGroupGrowth(accounts, fromYM, toYM) {
+            const months  = getSortedInvestMonths();
+            const fromIdx = months.indexOf(fromYM);
+            const toIdx   = months.indexOf(toYM);
+            if (fromIdx < 0 || toIdx < 0 || toIdx <= fromIdx) return null;
+
+            let startTotal = 0, endPreDep = 0;
+            accounts.forEach(acct => {
+                const startRow = allInvestData.find(r => r.ym === fromYM && r.account === acct);
+                const endRow   = allInvestData.find(r => r.ym === toYM   && r.account === acct);
+                if (!startRow || !endRow) return;
+                startTotal += startRow.position;
+                const rangeMonths = months.slice(fromIdx + 1, toIdx + 1);
+                const netDep = rangeMonths.reduce((s, m) => {
+                    const r = allInvestData.find(d => d.ym === m && d.account === acct);
+                    return s + (r && r.deposits >= 0 ? r.deposits : 0);
+                }, 0);
+                endPreDep += endRow.position - netDep;
+            });
+            if (startTotal === 0) return null;
+            return endPreDep / startTotal - 1;
+        }
+
+        // ── Colour palette for accounts ──
+        const INVEST_COLORS = [
+            '#667eea','#48bb78','#ed8936','#e53e3e','#805ad5',
+            '#38b2ac','#d69e2e','#e2519a','#4299e1'
+        ];
+
+        function getAccountColor(account) {
+            const accounts = [...new Set(TEST_INVEST_DATA.map(r => r.account))];
+            return INVEST_COLORS[accounts.indexOf(account) % INVEST_COLORS.length];
+        }
+
+        // ── Recompute gains line: per month, sum (position - deposits) - prevMonthPosition across all accounts ──
+        function computeMonthlyGains(months) {
+            return months.map((m, i) => {
+                if (i === 0) return 0;
+                const prev = months[i - 1];
+                const curData  = allInvestData.filter(r => r.ym === m);
+                const prevData = allInvestData.filter(r => r.ym === prev);
+                let gains = 0;
+                curData.forEach(r => {
+                    if (r.deposits < 0) return; // skip withdrawals
+                    const p = prevData.find(p => p.account === r.account);
+                    if (!p || p.position === 0) return;
+                    gains += (r.position - r.deposits) - p.position;
+                });
+                return gains;
+            });
+        }
+
+        // ── Build growth % history per account ──
+        function buildGrowthHistory(months) {
+            const accounts = [...new Set(allInvestData.map(r => r.account))];
+            return accounts.map(acct => {
+                const values = months.map((m, i) => {
+                    if (i === 0) return null;
+                    const cur  = allInvestData.find(r => r.ym === m    && r.account === acct);
+                    const prev = allInvestData.find(r => r.ym === months[i-1] && r.account === acct);
+                    if (!cur || !prev || prev.position === 0 || cur.deposits < 0) return null;
+                    return ((cur.position - cur.deposits) / prev.position) - 1;
+                });
+                return { account: acct, values };
+            });
+        }
+
+
+        function populateGrowthSlicer(selectedYM) {
+            const months = getSortedInvestMonths();
+            const fromSel = document.getElementById('growthFromFilter');
+            const toSel   = document.getElementById('growthToFilter');
+            if (!fromSel || !toSel) return;
+
+            fromSel.innerHTML = months.map(m => `<option value="${m}">${m}</option>`).join('');
+            toSel.innerHTML   = months.map(m => `<option value="${m}">${m}</option>`).join('');
+
+            // Default: from = selectedYM, to = selectedYM
+            fromSel.value = selectedYM;
+            toSel.value   = selectedYM;
+        }
+
+        function onGrowthSlicerChange() {
+            const fromYM = document.getElementById('growthFromFilter').value;
+            const toYM   = document.getElementById('growthToFilter').value;
+            requestAnimationFrame(() => drawInvestGrowthChartRange(fromYM, toYM));
+        }
+
+        function drawInvestGrowthChartRange(fromYM, toYM) {
+            const accounts = [...new Set(allInvestData.map(r => r.account))].sort((a,b) => {
+                const ga = GROUP_ORDER[groupLabel(a)], gb = GROUP_ORDER[groupLabel(b)];
+                if (ga !== gb) return ga - gb;
+                return a.localeCompare(b);
+            });
+            const rows = accounts.map(acct => ({
+                account: acct,
+                growth: fromYM === toYM
+                    ? calcGrowth(allInvestData.find(r=>r.ym===toYM&&r.account===acct)||{position:0,deposits:0},
+                                 allInvestData.filter(r=>r.ym===getSortedInvestMonths()[getSortedInvestMonths().indexOf(toYM)-1]))
+                    : calcCumulativeGrowth(acct, fromYM, toYM)
+            }));
+
+            const canvas = document.getElementById('investGrowthChart');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const dpr = window.devicePixelRatio || 1;
+            const W = canvas.getBoundingClientRect().width || 700;
+            const H = 240;
+            canvas.width = W * dpr; canvas.height = H * dpr;
+            ctx.scale(dpr, dpr);
+            ctx.clearRect(0, 0, W, H);
+
+            const validRows = rows.filter(r => r.growth !== null);
+            if (validRows.length === 0) {
+                ctx.fillStyle = '#a0aec0'; ctx.font = '14px system-ui,sans-serif'; ctx.textAlign = 'center';
+                ctx.fillText('No data for selected range', W/2, H/2);
+                return;
+            }
+
+            const PAD_L = 20, PAD_R = 20, PAD_T = 24, PAD_B = 64;
+            const chartW = W - PAD_L - PAD_R;
+            const chartH = H - PAD_T - PAD_B;
+            const maxAbs = Math.max(...validRows.map(r => Math.abs(r.growth))) * 1.3 || 0.05;
+            const midY   = PAD_T + chartH / 2;
+            const barW   = Math.min(48, (chartW / rows.length) * 0.62);
+            const slotW  = chartW / rows.length;
+
+            // Group separators
+            let lastGroup = null;
+            rows.forEach((row, i) => {
+                const grp = groupLabel(row.account);
+                if (grp !== lastGroup) {
+                    const x = PAD_L + slotW * i;
+                    ctx.strokeStyle = '#cbd5e0'; ctx.lineWidth = 1; ctx.setLineDash([3,3]);
+                    ctx.beginPath(); ctx.moveTo(x, PAD_T); ctx.lineTo(x, PAD_T + chartH); ctx.stroke();
+                    ctx.setLineDash([]);
+                    lastGroup = grp;
+                }
+            });
+
+            // Zero line
+            ctx.strokeStyle = '#cbd5e0'; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(PAD_L, midY); ctx.lineTo(PAD_L + chartW, midY); ctx.stroke();
+
+            // Y labels
+            [maxAbs, maxAbs/2, 0, -maxAbs/2, -maxAbs].forEach(v => {
+                const y = midY - (v/maxAbs)*(chartH/2);
+                ctx.fillStyle='#a0aec0'; ctx.font='10px system-ui,sans-serif'; ctx.textAlign='right';
+                ctx.fillText((v*100).toFixed(1)+'%', PAD_L+40, y+4);
+            });
+
+            // Bars
+            rows.forEach((row, i) => {
+                const x  = PAD_L + slotW * i + slotW / 2;
+                if (row.growth === null) {
+                    // Show dash for withdrawal accounts
+                    ctx.fillStyle = '#a0aec0'; ctx.font = '11px system-ui,sans-serif'; ctx.textAlign = 'center';
+                    ctx.fillText('—', x, midY + 4);
+                } else {
+                    const bh   = Math.abs(row.growth / maxAbs) * (chartH / 2);
+                    const isPos = row.growth >= 0;
+                    const color = getAccountColor(row.account);
+                    ctx.fillStyle = isPos ? color : '#fc8181';
+                    ctx.fillRect(x - barW/2, isPos ? midY - bh : midY, barW, Math.max(bh, 2));
+
+                    ctx.fillStyle = isPos ? '#276749' : '#9b2c2c';
+                    ctx.font = 'bold 10px system-ui,sans-serif'; ctx.textAlign = 'center';
+                    ctx.fillText((row.growth*100).toFixed(2)+'%', x, isPos ? midY-bh-4 : midY+bh+12);
+                }
+
+                // Account label — rotated
+                ctx.fillStyle = '#4a5568'; ctx.font = '10px system-ui,sans-serif';
+                ctx.save(); ctx.translate(x, H - PAD_B + 16); ctx.rotate(-Math.PI/4);
+                ctx.fillText(row.account, 0, 0);
+                ctx.restore();
+            });
+
+            // Group labels at top
+            const groups = [{label:'🏠 House Buying Funds', accounts:HOUSE_ACCOUNTS},
+                            {label:'💰 Extra Funds', accounts:EXTRA_ACCOUNTS},
+                            {label:'🎓 RESPs', accounts:RESP_ACCOUNTS}];
+            groups.forEach(g => {
+                const acctRows = rows.filter(r => g.accounts.includes(r.account));
+                if (acctRows.length === 0) return;
+                const indices = acctRows.map(r => rows.indexOf(r));
+                const x1 = PAD_L + slotW * Math.min(...indices);
+                const x2 = PAD_L + slotW * (Math.max(...indices) + 1);
+                ctx.fillStyle = 'rgba(102,126,234,0.06)';
+                ctx.fillRect(x1, PAD_T, x2 - x1, chartH);
+                ctx.fillStyle = '#667eea'; ctx.font = 'bold 10px system-ui,sans-serif'; ctx.textAlign = 'center';
+                ctx.fillText(g.label, (x1+x2)/2, PAD_T + 12);
+            });
+        }
+
+        // ── Shared line chart renderer ──
+        function drawGrowthTimeChart(canvasId, months, seriesData, legendId) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const dpr = window.devicePixelRatio || 1;
+            const W   = canvas.getBoundingClientRect().width || 700;
+            const H   = 260;
+            canvas.width = W * dpr; canvas.height = H * dpr;
+            ctx.scale(dpr, dpr);
+            ctx.clearRect(0, 0, W, H);
+
+            const PAD_L = 52, PAD_R = 20, PAD_T = 24, PAD_B = 46;
+            const chartW = W - PAD_L - PAD_R;
+            const chartH = H - PAD_T - PAD_B;
+
+            // Collect all non-null values to set scale
+            const allVals = seriesData.flatMap(s => s.values.filter(v => v !== null));
+            if (allVals.length === 0) return;
+            const maxAbs = Math.max(...allVals.map(Math.abs)) * 1.3 || 0.05;
+
+            const displayMonths = months.slice(1); // skip first (no prior month)
+            const xScale = i => PAD_L + (displayMonths.length <= 1 ? chartW/2 : (i / (displayMonths.length - 1)) * chartW);
+            const yScale = v => PAD_T + chartH/2 - (v / maxAbs) * (chartH/2);
+
+            // Grid + zero line
+            ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1;
+            [-maxAbs, -maxAbs/2, 0, maxAbs/2, maxAbs].forEach(v => {
+                const y = yScale(v);
+                ctx.beginPath(); ctx.moveTo(PAD_L, y); ctx.lineTo(PAD_L + chartW, y);
+                ctx.strokeStyle = v === 0 ? '#cbd5e0' : '#e2e8f0';
+                ctx.lineWidth = v === 0 ? 1.5 : 1;
+                ctx.stroke();
+                ctx.fillStyle = '#a0aec0'; ctx.font = '10px system-ui,sans-serif'; ctx.textAlign = 'right';
+                ctx.fillText((v*100).toFixed(1)+'%', PAD_L - 4, y + 4);
+            });
+
+            // Lines per series
+            seriesData.forEach(series => {
+                const color = getAccountColor(series.account);
+                ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.setLineDash([]);
+                let drawing = false;
+                series.values.slice(1).forEach((v, i) => { // slice(1) aligns with displayMonths
+                    if (v === null) { drawing = false; return; }
+                    const x = xScale(i), y = yScale(v);
+                    if (!drawing) { ctx.beginPath(); ctx.moveTo(x,y); drawing = true; }
+                    else ctx.lineTo(x,y);
+                });
+                ctx.stroke();
+
+                // Dots
+                series.values.slice(1).forEach((v, i) => {
+                    if (v === null) return;
+                    ctx.beginPath(); ctx.arc(xScale(i), yScale(v), 3, 0, Math.PI*2);
+                    ctx.fillStyle = color; ctx.fill();
+                });
+            });
+
+            // X labels
+            displayMonths.forEach((m, i) => {
+                ctx.fillStyle = '#718096'; ctx.font = '10px system-ui,sans-serif'; ctx.textAlign = 'center';
+                ctx.fillText(m.split('-')[1], xScale(i), H - PAD_B + 14);
+            });
+
+            // Legend
+            const legendEl = document.getElementById(legendId);
+            if (legendEl) {
+                legendEl.innerHTML = seriesData.map(s =>
+                    `<span style="display:flex;align-items:center;gap:4px;">
+                        <span style="display:inline-block;width:20px;height:3px;background:${getAccountColor(s.account)};border-radius:2px;"></span>
+                        <span style="color:#4a5568;">${s.account}</span>
+                    </span>`
+                ).join('');
+            }
+        }
+
+        // ── Selector state ──
+        let selectedInvestAccounts = new Set();
+
+        function buildAccountSelector(accounts) {
+            const container = document.getElementById('investAccountSelector');
+            if (!container) return;
+
+            // Sort alphabetically
+            const sorted = [...accounts].sort((a,b) => a.localeCompare(b));
+
+            // Init with first 3 selected if empty
+            if (selectedInvestAccounts.size === 0) {
+                sorted.slice(0, 3).forEach(a => selectedInvestAccounts.add(a));
+            }
+
+            container.innerHTML = sorted.map(acct => {
+                const selected = selectedInvestAccounts.has(acct);
+                const color    = getAccountColor(acct);
+                return `<button onclick="toggleInvestAccount('${acct}')" id="acct-btn-${acct.replace(/[^a-z0-9]/gi,'_')}"
+                    style="padding:5px 12px;border-radius:16px;border:2px solid ${color};
+                    background:${selected ? color : 'white'};color:${selected ? 'white' : color};
+                    font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;">
+                    ${acct}
+                </button>`;
+            }).join('');
+        }
+
+        function toggleInvestAccount(acct) {
+            if (selectedInvestAccounts.has(acct)) {
+                if (selectedInvestAccounts.size > 1) selectedInvestAccounts.delete(acct);
+            } else {
+                selectedInvestAccounts.add(acct);
+            }
+            const ym = document.getElementById('investMonthFilter').value;
+            if (ym) {
+                const months = getSortedInvestMonths();
+                const allSeries  = buildGrowthHistory(months);
+                const selSeries  = allSeries.filter(s => selectedInvestAccounts.has(s.account));
+                buildAccountSelector([...new Set(allInvestData.map(r => r.account))].sort((a,b)=>a.localeCompare(b)));
+                requestAnimationFrame(() => drawGrowthTimeChart('investGrowthTimeSelectorChart', months, selSeries, 'investGrowthTimeSelectorLegend'));
+            }
+        }
+
+        function getSortedInvestMonths() {
+            const mo = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
+            return [...new Set(allInvestData.map(r => r.ym))].sort((a,b) => {
+                const pa = a.split('-'), pb = b.split('-');
+                return pa[0] !== pb[0] ? pa[0].localeCompare(pb[0]) : mo[pa[1]] - mo[pb[1]];
+            });
+        }
+
+        // ── Chart 1: Portfolio value over time ──
+        function drawInvestTimeChart(selectedYM) {
+            const canvas = document.getElementById('investTimeChart');
+            const ctx = canvas.getContext('2d');
+            const dpr = window.devicePixelRatio || 1;
+            const W = canvas.getBoundingClientRect().width || 700;
+            const H = 260;
+            canvas.width = W * dpr; canvas.height = H * dpr;
+            ctx.scale(dpr, dpr);
+            ctx.clearRect(0, 0, W, H);
+
+            const PAD_L = 80, PAD_R = 20, PAD_T = 20, PAD_B = 40;
+            const chartW = W - PAD_L - PAD_R;
+            const chartH = H - PAD_T - PAD_B;
+
+            // Get all months sorted
+            const monthOrder = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
+            const months = [...new Set(allInvestData.map(r => r.ym))].sort((a,b) => {
+                const pa = a.split('-'), pb = b.split('-');
+                return pa[0] !== pb[0] ? pa[0].localeCompare(pb[0]) : monthOrder[pa[1]] - monthOrder[pb[1]];
+            });
+
+            const totals = months.map(m => allInvestData.filter(r => r.ym === m).reduce((s,r) => s + r.position, 0));
+            const maxVal = Math.max(...totals) * 1.1 || 1;
+            const minVal = Math.min(...totals) * 0.95;
+            const range  = maxVal - minVal;
+
+            const yScale = v => PAD_T + chartH - ((v - minVal) / range) * chartH;
+            const xScale = i => PAD_L + (i / (months.length - 1)) * chartW;
+
+            // Grid
+            ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1;
+            for (let i = 0; i <= 4; i++) {
+                const y = PAD_T + (chartH / 4) * i;
+                ctx.beginPath(); ctx.moveTo(PAD_L, y); ctx.lineTo(PAD_L + chartW, y); ctx.stroke();
+                const val = maxVal - (range / 4) * i;
+                ctx.fillStyle = '#718096'; ctx.font = '11px system-ui,sans-serif'; ctx.textAlign = 'right';
+                ctx.fillText('$' + Math.round(val / 1000) + 'k', PAD_L - 6, y + 4);
+            }
+
+            // Fill area under line
+            ctx.beginPath();
+            months.forEach((m,i) => {
+                const x = xScale(i), y = yScale(totals[i]);
+                i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+            });
+            ctx.lineTo(xScale(months.length-1), PAD_T + chartH);
+            ctx.lineTo(xScale(0), PAD_T + chartH);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(102,126,234,0.12)';
+            ctx.fill();
+
+            // Line
+            ctx.beginPath();
+            months.forEach((m,i) => {
+                const x = xScale(i), y = yScale(totals[i]);
+                i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+            });
+            ctx.strokeStyle = '#667eea'; ctx.lineWidth = 2.5; ctx.stroke();
+
+            // Dots + labels
+            months.forEach((m,i) => {
+                const x = xScale(i), y = yScale(totals[i]);
+                const isSelected = m === selectedYM;
+                ctx.beginPath();
+                ctx.arc(x, y, isSelected ? 6 : 4, 0, Math.PI*2);
+                ctx.fillStyle = isSelected ? '#553c9a' : '#667eea';
+                ctx.fill();
+                ctx.fillStyle = '#4a5568'; ctx.font = '10px system-ui,sans-serif'; ctx.textAlign = 'center';
+                ctx.fillText(m.split('-')[1], x, H - PAD_B + 14);
+            });
+
+            // Gains line (cumulative investment gains, excluding deposits)
+            const monthlyGains = computeMonthlyGains(months);
+            let cumGains = 0;
+            const gainPoints = months.map((m, i) => {
+                cumGains += monthlyGains[i];
+                return { x: xScale(i), y: yScale(minVal + cumGains), val: cumGains };
+            });
+            ctx.beginPath();
+            gainPoints.forEach((pt, i) => i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y));
+            ctx.strokeStyle = '#48bb78'; ctx.lineWidth = 2; ctx.setLineDash([5,3]); ctx.stroke();
+            ctx.setLineDash([]);
+            gainPoints.forEach(pt => {
+                ctx.beginPath(); ctx.arc(pt.x, pt.y, 3, 0, Math.PI*2);
+                ctx.fillStyle = '#48bb78'; ctx.fill();
+            });
+        }
+
+        // ── Chart 2: Per-account growth % ──
+        function drawInvestGrowthChart(curData, prevData, ym) {
+            document.getElementById('investGrowthChartTitle').textContent = '📊 Account Growth % — ' + ym;
+
+            const rows = curData.map(r => ({ account: r.account, growth: calcGrowth(r, prevData) }))
+                                .filter(r => r.growth !== null);
+
+            if (rows.length === 0) return;
+
+            const canvas = document.getElementById('investGrowthChart');
+            const ctx = canvas.getContext('2d');
+            const dpr = window.devicePixelRatio || 1;
+            const W = canvas.getBoundingClientRect().width || 700;
+            const H = 240;
+            canvas.width = W * dpr; canvas.height = H * dpr;
+            ctx.scale(dpr, dpr);
+            ctx.clearRect(0, 0, W, H);
+
+            const PAD_L = 20, PAD_R = 20, PAD_T = 20, PAD_B = 60;
+            const chartW = W - PAD_L - PAD_R;
+            const chartH = H - PAD_T - PAD_B;
+
+            const maxPct = Math.max(...rows.map(r => Math.abs(r.growth))) * 1.3 || 0.05;
+            const midY   = PAD_T + chartH / 2;
+            const barW   = Math.min(50, (chartW / rows.length) * 0.6);
+            const slotW  = chartW / rows.length;
+
+            // Zero line
+            ctx.strokeStyle = '#cbd5e0'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(PAD_L, midY); ctx.lineTo(PAD_L + chartW, midY); ctx.stroke();
+
+            // Pct labels on y axis
+            [maxPct, maxPct/2, 0, -maxPct/2, -maxPct].forEach(v => {
+                const y = midY - (v / maxPct) * (chartH / 2);
+                ctx.fillStyle = '#a0aec0'; ctx.font = '10px system-ui,sans-serif'; ctx.textAlign = 'right';
+                ctx.fillText((v*100).toFixed(1)+'%', PAD_L + 38, y + 4);
+            });
+
+            rows.forEach((row, i) => {
+                const x  = PAD_L + slotW * i + slotW / 2;
+                const bh = Math.abs(row.growth / maxPct) * (chartH / 2);
+                const isPos = row.growth >= 0;
+
+                ctx.fillStyle = isPos ? '#68d391' : '#fc8181';
+                ctx.fillRect(x - barW/2, isPos ? midY - bh : midY, barW, bh);
+
+                // Value label above/below bar
+                ctx.fillStyle = isPos ? '#276749' : '#9b2c2c';
+                ctx.font = 'bold 10px system-ui,sans-serif'; ctx.textAlign = 'center';
+                ctx.fillText((row.growth*100).toFixed(2)+'%', x, isPos ? midY - bh - 4 : midY + bh + 12);
+
+                // Account label
+                ctx.fillStyle = '#4a5568'; ctx.font = '10px system-ui,sans-serif';
+                ctx.save(); ctx.translate(x, H - PAD_B + 14); ctx.rotate(-Math.PI/4);
+                ctx.fillText(row.account, 0, 0);
+                ctx.restore();
+            });
+        }
+
     </script>
 </body>
 </html>
-<!-- v5.16 -->
+<!-- v5.20 -->
