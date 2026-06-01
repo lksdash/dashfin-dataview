@@ -1,10 +1,10 @@
-<!-- v5.20 -->
+<!-- v5.21 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Finance Dashboard v5.20</title>
+    <title>Personal Finance Dashboard v5.21</title>
     <style>
         * {
             margin: 0;
@@ -749,7 +749,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.20</span></h1>
+            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.21</span></h1>
             <div style="display: flex; gap: 15px; align-items: center; margin: 15px 0;">
                 <div class="mode-toggle">
                     <button id="testModeBtn" class="mode-btn active">🔧 TEST</button>
@@ -3027,9 +3027,28 @@
 
         function convertInvestData(googleData) {
             if (!googleData.table || !googleData.table.rows) throw new Error('No investment data found');
+            const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
             return googleData.table.rows.map(row => {
                 const c = row.c || [];
-                const ym       = c[0]?.v || '';
+
+                // Column A: Year-Month — stored as a date in Sheets
+                // API returns { v: "Date(2026,2,1)", f: "2026-Mar" } or similar
+                // Use formatted value if available, otherwise parse from Date() string
+                let ym = '';
+                const cell0 = c[0];
+                if (cell0?.f) {
+                    // Formatted value — may be "2026-Mar" or "Mar-2026" etc, normalise to "2026-Mar"
+                    ym = cell0.f;
+                } else if (typeof cell0?.v === 'string' && cell0.v.startsWith('Date(')) {
+                    // Parse Date(yyyy,m,d) — month is 0-indexed
+                    const parts = cell0.v.replace('Date(','').replace(')','').split(',');
+                    const yr  = parts[0];
+                    const mon = MONTH_NAMES[parseInt(parts[1])]; // 0-indexed
+                    ym = yr + '-' + mon;
+                } else {
+                    ym = cell0?.v || '';
+                }
+
                 const account  = c[1]?.v || '';
                 const position = parseFloat(c[2]?.v) || 0;
                 const deposits = parseFloat(c[3]?.v) || 0;
@@ -3408,7 +3427,9 @@
             const mo = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
             return [...new Set(allInvestData.map(r => r.ym))].sort((a,b) => {
                 const pa = a.split('-'), pb = b.split('-');
-                return pa[0] !== pb[0] ? pa[0].localeCompare(pb[0]) : mo[pa[1]] - mo[pb[1]];
+                const yearA = pa[0], yearB = pb[0];
+                const monA  = mo[pa[1]] || 0, monB = mo[pb[1]] || 0;
+                return yearA !== yearB ? yearA.localeCompare(yearB) : monA - monB;
             });
         }
 
@@ -3563,4 +3584,4 @@
     </script>
 </body>
 </html>
-<!-- v5.20 -->
+<!-- v5.21 -->
