@@ -1,10 +1,10 @@
-<!-- v5.22 -->
+<!-- v5.23 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Finance Dashboard v5.22</title>
+    <title>Personal Finance Dashboard v5.23</title>
     <style>
         * {
             margin: 0;
@@ -744,12 +744,54 @@
         }
         .fundos-detail-table tr:last-child td { border-bottom: none; }
         .fundos-detail-table tr:hover td { background: #edf2f7; }
+
+        /* ===================== COLLAPSIBLE CARDS ===================== */
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+        .card-header h2 { margin: 0; }
+        .card-toggle {
+            font-size: 18px;
+            color: #667eea;
+            transition: transform 0.25s;
+            padding: 0 4px;
+            line-height: 1;
+        }
+        .card-toggle.collapsed { transform: rotate(-90deg); }
+        .card-body {
+            overflow: hidden;
+            transition: max-height 0.3s ease, opacity 0.3s ease;
+            max-height: 2000px;
+            opacity: 1;
+        }
+        .card-body.collapsed { max-height: 0; opacity: 0; }
+
+        /* ===================== TOOLTIP ===================== */
+        .chart-tooltip {
+            position: fixed;
+            background: rgba(45,55,72,0.95);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 9999;
+            display: none;
+            line-height: 1.6;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            min-width: 120px;
+        }
     </style>
 </head>
 <body>
+    <div id="chartTooltip" class="chart-tooltip"></div>
     <div class="container">
         <div class="header">
-            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.22</span></h1>
+            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.23</span></h1>
             <div style="display: flex; gap: 15px; align-items: center; margin: 15px 0;">
                 <div class="mode-toggle">
                     <button id="testModeBtn" class="mode-btn active">🔧 TEST</button>
@@ -1123,6 +1165,16 @@
                 <!-- Portfolio over time chart -->
                 <div class="card">
                     <h2>📈 Total Portfolio Value Over Time</h2>
+                    <div style="display:flex;gap:10px;margin-bottom:12px;">
+                        <button id="portfolioViewAll" onclick="setPortfolioView('all')"
+                            style="padding:5px 14px;border-radius:14px;border:2px solid #667eea;background:#667eea;color:white;font-size:12px;font-weight:700;cursor:pointer;">
+                            All Accounts
+                        </button>
+                        <button id="portfolioViewHouse" onclick="setPortfolioView('house')"
+                            style="padding:5px 14px;border-radius:14px;border:2px solid #2b6cb0;background:white;color:#2b6cb0;font-size:12px;font-weight:700;cursor:pointer;">
+                            🏠 House Buying Funds
+                        </button>
+                    </div>
                     <div style="overflow-x:auto;">
                         <canvas id="investTimeChart" height="260" style="width:100%;min-width:400px;display:block;"></canvas>
                     </div>
@@ -1159,6 +1211,26 @@
                         <canvas id="investGrowthTimeSelectorChart" height="260" style="width:100%;min-width:400px;display:block;"></canvas>
                     </div>
                     <div id="investGrowthTimeSelectorLegend" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;font-size:12px;"></div>
+                </div>
+
+                <!-- $ Gains Over Time chart -->
+                <div class="card">
+                    <h2>💵 Account Growth $ Over Time — Compare Accounts</h2>
+                    <div style="display:flex;gap:10px;margin-bottom:10px;">
+                        <button id="gainsViewAccounts" onclick="setGainsView('accounts')"
+                            style="padding:5px 14px;border-radius:14px;border:2px solid #667eea;background:#667eea;color:white;font-size:12px;font-weight:700;cursor:pointer;">
+                            Selected Accounts
+                        </button>
+                        <button id="gainsViewHouse" onclick="setGainsView('house')"
+                            style="padding:5px 14px;border-radius:14px;border:2px solid #2b6cb0;background:white;color:#2b6cb0;font-size:12px;font-weight:700;cursor:pointer;">
+                            🏠 House Buying Funds
+                        </button>
+                    </div>
+                    <div style="margin-bottom:12px;display:flex;flex-wrap:wrap;gap:8px;" id="investGainsSelector"></div>
+                    <div style="overflow-x:auto;">
+                        <canvas id="investGainsChart" height="260" style="width:100%;min-width:400px;display:block;"></canvas>
+                    </div>
+                    <div id="investGainsLegend" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;font-size:12px;"></div>
                 </div>
 
                 <!-- Account table -->
@@ -1938,6 +2010,7 @@
 
         // Load data when page loads
         window.onload = function() {
+            initCollapsibleCards();
             // Check for saved mode preference
             const savedMode = localStorage.getItem('devMode');
             if (savedMode !== null) {
@@ -2752,9 +2825,29 @@
             });
             ctx.stroke();
             ctx.setLineDash([]);
+            // MoM chart tooltip
+            const momCanvas = document.getElementById('momChart');
+            if (momCanvas) {
+                momCanvas._momData = { months: visibleMonths, xScale: i => PAD_L + (visibleMonths.length<=1?chartW/2:(i/(visibleMonths.length-1))*chartW) };
+                addCanvasTooltip(momCanvas, (mx,my) => {
+                    if (!momCanvas._momData) return null;
+                    const { months: ms, xScale: xs } = momCanvas._momData;
+                    let closest=null, minDist=25;
+                    ms.forEach((m,i) => {
+                        if(m.spent===0) return;
+                        const d = Math.abs(mx-xs(i));
+                        if(d<minDist){minDist=d;closest={m,i};}
+                    });
+                    if(!closest) return null;
+                    const fmt = v => '$'+v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+                    const lines = [`📅 ${closest.m.label}`, `Spent: ${fmt(closest.m.spent)}`];
+                    if (closest.m.budget) lines.push(`Budget: ${fmt(closest.m.budget)}`);
+                    return lines;
+                });
+            }
         }
 
-        function buildMoMTable(months) {
+        function buildMoMTable(months) {(months) {
             const tbody = document.getElementById('momTableBody');
             tbody.innerHTML = '';
             months.forEach(m => {
@@ -3010,10 +3103,14 @@
             const selSeries = allSeries.filter(s => selectedInvestAccounts.has(s.account));
             populateGrowthSlicer(ym);
 
+            const gainsAccounts = [...new Set(allInvestData.map(r=>r.account))];
+            buildGainsSelectorChips(gainsAccounts);
+
             requestAnimationFrame(() => {
                 drawInvestTimeChart(ym);
                 drawInvestGrowthChartRange(ym, ym);
                 drawGrowthTimeChart('investGrowthTimeSelectorChart', months, selSeries, 'investGrowthTimeSelectorLegend');
+                drawGainsChart(months);
             });
         }
 
@@ -3372,6 +3469,23 @@
                 ctx.fillText(m.split('-')[1], xScale(i), H - PAD_B + 14);
             });
 
+            // Store tooltip data
+            canvas._tooltipData = { seriesData, displayMonths, xScale, yScale };
+            addCanvasTooltip(canvas, (mx,my) => {
+                const td = canvas._tooltipData;
+                if (!td) return null;
+                let closest=null, minDist=20;
+                td.seriesData.forEach(s => {
+                    s.values.slice(1).forEach((v,i) => {
+                        if(v===null) return;
+                        const dx=mx-td.xScale(i), dy=my-td.yScale(v);
+                        if(Math.sqrt(dx*dx+dy*dy)<minDist){minDist=Math.sqrt(dx*dx+dy*dy);closest={s,v,i};}
+                    });
+                });
+                if(!closest) return null;
+                return [`📅 ${td.displayMonths[closest.i]}`, `${closest.s.account}`, `${(closest.v*100).toFixed(2)}%`];
+            });
+
             // Legend
             const legendEl = document.getElementById(legendId);
             if (legendEl) {
@@ -3437,6 +3551,178 @@
             });
         }
 
+
+        // ── Portfolio view state ──
+        let portfolioView = 'all';   // 'all' | 'house'
+        let gainsView     = 'accounts'; // 'accounts' | 'house'
+        let selectedGainsAccounts = new Set();
+
+        function setPortfolioView(v) {
+            portfolioView = v;
+            document.getElementById('portfolioViewAll').style.background   = v==='all'   ? '#667eea' : 'white';
+            document.getElementById('portfolioViewAll').style.color        = v==='all'   ? 'white'   : '#667eea';
+            document.getElementById('portfolioViewHouse').style.background = v==='house' ? '#2b6cb0' : 'white';
+            document.getElementById('portfolioViewHouse').style.color      = v==='house' ? 'white'   : '#2b6cb0';
+            const ym = document.getElementById('investMonthFilter').value;
+            if (ym) requestAnimationFrame(() => drawInvestTimeChart(ym));
+        }
+
+        function setGainsView(v) {
+            gainsView = v;
+            document.getElementById('gainsViewAccounts').style.background = v==='accounts' ? '#667eea' : 'white';
+            document.getElementById('gainsViewAccounts').style.color      = v==='accounts' ? 'white'   : '#667eea';
+            document.getElementById('gainsViewHouse').style.background    = v==='house'    ? '#2b6cb0' : 'white';
+            document.getElementById('gainsViewHouse').style.color         = v==='house'    ? 'white'   : '#2b6cb0';
+            const months = getSortedInvestMonths();
+            requestAnimationFrame(() => drawGainsChart(months));
+        }
+
+        function buildGainsSelectorChips(accounts) {
+            const container = document.getElementById('investGainsSelector');
+            if (!container) return;
+            const sorted = [...accounts].sort((a,b)=>a.localeCompare(b));
+            if (selectedGainsAccounts.size === 0) sorted.slice(0,3).forEach(a=>selectedGainsAccounts.add(a));
+            container.innerHTML = sorted.map(acct => {
+                const sel   = selectedGainsAccounts.has(acct);
+                const color = getAccountColor(acct);
+                return `<button onclick="toggleGainsAccount('${acct}')" id="gains-btn-${acct.replace(/[^a-z0-9]/gi,'_')}"
+                    style="padding:5px 12px;border-radius:16px;border:2px solid ${color};
+                    background:${sel?color:'white'};color:${sel?'white':color};
+                    font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;">
+                    ${acct}
+                </button>`;
+            }).join('');
+        }
+
+        function toggleGainsAccount(acct) {
+            if (selectedGainsAccounts.has(acct)) {
+                if (selectedGainsAccounts.size > 1) selectedGainsAccounts.delete(acct);
+            } else {
+                selectedGainsAccounts.add(acct);
+            }
+            buildGainsSelectorChips([...new Set(allInvestData.map(r=>r.account))]);
+            requestAnimationFrame(() => drawGainsChart(getSortedInvestMonths()));
+        }
+
+        // ── $ Gains per month per account ──
+        function buildGainsDollarHistory(months) {
+            const accounts = [...new Set(allInvestData.map(r=>r.account))];
+            return accounts.map(acct => {
+                const values = months.map((m,i) => {
+                    if (i===0) return null;
+                    const cur  = allInvestData.find(r=>r.ym===m && r.account===acct);
+                    const prev = allInvestData.find(r=>r.ym===months[i-1] && r.account===acct);
+                    if (!cur||!prev||prev.position===0||cur.deposits<0) return null;
+                    return (cur.position - cur.deposits) - prev.position;
+                });
+                return { account: acct, values };
+            });
+        }
+
+        function drawGainsChart(months) {
+            const canvas = document.getElementById('investGainsChart');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const dpr = window.devicePixelRatio || 1;
+            const W   = canvas.getBoundingClientRect().width || 700;
+            const H   = 260;
+            canvas.width = W*dpr; canvas.height = H*dpr;
+            ctx.scale(dpr, dpr);
+            ctx.clearRect(0,0,W,H);
+
+            const PAD_L=68, PAD_R=20, PAD_T=24, PAD_B=46;
+            const chartW=W-PAD_L-PAD_R, chartH=H-PAD_T-PAD_B;
+
+            let seriesData;
+            if (gainsView === 'house') {
+                // Aggregate House Buying Funds
+                const houseValues = months.map((m,i) => {
+                    if (i===0) return null;
+                    let gain = 0;
+                    HOUSE_ACCOUNTS.forEach(acct => {
+                        const cur  = allInvestData.find(r=>r.ym===m && r.account===acct);
+                        const prev = allInvestData.find(r=>r.ym===months[i-1] && r.account===acct);
+                        if (!cur||!prev||prev.position===0||cur.deposits<0) return;
+                        gain += (cur.position - cur.deposits) - prev.position;
+                    });
+                    return gain;
+                });
+                seriesData = [{ account:'🏠 House Buying Funds', values: houseValues, color:'#2b6cb0' }];
+            } else {
+                const allSeries = buildGainsDollarHistory(months);
+                seriesData = allSeries.filter(s=>selectedGainsAccounts.has(s.account)).map(s=>({...s, color:getAccountColor(s.account)}));
+            }
+
+            const allVals = seriesData.flatMap(s=>s.values.filter(v=>v!==null));
+            if (allVals.length===0) return;
+            const maxAbs = Math.max(...allVals.map(Math.abs))*1.3 || 100;
+            const displayMonths = months.slice(1);
+            const xScale = i => PAD_L + (displayMonths.length<=1 ? chartW/2 : (i/(displayMonths.length-1))*chartW);
+            const yScale = v => PAD_T + chartH/2 - (v/maxAbs)*(chartH/2);
+
+            // Store points for tooltip
+            canvas._tooltipData = { seriesData, displayMonths, xScale, yScale, PAD_L, PAD_R, PAD_T, chartH };
+
+            // Grid + zero line
+            [-maxAbs,-maxAbs/2,0,maxAbs/2,maxAbs].forEach(v => {
+                const y = yScale(v);
+                ctx.strokeStyle = v===0 ? '#cbd5e0' : '#e2e8f0';
+                ctx.lineWidth   = v===0 ? 1.5 : 1;
+                ctx.beginPath(); ctx.moveTo(PAD_L,y); ctx.lineTo(PAD_L+chartW,y); ctx.stroke();
+                ctx.fillStyle='#a0aec0'; ctx.font='10px system-ui,sans-serif'; ctx.textAlign='right';
+                ctx.fillText('$'+(v>=0?'':'-')+Math.abs(Math.round(v/100)*100).toLocaleString(), PAD_L-4, y+4);
+            });
+
+            seriesData.forEach(series => {
+                ctx.strokeStyle = series.color; ctx.lineWidth=2; ctx.setLineDash([]);
+                let drawing=false;
+                series.values.slice(1).forEach((v,i) => {
+                    if (v===null){drawing=false;return;}
+                    const x=xScale(i),y=yScale(v);
+                    if(!drawing){ctx.beginPath();ctx.moveTo(x,y);drawing=true;}
+                    else ctx.lineTo(x,y);
+                });
+                ctx.stroke();
+                series.values.slice(1).forEach((v,i) => {
+                    if(v===null) return;
+                    ctx.beginPath(); ctx.arc(xScale(i),yScale(v),3,0,Math.PI*2);
+                    ctx.fillStyle=series.color; ctx.fill();
+                });
+            });
+
+            displayMonths.forEach((m,i) => {
+                ctx.fillStyle='#718096'; ctx.font='10px system-ui,sans-serif'; ctx.textAlign='center';
+                ctx.fillText(m.split('-')[1], xScale(i), H-PAD_B+14);
+            });
+
+            // Legend
+            const legendEl = document.getElementById('investGainsLegend');
+            if (legendEl) legendEl.innerHTML = seriesData.map(s=>
+                `<span style="display:flex;align-items:center;gap:4px;">
+                    <span style="display:inline-block;width:20px;height:3px;background:${s.color};border-radius:2px;"></span>
+                    <span style="color:#4a5568;">${s.account}</span>
+                </span>`
+            ).join('');
+
+            // Tooltip
+            addCanvasTooltip(canvas, (mx, my) => {
+                const td = canvas._tooltipData;
+                if (!td) return null;
+                let closest = null, minDist = 20;
+                td.seriesData.forEach(s => {
+                    s.values.slice(1).forEach((v,i) => {
+                        if (v===null) return;
+                        const dx = mx - td.xScale(i), dy = my - td.yScale(v);
+                        const dist = Math.sqrt(dx*dx+dy*dy);
+                        if (dist < minDist) { minDist=dist; closest={s,v,i}; }
+                    });
+                });
+                if (!closest) return null;
+                const fmt = v => (v>=0?'+':'-')+'$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+                return [`📅 ${td.displayMonths[closest.i]}`, `${closest.s.account}`, `${fmt(closest.v)}`];
+            });
+        }
+
         // ── Chart 1: Portfolio value over time ──
         function drawInvestTimeChart(selectedYM) {
             const canvas = document.getElementById('investTimeChart');
@@ -3459,7 +3745,9 @@
                 return pa[0] !== pb[0] ? pa[0].localeCompare(pb[0]) : monthOrder[pa[1]] - monthOrder[pb[1]];
             });
 
-            const totals = months.map(m => allInvestData.filter(r => r.ym === m).reduce((s,r) => s + r.position, 0));
+            const accountFilter = portfolioView === 'house' ? HOUSE_ACCOUNTS : null;
+            const totals = months.map(m => allInvestData.filter(r => r.ym===m && (!accountFilter||accountFilter.includes(r.account))).reduce((s,r)=>s+r.position,0));
+            const chartTitle = portfolioView==='house' ? '🏠 House Buying Funds Over Time' : 'All Accounts';
             const maxVal = Math.max(...totals) * 1.1 || 1;
             const minVal = Math.min(...totals) * 0.95;
             const range  = maxVal - minVal;
@@ -3507,6 +3795,22 @@
                 ctx.fill();
                 ctx.fillStyle = '#4a5568'; ctx.font = '10px system-ui,sans-serif'; ctx.textAlign = 'center';
                 ctx.fillText(m.split('-')[1], x, H - PAD_B + 14);
+            });
+
+            // Store points for tooltip
+            canvas._tooltipPoints = months.map((m,i) => ({
+                x: xScale(i), y: yScale(totals[i]), label: m.split('-')[1]+' '+m.split('-')[0], value: totals[i]
+            }));
+            addCanvasTooltip(canvas, (mx,my) => {
+                const pts = canvas._tooltipPoints || [];
+                let closest=null, minDist=25;
+                pts.forEach(pt => {
+                    const d = Math.abs(mx-pt.x);
+                    if(d<minDist){minDist=d;closest=pt;}
+                });
+                if(!closest) return null;
+                const fmt = v => '$'+v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+                return [`📅 ${closest.label}`, `Portfolio: ${fmt(closest.value)}`];
             });
 
             // Gains line (cumulative investment gains, excluding deposits)
@@ -3585,7 +3889,77 @@
             });
         }
 
+
+        // ============================================
+        // COLLAPSIBLE CARDS
+        // ============================================
+        function initCollapsibleCards() {
+            document.querySelectorAll('.card').forEach(card => {
+                const h2 = card.querySelector('h2');
+                if (!h2) return;
+
+                // Wrap h2 in header div
+                const header = document.createElement('div');
+                header.className = 'card-header';
+                const toggle = document.createElement('span');
+                toggle.className = 'card-toggle';
+                toggle.textContent = '▾';
+                h2.parentNode.insertBefore(header, h2);
+                header.appendChild(h2);
+                header.appendChild(toggle);
+
+                // Wrap remaining content in body div
+                const body = document.createElement('div');
+                body.className = 'card-body';
+                while (card.children.length > 1) {
+                    body.appendChild(card.children[1]);
+                }
+                card.appendChild(body);
+
+                header.addEventListener('click', () => {
+                    const isCollapsed = body.classList.toggle('collapsed');
+                    toggle.classList.toggle('collapsed', isCollapsed);
+                });
+            });
+        }
+
+        // ============================================
+        // CHART TOOLTIP
+        // ============================================
+        const _tooltip = document.getElementById('chartTooltip') || (() => {
+            const t = document.createElement('div');
+            t.id = 'chartTooltip'; t.className = 'chart-tooltip';
+            document.body.appendChild(t); return t;
+        })();
+
+        function showTooltip(e, lines) {
+            _tooltip.innerHTML = lines.map(l =>
+                `<div>${l}</div>`
+            ).join('');
+            _tooltip.style.display = 'block';
+            moveTooltip(e);
+        }
+        function moveTooltip(e) {
+            const x = e.clientX + 14, y = e.clientY - 10;
+            const tw = _tooltip.offsetWidth, th = _tooltip.offsetHeight;
+            _tooltip.style.left = (x + tw > window.innerWidth ? e.clientX - tw - 14 : x) + 'px';
+            _tooltip.style.top  = (y + th > window.innerHeight ? e.clientY - th - 10 : y) + 'px';
+        }
+        function hideTooltip() { _tooltip.style.display = 'none'; }
+
+        function addCanvasTooltip(canvas, getTooltipData) {
+            canvas.addEventListener('mousemove', e => {
+                const rect = canvas.getBoundingClientRect();
+                const mx = e.clientX - rect.left;
+                const my = e.clientY - rect.top;
+                const data = getTooltipData(mx, my);
+                if (data) showTooltip(e, data);
+                else hideTooltip();
+            });
+            canvas.addEventListener('mouseleave', hideTooltip);
+        }
+
     </script>
 </body>
 </html>
-<!-- v5.22 -->
+<!-- v5.23 -->
