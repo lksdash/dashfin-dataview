@@ -1,10 +1,10 @@
-<!-- v5.21 -->
+<!-- v5.22 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Finance Dashboard v5.21</title>
+    <title>Personal Finance Dashboard v5.22</title>
     <style>
         * {
             margin: 0;
@@ -749,7 +749,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.21</span></h1>
+            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.22</span></h1>
             <div style="display: flex; gap: 15px; align-items: center; margin: 15px 0;">
                 <div class="mode-toggle">
                     <button id="testModeBtn" class="mode-btn active">🔧 TEST</button>
@@ -3028,27 +3028,31 @@
         function convertInvestData(googleData) {
             if (!googleData.table || !googleData.table.rows) throw new Error('No investment data found');
             const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+            // Normalise any ym string to internal format "2026-Jan"
+            function normaliseYM(raw) {
+                if (!raw) return '';
+                // Already correct: "2026-Jan"
+                if (/^\d{4}-[A-Za-z]{3}$/.test(raw)) return raw;
+                // Sheet format: "Jan-2026"
+                if (/^[A-Za-z]{3}-\d{4}$/.test(raw)) {
+                    const parts = raw.split('-');
+                    return parts[1] + '-' + parts[0];
+                }
+                // Sheets Date() serialization: "Date(2026,2,1)" — month is 0-indexed
+                if (raw.startsWith('Date(')) {
+                    const parts = raw.replace('Date(','').replace(')','').split(',');
+                    return parts[0] + '-' + MONTH_NAMES[parseInt(parts[1])];
+                }
+                return raw;
+            }
+
             return googleData.table.rows.map(row => {
                 const c = row.c || [];
-
-                // Column A: Year-Month — stored as a date in Sheets
-                // API returns { v: "Date(2026,2,1)", f: "2026-Mar" } or similar
-                // Use formatted value if available, otherwise parse from Date() string
-                let ym = '';
                 const cell0 = c[0];
-                if (cell0?.f) {
-                    // Formatted value — may be "2026-Mar" or "Mar-2026" etc, normalise to "2026-Mar"
-                    ym = cell0.f;
-                } else if (typeof cell0?.v === 'string' && cell0.v.startsWith('Date(')) {
-                    // Parse Date(yyyy,m,d) — month is 0-indexed
-                    const parts = cell0.v.replace('Date(','').replace(')','').split(',');
-                    const yr  = parts[0];
-                    const mon = MONTH_NAMES[parseInt(parts[1])]; // 0-indexed
-                    ym = yr + '-' + mon;
-                } else {
-                    ym = cell0?.v || '';
-                }
-
+                // Prefer formatted value (f), fall back to raw value (v)
+                const rawYM = cell0?.f || (typeof cell0?.v === 'string' ? cell0.v : '');
+                const ym = normaliseYM(rawYM);
                 const account  = c[1]?.v || '';
                 const position = parseFloat(c[2]?.v) || 0;
                 const deposits = parseFloat(c[3]?.v) || 0;
@@ -3584,4 +3588,4 @@
     </script>
 </body>
 </html>
-<!-- v5.21 -->
+<!-- v5.22 -->
