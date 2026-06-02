@@ -1,10 +1,10 @@
-<!-- v5.24 -->
+<!-- v5.26 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Finance Dashboard v5.24</title>
+    <title>Personal Finance Dashboard v5.26</title>
     <style>
         * {
             margin: 0;
@@ -791,7 +791,7 @@
     <div id="chartTooltip" class="chart-tooltip"></div>
     <div class="container">
         <div class="header">
-            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.24</span></h1>
+            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.26</span></h1>
             <div style="display: flex; gap: 15px; align-items: center; margin: 15px 0;">
                 <div class="mode-toggle">
                     <button id="testModeBtn" class="mode-btn active">🔧 TEST</button>
@@ -904,6 +904,24 @@
             </div>
         </div>
         
+        <!-- Monthly Spend Tracker -->
+        <div class="card">
+            <h2>📈 Monthly Spend Tracker</h2>
+            <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
+                <div class="filter-group">
+                    <label for="trackerCategoryFilter">Category:</label>
+                    <select id="trackerCategoryFilter" onchange="renderSpendTracker()">
+                        <option value="">— Select category —</option>
+                    </select>
+                </div>
+                <span id="trackerSummary" style="font-size:13px;color:#718096;"></span>
+            </div>
+            <div style="overflow-x:auto;">
+                <canvas id="spendTrackerChart" height="280" style="width:100%;min-width:400px;display:block;"></canvas>
+            </div>
+            <div id="spendTrackerLegend" style="display:flex;gap:20px;margin-top:10px;font-size:13px;color:#4a5568;flex-wrap:wrap;"></div>
+        </div>
+
         <div class="card">
             <h2>🔍 Transaction Details</h2>
             <div class="transaction-filter">
@@ -1414,6 +1432,8 @@
                 selectedYear === 'all' ? filteredTransactions[filteredTransactions.length - 1]?.year : selectedYear,
                 selectedMonth === 'all' ? filteredTransactions[filteredTransactions.length - 1]?.month : selectedMonth
             );
+
+            populateTrackerCategoryFilter();
             
             // Update transaction filter (reset to prompt state on month change)
             hasFilteredOnce = false;
@@ -2152,6 +2172,28 @@
         let sortColumn = 'date';   // default: date oldest→newest
         let sortDir = 'asc';       // 'asc' | 'desc'
         let hasFilteredOnce = false;
+
+        function populateTrackerCategoryFilter() {
+            const sel = document.getElementById('trackerCategoryFilter');
+            if (!sel) return;
+            const prev = sel.value;
+            sel.innerHTML = '<option value="">— Select category —</option>';
+            BUDGET_CATEGORY_ORDER.forEach(cat => {
+                const o = document.createElement('option');
+                o.value = cat; o.textContent = cat;
+                sel.appendChild(o);
+            });
+            // Also add any extra categories present in data
+            const extras = [...new Set(filteredTransactions.map(t=>t.category))]
+                .filter(c => !EXCLUDED_CATEGORIES.includes(c) && !BUDGET_CATEGORY_ORDER.includes(c) && c !== 'Entradas');
+            extras.sort().forEach(cat => {
+                const o = document.createElement('option');
+                o.value = cat; o.textContent = cat;
+                sel.appendChild(o);
+            });
+            sel.value = prev && [...sel.options].some(o=>o.value===prev) ? prev : (BUDGET_CATEGORY_ORDER[0] || '');
+            renderSpendTracker();
+        }
 
         function updateCategoryFilter() {
             const sel = document.getElementById('categoryFilter');
@@ -3959,7 +4001,181 @@
             canvas.addEventListener('mouseleave', hideTooltip);
         }
 
+
+        // ============================================
+        // MONTHLY SPEND TRACKER
+        // ============================================
+        function renderSpendTracker() {
+            const cat = document.getElementById('trackerCategoryFilter')?.value;
+            if (!cat) return;
+
+            // Build day-by-day data from filteredTransactions
+            const txns = filteredTransactions.filter(t => t.category === cat);
+
+            // Parse day number from date string "Mon-DD"
+            const dayNum = d => parseInt((d||'').split('-')[1]) || 0;
+
+            // Group by day
+            const byDay = {};
+            txns.forEach(t => {
+                const d = dayNum(t.date);
+                if (!d) return;
+                if (!byDay[d]) byDay[d] = [];
+                byDay[d].push(t);
+            });
+
+            // Get budget for selected month/year
+            const selectedYear  = document.getElementById('yearFilter').value;
+            const selectedMonth = document.getElementById('monthFilter').value;
+            const budgetEntry   = allBudgets.find(b =>
+                String(b.year) === selectedYear && b.month === selectedMonth && b.category === cat
+            );
+            const budget = budgetEntry ? budgetEntry.budget : null;
+
+            // Build cumulative series — include day 0 as origin
+            const days = Object.keys(byDay).map(Number).sort((a,b)=>a-b);
+            let cumulative = 0;
+            const points = [{ day: 0, cum: 0, txns: [] }];
+            days.forEach(d => {
+                const dayTxns = byDay[d];
+                const dayTotal = dayTxns.reduce((s,t) => s+(parseFloat(t.amount)||0), 0);
+                cumulative += dayTotal;
+                points.push({ day: d, cum: cumulative, txns: dayTxns, dayTotal });
+            });
+
+            // Summary line
+            const summaryEl = document.getElementById('trackerSummary');
+            if (summaryEl) {
+                const total = cumulative;
+                const fmt = v => '$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+                const budgetStr = budget ? ` of ${fmt(budget)} budget (${(total/budget*100).toFixed(0)}%)` : '';
+                summaryEl.textContent = `Total: ${fmt(total)}${budgetStr}`;
+                summaryEl.style.color = budget && total > budget ? '#e53e3e' : '#38a169';
+            }
+
+            requestAnimationFrame(() => drawSpendTrackerChart(points, budget, cat));
+        }
+
+        function drawSpendTrackerChart(points, budget, cat) {
+            const canvas = document.getElementById('spendTrackerChart');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const dpr = window.devicePixelRatio || 1;
+            const W   = canvas.getBoundingClientRect().width || 700;
+            const H   = 280;
+            canvas.width = W*dpr; canvas.height = H*dpr;
+            ctx.scale(dpr, dpr);
+            ctx.clearRect(0,0,W,H);
+
+            const PAD_L=70, PAD_R=20, PAD_T=20, PAD_B=40;
+            const chartW=W-PAD_L-PAD_R, chartH=H-PAD_T-PAD_B;
+
+            const maxVal = Math.max(
+                ...points.map(p=>p.cum),
+                budget || 0
+            ) * 1.15 || 100;
+
+            const xScale = day => PAD_L + (day/31)*chartW;
+            const yScale = v   => PAD_T + chartH - (v/maxVal)*chartH;
+
+            // Grid lines
+            for (let i=0; i<=4; i++) {
+                const y = PAD_T + (chartH/4)*i;
+                const v = maxVal*(1-i/4);
+                ctx.strokeStyle='#e2e8f0'; ctx.lineWidth=1;
+                ctx.beginPath(); ctx.moveTo(PAD_L,y); ctx.lineTo(PAD_L+chartW,y); ctx.stroke();
+                ctx.fillStyle='#718096'; ctx.font='11px system-ui,sans-serif'; ctx.textAlign='right';
+                ctx.fillText('$'+Math.round(v).toLocaleString(), PAD_L-6, y+4);
+            }
+
+            // X axis day labels
+            [1,5,10,15,20,25,31].forEach(d => {
+                const x = xScale(d);
+                ctx.fillStyle='#a0aec0'; ctx.font='10px system-ui,sans-serif'; ctx.textAlign='center';
+                ctx.fillText(d, x, H-PAD_B+14);
+                ctx.strokeStyle='#f0f0f0'; ctx.lineWidth=1;
+                ctx.beginPath(); ctx.moveTo(x,PAD_T); ctx.lineTo(x,PAD_T+chartH); ctx.stroke();
+            });
+
+            // Budget line
+            if (budget) {
+                const by = yScale(budget);
+                ctx.strokeStyle='#f6ad55'; ctx.lineWidth=2; ctx.setLineDash([6,4]);
+                ctx.beginPath(); ctx.moveTo(PAD_L,by); ctx.lineTo(PAD_L+chartW,by); ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.fillStyle='#f6ad55'; ctx.font='bold 11px system-ui,sans-serif'; ctx.textAlign='left';
+                ctx.fillText('Budget: $'+Math.round(budget).toLocaleString(), PAD_L+4, by-5);
+            }
+
+            // Draw cumulative line — color changes to red when over budget
+            if (points.length > 1) {
+                for (let i=1; i<points.length; i++) {
+                    const prev = points[i-1], curr = points[i];
+                    const overBudget = budget && curr.cum > budget;
+                    ctx.strokeStyle = overBudget ? '#e53e3e' : '#48bb78';
+                    ctx.lineWidth = 2.5; ctx.setLineDash([]);
+                    ctx.beginPath();
+                    ctx.moveTo(xScale(prev.day), yScale(prev.cum));
+                    ctx.lineTo(xScale(curr.day), yScale(curr.cum));
+                    ctx.stroke();
+                }
+            }
+
+            // Dots at each spending day (skip day 0 origin)
+            points.slice(1).forEach(p => {
+                const x = xScale(p.day), y = yScale(p.cum);
+                const over = budget && p.cum > budget;
+                ctx.beginPath(); ctx.arc(x,y,4,0,Math.PI*2);
+                ctx.fillStyle = over ? '#e53e3e' : '#48bb78';
+                ctx.fill();
+                ctx.strokeStyle='white'; ctx.lineWidth=1.5; ctx.stroke();
+            });
+
+            // Legend
+            const legendEl = document.getElementById('spendTrackerLegend');
+            if (legendEl) {
+                const totalFmt = '$'+points[points.length-1].cum.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+                legendEl.innerHTML =
+                    `<span><span style="display:inline-block;width:20px;height:3px;background:#48bb78;border-radius:2px;vertical-align:middle;margin-right:5px;"></span>Cumulative spend</span>` +
+                    (budget ? `<span><span style="display:inline-block;width:20px;height:3px;background:#f6ad55;vertical-align:middle;margin-right:5px;border-top:2px dashed #f6ad55;"></span>Budget</span>` : '') +
+                    `<span style="margin-left:auto;font-weight:700;">Total: ${totalFmt}</span>`;
+            }
+
+            // Store data for tooltip
+            canvas._trackerPoints = points.slice(1); // skip origin
+            canvas._trackerXScale = xScale;
+            canvas._trackerYScale = yScale;
+
+            addCanvasTooltip(canvas, (mx, my) => {
+                const pts = canvas._trackerPoints;
+                if (!pts || pts.length===0) return null;
+                // Find closest point by x distance
+                let closest=null, minDist=30;
+                pts.forEach(p => {
+                    const d = Math.abs(mx - canvas._trackerXScale(p.day));
+                    if (d<minDist) { minDist=d; closest=p; }
+                });
+                if (!closest) return null;
+                const fmt = v => '$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+                const lines = [
+                    `📅 Day ${closest.day}`,
+                    `Day total: ${fmt(closest.dayTotal)}`,
+                    `Running total: ${fmt(closest.cum)}`,
+                ];
+                if (budget) lines.push(`vs budget: ${(closest.cum/budget*100).toFixed(0)}%`);
+                // Add individual transactions
+                if (closest.txns.length <= 4) {
+                    closest.txns.forEach(t => {
+                        lines.push(`  • ${t.description.slice(0,28)}: ${fmt(t.amount)}`);
+                    });
+                } else {
+                    lines.push(`  ${closest.txns.length} transactions`);
+                }
+                return lines;
+            });
+        }
+
     </script>
 </body>
 </html>
-<!-- v5.24 -->
+<!-- v5.26 -->
