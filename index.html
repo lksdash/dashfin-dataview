@@ -1,10 +1,10 @@
-<!-- v5.28 -->
+<!-- v5.29 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Finance Dashboard v5.28</title>
+    <title>Personal Finance Dashboard v5.29</title>
     <style>
         * {
             margin: 0;
@@ -974,7 +974,7 @@
     <div id="chartTooltip" class="chart-tooltip"></div>
     <div class="container">
         <div class="header">
-            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.28</span></h1>
+            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.29</span></h1>
             <div style="display: flex; gap: 15px; align-items: center; margin: 15px 0;">
                 <div class="mode-toggle">
                     <button id="testModeBtn" class="mode-btn active">🔧 TEST</button>
@@ -4326,7 +4326,7 @@
                     body: JSON.stringify({
                         model: 'claude-sonnet-4-5',
                         max_tokens: 1024,
-                        stream: true,
+                        stream: false,
                         system: systemPrompt,
                         messages: [{ role: 'user', content: question }]
                     })
@@ -4340,30 +4340,18 @@
                     throw new Error(err.error?.message || `HTTP ${response.status}`);
                 }
 
+                const data = await response.json();
+                const text = data.content?.[0]?.text || '(no response)';
+
                 thinkingEl.classList.remove('visible');
                 responseEl.classList.add('visible');
 
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-                let buffer = '';
-
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    buffer += decoder.decode(value, { stream: true });
-                    const lines = buffer.split('\n');
-                    buffer = lines.pop();
-                    for (const line of lines) {
-                        if (!line.startsWith('data: ')) continue;
-                        const data = line.slice(6).trim();
-                        if (data === '[DONE]') break;
-                        try {
-                            const parsed = JSON.parse(data);
-                            if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
-                                responseEl.textContent += parsed.delta.text;
-                            }
-                        } catch {}
-                    }
+                // Reveal text word by word for a typing effect
+                responseEl.textContent = '';
+                const words = text.split(' ');
+                for (let i = 0; i < words.length; i++) {
+                    responseEl.textContent += (i === 0 ? '' : ' ') + words[i];
+                    if (i % 6 === 0) await new Promise(r => setTimeout(r, 18));
                 }
             } catch(err) {
                 thinkingEl.classList.remove('visible');
@@ -4591,4 +4579,4 @@
     </script>
 </body>
 </html>
-<!-- v5.28 -->
+<!-- v5.29 -->
