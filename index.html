@@ -1,10 +1,10 @@
-<!-- v5.29 -->
+<!-- v5.30 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Finance Dashboard v5.29</title>
+    <title>Personal Finance Dashboard v5.30</title>
     <style>
         * {
             margin: 0;
@@ -974,7 +974,7 @@
     <div id="chartTooltip" class="chart-tooltip"></div>
     <div class="container">
         <div class="header">
-            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.29</span></h1>
+            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.30</span></h1>
             <div style="display: flex; gap: 15px; align-items: center; margin: 15px 0;">
                 <div class="mode-toggle">
                     <button id="testModeBtn" class="mode-btn active">🔧 TEST</button>
@@ -4413,16 +4413,27 @@
             // Build day-by-day data from filteredTransactions
             const txns = filteredTransactions.filter(t => t.category === cat);
 
-            // Parse day number from date string "Mon-DD"
-            const dayNum = d => parseInt((d||'').split('-')[1]) || 0;
+            // Parse a date string like "Apr-30" or "May-5" into a sortable value
+            // using actual month + day, NOT just the day number — this is critical
+            // because a transaction dated Apr-30 but assigned to the May budget
+            // must sort BEFORE May-1, not after May-29.
+            const MONTH_IDX = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+            function parseDateKey(dateStr) {
+                const parts = (dateStr||'').split('-');
+                const mon = MONTH_IDX[parts[0]];
+                const day = parseInt(parts[1]) || 0;
+                if (mon === undefined) return null;
+                return { mon, day, sortVal: mon * 100 + day, label: dateStr };
+            }
 
-            // Group by day
-            const byDay = {};
+            // Group by actual date (mon+day), not just day number
+            const byDate = {};
             txns.forEach(t => {
-                const d = dayNum(t.date);
-                if (!d) return;
-                if (!byDay[d]) byDay[d] = [];
-                byDay[d].push(t);
+                const dk = parseDateKey(t.date);
+                if (!dk) return;
+                const key = dk.sortVal;
+                if (!byDate[key]) byDate[key] = { dateKey: dk, txns: [] };
+                byDate[key].txns.push(t);
             });
 
             // Get budget for selected month/year
@@ -4433,15 +4444,23 @@
             );
             const budget = budgetEntry ? budgetEntry.budget : null;
 
-            // Build cumulative series — include day 0 as origin
-            const days = Object.keys(byDay).map(Number).sort((a,b)=>a-b);
+            // Sort by true chronological order (month then day)
+            const sortedKeys = Object.keys(byDate).map(Number).sort((a,b)=>a-b);
             let cumulative = 0;
-            const points = [{ day: 0, cum: 0, txns: [] }];
-            days.forEach(d => {
-                const dayTxns = byDay[d];
+            const points = [{ seq: 0, cum: 0, txns: [], label: 'Start', dateKey: null }];
+            sortedKeys.forEach((key, idx) => {
+                const entry = byDate[key];
+                const dayTxns = entry.txns;
                 const dayTotal = dayTxns.reduce((s,t) => s+(parseFloat(t.amount)||0), 0);
                 cumulative += dayTotal;
-                points.push({ day: d, cum: cumulative, txns: dayTxns, dayTotal });
+                points.push({
+                    seq: idx + 1,
+                    cum: cumulative,
+                    txns: dayTxns,
+                    dayTotal,
+                    label: entry.dateKey.label,
+                    day: entry.dateKey.day
+                });
             });
 
             // Summary line
@@ -4476,7 +4495,8 @@
                 budget || 0
             ) * 1.15 || 100;
 
-            const xScale = day => PAD_L + (day/31)*chartW;
+            const maxSeq = Math.max(1, points.length - 1);
+            const xScale = seq => PAD_L + (seq/maxSeq)*chartW;
             const yScale = v   => PAD_T + chartH - (v/maxVal)*chartH;
 
             // Grid lines
@@ -4489,11 +4509,15 @@
                 ctx.fillText('$'+Math.round(v).toLocaleString(), PAD_L-6, y+4);
             }
 
-            // X axis day labels
-            [1,5,10,15,20,25,31].forEach(d => {
-                const x = xScale(d);
+            // X axis labels — show actual transaction dates at intervals, evenly spaced
+            const labelPoints = points.slice(1); // skip origin
+            const maxLabels = Math.min(8, labelPoints.length);
+            const labelStep = Math.max(1, Math.ceil(labelPoints.length / maxLabels));
+            labelPoints.forEach((p, i) => {
+                if (i % labelStep !== 0 && i !== labelPoints.length - 1) return;
+                const x = xScale(p.seq);
                 ctx.fillStyle='#a0aec0'; ctx.font='10px system-ui,sans-serif'; ctx.textAlign='center';
-                ctx.fillText(d, x, H-PAD_B+14);
+                ctx.fillText(p.label, x, H-PAD_B+14);
                 ctx.strokeStyle='#f0f0f0'; ctx.lineWidth=1;
                 ctx.beginPath(); ctx.moveTo(x,PAD_T); ctx.lineTo(x,PAD_T+chartH); ctx.stroke();
             });
@@ -4516,15 +4540,15 @@
                     ctx.strokeStyle = overBudget ? '#e53e3e' : '#48bb78';
                     ctx.lineWidth = 2.5; ctx.setLineDash([]);
                     ctx.beginPath();
-                    ctx.moveTo(xScale(prev.day), yScale(prev.cum));
-                    ctx.lineTo(xScale(curr.day), yScale(curr.cum));
+                    ctx.moveTo(xScale(prev.seq), yScale(prev.cum));
+                    ctx.lineTo(xScale(curr.seq), yScale(curr.cum));
                     ctx.stroke();
                 }
             }
 
             // Dots at each spending day (skip day 0 origin)
             points.slice(1).forEach(p => {
-                const x = xScale(p.day), y = yScale(p.cum);
+                const x = xScale(p.seq), y = yScale(p.cum);
                 const over = budget && p.cum > budget;
                 ctx.beginPath(); ctx.arc(x,y,4,0,Math.PI*2);
                 ctx.fillStyle = over ? '#e53e3e' : '#48bb78';
@@ -4553,13 +4577,13 @@
                 // Find closest point by x distance
                 let closest=null, minDist=30;
                 pts.forEach(p => {
-                    const d = Math.abs(mx - canvas._trackerXScale(p.day));
+                    const d = Math.abs(mx - canvas._trackerXScale(p.seq));
                     if (d<minDist) { minDist=d; closest=p; }
                 });
                 if (!closest) return null;
                 const fmt = v => '$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
                 const lines = [
-                    `📅 Day ${closest.day}`,
+                    `📅 ${closest.label}`,
                     `Day total: ${fmt(closest.dayTotal)}`,
                     `Running total: ${fmt(closest.cum)}`,
                 ];
@@ -4579,4 +4603,4 @@
     </script>
 </body>
 </html>
-<!-- v5.29 -->
+<!-- v5.30 -->
