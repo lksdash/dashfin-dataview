@@ -1,10 +1,10 @@
-<!-- v5.31 -->
+<!-- v5.32 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Finance Dashboard v5.31</title>
+    <title>Personal Finance Dashboard v5.32</title>
     <style>
         * {
             margin: 0;
@@ -974,7 +974,7 @@
     <div id="chartTooltip" class="chart-tooltip"></div>
     <div class="container">
         <div class="header">
-            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.31</span></h1>
+            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.32</span></h1>
             <div style="display: flex; gap: 15px; align-items: center; margin: 15px 0;">
                 <div class="mode-toggle">
                     <button id="testModeBtn" class="mode-btn active">🔧 TEST</button>
@@ -1118,6 +1118,9 @@
                     </select>
                 </div>
                 <span id="trackerSummary" style="font-size:13px;color:#718096;"></span>
+            </div>
+            <div id="trackerBenchmarkRow" style="display:none;margin-bottom:14px;padding:10px 14px;background:#f7fafc;border-radius:10px;border-left:3px solid #9f7aea;font-size:13px;color:#4a5568;">
+                <span id="trackerBenchmarkText"></span>
             </div>
             <div style="overflow-x:auto;">
                 <canvas id="spendTrackerChart" height="280" style="width:100%;min-width:400px;display:block;"></canvas>
@@ -4403,6 +4406,41 @@
         }
 
 
+
+        // ============================================
+        // SPEND BENCHMARKS (historical day-by-day averages)
+        // ============================================
+        // Computed from 7 months of actual data (Jan/Feb/Oct/Nov/Dec 2025, Jan/Feb 2026).
+        // Represents the average cumulative spend by day-of-month for each category.
+        // Add more categories here as benchmarks are calculated for them.
+        const SPEND_BENCHMARKS = {
+            'Groceries': {
+                avgMonthTotal: 1934.97,
+                byDay: {
+                    1:110.40, 2:211.09, 3:254.97, 4:354.23, 5:345.31, 6:422.89, 7:485.18,
+                    8:553.34, 9:620.20, 10:653.89, 11:719.07, 12:832.26, 13:905.95, 14:965.59,
+                    15:1044.50, 16:1047.04, 17:1084.63, 18:1241.83, 19:1307.11, 20:1345.71,
+                    21:1464.59, 22:1515.81, 23:1582.42, 24:1665.75, 25:1698.26, 26:1785.67,
+                    27:1838.79, 28:1867.60, 29:1906.24, 30:1920.28, 31:1934.97
+                }
+            }
+        };
+
+        // Scale the benchmark curve proportionally to the number of days in the
+        // selected month (e.g. Feb has 28 days, so day 28 maps to the day-31 value)
+        function getBenchmarkForMonth(category, daysInSelectedMonth) {
+            const bm = SPEND_BENCHMARKS[category];
+            if (!bm) return null;
+            const scaled = {};
+            for (let d = 1; d <= daysInSelectedMonth; d++) {
+                // Map day d (out of daysInSelectedMonth) to the equivalent position
+                // in the 31-day benchmark curve
+                const equivDay = Math.max(1, Math.round((d / daysInSelectedMonth) * 31));
+                scaled[d] = bm.byDay[Math.min(31, equivDay)];
+            }
+            return { byDay: scaled, avgMonthTotal: bm.avgMonthTotal };
+        }
+
         // ============================================
         // MONTHLY SPEND TRACKER
         // ============================================
@@ -4495,6 +4533,31 @@
                 }
             }
 
+            // ── Benchmark: historical average pace for this category ──
+            const daysInMonth = monthAbbrev ? new Date(yearNum, (parseInt(monthNumStr)-1)+1, 0).getDate() : 31;
+            const benchmark = getBenchmarkForMonth(cat, daysInMonth);
+
+            const benchmarkRowEl = document.getElementById('trackerBenchmarkRow');
+            const benchmarkTextEl = document.getElementById('trackerBenchmarkText');
+            if (benchmark) {
+                benchmarkRowEl.style.display = 'block';
+                const lastRealPt = points.filter(p=>!p.isEndAnchor).slice(-1)[0];
+                const todayDay = lastRealPt ? lastRealPt.day : 0;
+                const benchAtDay = benchmark.byDay[todayDay] || benchmark.byDay[daysInMonth];
+                const actualNow  = lastRealPt ? lastRealPt.cum : 0;
+                const diff = actualNow - benchAtDay;
+                const diffPct = benchAtDay > 0 ? (diff/benchAtDay*100) : 0;
+                const fmt = v => '$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+                const paceWord = diff > 0 ? 'above' : diff < 0 ? 'below' : 'right on';
+                const paceColor = diff > 0 ? '#e53e3e' : diff < 0 ? '#38a169' : '#4a5568';
+                benchmarkTextEl.innerHTML =
+                    `📊 You're <strong style="color:${paceColor}">${fmt(diff)} ${paceWord} average pace</strong> ` +
+                    `(typical by day ${todayDay}: ${fmt(benchAtDay)}, you're at ${fmt(actualNow)}, ${Math.abs(diffPct).toFixed(0)}% ${paceWord}). ` +
+                    `Typical full-month total: ${fmt(benchmark.avgMonthTotal)}.`;
+            } else {
+                benchmarkRowEl.style.display = 'none';
+            }
+
             // Summary line
             const summaryEl = document.getElementById('trackerSummary');
             if (summaryEl) {
@@ -4505,10 +4568,10 @@
                 summaryEl.style.color = budget && total > budget ? '#e53e3e' : '#38a169';
             }
 
-            requestAnimationFrame(() => drawSpendTrackerChart(points, budget, cat));
+            requestAnimationFrame(() => drawSpendTrackerChart(points, budget, cat, benchmark));
         }
 
-        function drawSpendTrackerChart(points, budget, cat) {
+        function drawSpendTrackerChart(points, budget, cat, benchmark) {
             const canvas = document.getElementById('spendTrackerChart');
             if (!canvas) return;
             const ctx = canvas.getContext('2d');
@@ -4522,8 +4585,10 @@
             const PAD_L=70, PAD_R=20, PAD_T=20, PAD_B=40;
             const chartW=W-PAD_L-PAD_R, chartH=H-PAD_T-PAD_B;
 
+            const benchmarkVals = benchmark ? Object.values(benchmark.byDay) : [];
             const maxVal = Math.max(
                 ...points.map(p=>p.cum),
+                ...benchmarkVals,
                 budget || 0
             ) * 1.15 || 100;
 
@@ -4564,6 +4629,28 @@
                 ctx.fillText('Budget: $'+Math.round(budget).toLocaleString(), PAD_L+4, by-5);
             }
 
+            // Benchmark line — historical average pace for this category
+            let benchmarkPoints = null;
+            if (benchmark) {
+                const maxSeqForBenchmark = points.length - 1;
+                benchmarkPoints = [];
+                points.forEach(p => {
+                    const day = p.day || 0;
+                    const val = benchmark.byDay[day];
+                    if (val !== undefined) benchmarkPoints.push({ seq: p.seq, day, val });
+                });
+                if (benchmarkPoints.length > 0) {
+                    ctx.strokeStyle = '#9f7aea'; ctx.lineWidth = 2; ctx.setLineDash([3,3]);
+                    ctx.beginPath();
+                    benchmarkPoints.forEach((bp, i) => {
+                        const x = xScale(bp.seq), y = yScale(bp.val);
+                        i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+                    });
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+            }
+
             // Draw cumulative line — color changes to red when over budget
             // The segment leading into the end-of-month anchor is dashed and
             // lighter, since it represents "no further spending yet" rather
@@ -4602,6 +4689,7 @@
                 legendEl.innerHTML =
                     `<span><span style="display:inline-block;width:20px;height:3px;background:#48bb78;border-radius:2px;vertical-align:middle;margin-right:5px;"></span>Cumulative spend</span>` +
                     (budget ? `<span><span style="display:inline-block;width:20px;height:3px;background:#f6ad55;vertical-align:middle;margin-right:5px;border-top:2px dashed #f6ad55;"></span>Budget</span>` : '') +
+                    (benchmark ? `<span><span style="display:inline-block;width:20px;height:3px;background:#9f7aea;vertical-align:middle;margin-right:5px;border-top:2px dashed #9f7aea;"></span>Historical avg pace</span>` : '') +
                     `<span style="margin-left:auto;font-weight:700;">Total: ${totalFmt}</span>`;
             }
 
@@ -4627,6 +4715,9 @@
                     `Running total: ${fmt(closest.cum)}`,
                 ];
                 if (budget) lines.push(`vs budget: ${(closest.cum/budget*100).toFixed(0)}%`);
+                if (benchmark && benchmark.byDay[closest.day] !== undefined) {
+                    lines.push(`Historical avg: ${fmt(benchmark.byDay[closest.day])}`);
+                }
                 // Add individual transactions
                 if (closest.txns.length <= 4) {
                     closest.txns.forEach(t => {
@@ -4642,4 +4733,4 @@
     </script>
 </body>
 </html>
-<!-- v5.31 -->
+<!-- v5.32 -->
