@@ -1,10 +1,10 @@
-<!-- v5.30 -->
+<!-- v5.31 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Finance Dashboard v5.30</title>
+    <title>Personal Finance Dashboard v5.31</title>
     <style>
         * {
             margin: 0;
@@ -974,7 +974,7 @@
     <div id="chartTooltip" class="chart-tooltip"></div>
     <div class="container">
         <div class="header">
-            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.30</span></h1>
+            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.31</span></h1>
             <div style="display: flex; gap: 15px; align-items: center; margin: 15px 0;">
                 <div class="mode-toggle">
                     <button id="testModeBtn" class="mode-btn active">🔧 TEST</button>
@@ -4463,6 +4463,38 @@
                 });
             });
 
+            // Extend the axis to the last calendar day of the selected month,
+            // even if that's in the future — so the timeline always shows the
+            // full month for context, not just up to the last real transaction.
+            const MONTH_FULL_NAMES = {'01':'Jan','02':'Feb','03':'Mar','04':'Apr','05':'May','06':'Jun',
+                                       '07':'Jul','08':'Aug','09':'Sep','10':'Oct','11':'Nov','12':'Dec'};
+            const monthNumStr = (selectedMonth||'').split('-')[0]; // e.g. "06" from "06-June"
+            const monthAbbrev = MONTH_FULL_NAMES[monthNumStr];
+            const yearNum = parseInt(selectedYear) || new Date().getFullYear();
+
+            if (monthAbbrev && selectedMonth !== 'all') {
+                // Last day of month: day 0 of next month, in local time, then back up 1 day
+                const monthIdx0 = parseInt(monthNumStr) - 1; // 0-indexed for Date()
+                const lastDayOfMonth = new Date(yearNum, monthIdx0 + 1, 0).getDate();
+                const lastLabel = monthAbbrev + '-' + lastDayOfMonth;
+
+                const lastRealPoint = points[points.length - 1];
+                const lastRealDay   = lastRealPoint.day || 0;
+
+                // Only add the end-of-month anchor if it's after the last real transaction
+                if (lastDayOfMonth > lastRealDay || points.length === 1) {
+                    points.push({
+                        seq: points.length,
+                        cum: lastRealPoint.cum,
+                        txns: [],
+                        dayTotal: 0,
+                        label: lastLabel,
+                        day: lastDayOfMonth,
+                        isEndAnchor: true
+                    });
+                }
+            }
+
             // Summary line
             const summaryEl = document.getElementById('trackerSummary');
             if (summaryEl) {
@@ -4533,21 +4565,28 @@
             }
 
             // Draw cumulative line — color changes to red when over budget
+            // The segment leading into the end-of-month anchor is dashed and
+            // lighter, since it represents "no further spending yet" rather
+            // than an actual transaction.
             if (points.length > 1) {
                 for (let i=1; i<points.length; i++) {
                     const prev = points[i-1], curr = points[i];
                     const overBudget = budget && curr.cum > budget;
                     ctx.strokeStyle = overBudget ? '#e53e3e' : '#48bb78';
-                    ctx.lineWidth = 2.5; ctx.setLineDash([]);
+                    ctx.lineWidth = 2.5;
+                    ctx.setLineDash(curr.isEndAnchor ? [4,4] : []);
+                    ctx.globalAlpha = curr.isEndAnchor ? 0.5 : 1;
                     ctx.beginPath();
                     ctx.moveTo(xScale(prev.seq), yScale(prev.cum));
                     ctx.lineTo(xScale(curr.seq), yScale(curr.cum));
                     ctx.stroke();
+                    ctx.globalAlpha = 1; ctx.setLineDash([]);
                 }
             }
 
-            // Dots at each spending day (skip day 0 origin)
+            // Dots at each real spending day (skip day 0 origin and the end anchor)
             points.slice(1).forEach(p => {
+                if (p.isEndAnchor) return; // no dot for the projected month-end point
                 const x = xScale(p.seq), y = yScale(p.cum);
                 const over = budget && p.cum > budget;
                 ctx.beginPath(); ctx.arc(x,y,4,0,Math.PI*2);
@@ -4572,7 +4611,7 @@
             canvas._trackerYScale = yScale;
 
             addCanvasTooltip(canvas, (mx, my) => {
-                const pts = canvas._trackerPoints;
+                const pts = (canvas._trackerPoints || []).filter(p => !p.isEndAnchor);
                 if (!pts || pts.length===0) return null;
                 // Find closest point by x distance
                 let closest=null, minDist=30;
@@ -4603,4 +4642,4 @@
     </script>
 </body>
 </html>
-<!-- v5.30 -->
+<!-- v5.31 -->
