@@ -1,10 +1,10 @@
-<!-- v5.32 -->
+<!-- v5.33 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Finance Dashboard v5.32</title>
+    <title>Personal Finance Dashboard v5.33</title>
     <style>
         * {
             margin: 0;
@@ -974,7 +974,7 @@
     <div id="chartTooltip" class="chart-tooltip"></div>
     <div class="container">
         <div class="header">
-            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.32</span></h1>
+            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.33</span></h1>
             <div style="display: flex; gap: 15px; align-items: center; margin: 15px 0;">
                 <div class="mode-toggle">
                     <button id="testModeBtn" class="mode-btn active">🔧 TEST</button>
@@ -4448,33 +4448,12 @@
             const cat = document.getElementById('trackerCategoryFilter')?.value;
             if (!cat) return;
 
-            // Build day-by-day data from filteredTransactions
             const txns = filteredTransactions.filter(t => t.category === cat);
 
-            // Parse a date string like "Apr-30" or "May-5" into a sortable value
-            // using actual month + day, NOT just the day number — this is critical
-            // because a transaction dated Apr-30 but assigned to the May budget
-            // must sort BEFORE May-1, not after May-29.
             const MONTH_IDX = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
-            function parseDateKey(dateStr) {
-                const parts = (dateStr||'').split('-');
-                const mon = MONTH_IDX[parts[0]];
-                const day = parseInt(parts[1]) || 0;
-                if (mon === undefined) return null;
-                return { mon, day, sortVal: mon * 100 + day, label: dateStr };
-            }
+            const MONTH_FULL_NAMES = {'01':'Jan','02':'Feb','03':'Mar','04':'Apr','05':'May','06':'Jun',
+                                       '07':'Jul','08':'Aug','09':'Sep','10':'Oct','11':'Nov','12':'Dec'};
 
-            // Group by actual date (mon+day), not just day number
-            const byDate = {};
-            txns.forEach(t => {
-                const dk = parseDateKey(t.date);
-                if (!dk) return;
-                const key = dk.sortVal;
-                if (!byDate[key]) byDate[key] = { dateKey: dk, txns: [] };
-                byDate[key].txns.push(t);
-            });
-
-            // Get budget for selected month/year
             const selectedYear  = document.getElementById('yearFilter').value;
             const selectedMonth = document.getElementById('monthFilter').value;
             const budgetEntry   = allBudgets.find(b =>
@@ -4482,77 +4461,112 @@
             );
             const budget = budgetEntry ? budgetEntry.budget : null;
 
-            // Sort by true chronological order (month then day)
-            const sortedKeys = Object.keys(byDate).map(Number).sort((a,b)=>a-b);
-            let cumulative = 0;
-            const points = [{ seq: 0, cum: 0, txns: [], label: 'Start', dateKey: null }];
-            sortedKeys.forEach((key, idx) => {
-                const entry = byDate[key];
-                const dayTxns = entry.txns;
-                const dayTotal = dayTxns.reduce((s,t) => s+(parseFloat(t.amount)||0), 0);
-                cumulative += dayTotal;
-                points.push({
-                    seq: idx + 1,
-                    cum: cumulative,
-                    txns: dayTxns,
-                    dayTotal,
-                    label: entry.dateKey.label,
-                    day: entry.dateKey.day
-                });
-            });
+            const monthNumStr  = (selectedMonth||'').split('-')[0]; // "06" from "06-June"
+            const monthAbbrev  = MONTH_FULL_NAMES[monthNumStr];
+            const selMonthIdx0 = parseInt(monthNumStr) - 1;          // 0-indexed
+            const yearNum      = parseInt(selectedYear) || new Date().getFullYear();
+            const daysInMonth  = monthAbbrev ? new Date(yearNum, selMonthIdx0 + 1, 0).getDate() : 31;
 
-            // Extend the axis to the last calendar day of the selected month,
-            // even if that's in the future — so the timeline always shows the
-            // full month for context, not just up to the last real transaction.
-            const MONTH_FULL_NAMES = {'01':'Jan','02':'Feb','03':'Mar','04':'Apr','05':'May','06':'Jun',
-                                       '07':'Jul','08':'Aug','09':'Sep','10':'Oct','11':'Nov','12':'Dec'};
-            const monthNumStr = (selectedMonth||'').split('-')[0]; // e.g. "06" from "06-June"
-            const monthAbbrev = MONTH_FULL_NAMES[monthNumStr];
-            const yearNum = parseInt(selectedYear) || new Date().getFullYear();
+            // ── Build a linear "axis position" for every transaction ──
+            // axisPos = 0 is the 1st of the selected month.
+            // Days from the PREVIOUS month (e.g. Apr-30 assigned to May) get
+            // negative axisPos values, so they appear chronologically before
+            // day 1 with correct, even spacing — not just lumped at "day 0".
+            function parseDateKey(dateStr) {
+                const parts = (dateStr||'').split('-');
+                const mon = MONTH_IDX[parts[0]];
+                const day = parseInt(parts[1]) || 0;
+                if (mon === undefined || !monthAbbrev) return null;
 
-            if (monthAbbrev && selectedMonth !== 'all') {
-                // Last day of month: day 0 of next month, in local time, then back up 1 day
-                const monthIdx0 = parseInt(monthNumStr) - 1; // 0-indexed for Date()
-                const lastDayOfMonth = new Date(yearNum, monthIdx0 + 1, 0).getDate();
-                const lastLabel = monthAbbrev + '-' + lastDayOfMonth;
-
-                const lastRealPoint = points[points.length - 1];
-                const lastRealDay   = lastRealPoint.day || 0;
-
-                // Only add the end-of-month anchor if it's after the last real transaction
-                if (lastDayOfMonth > lastRealDay || points.length === 1) {
-                    points.push({
-                        seq: points.length,
-                        cum: lastRealPoint.cum,
-                        txns: [],
-                        dayTotal: 0,
-                        label: lastLabel,
-                        day: lastDayOfMonth,
-                        isEndAnchor: true
-                    });
+                if (mon === selMonthIdx0) {
+                    // Same month: axisPos = day (1, 2, 3...)
+                    return { axisPos: day, day, label: dateStr };
+                } else {
+                    // Different month (almost always the previous month, end-of-month
+                    // transaction assigned forward) — compute days before the 1st.
+                    // Days in that transaction's own month:
+                    const txnYear = (mon > selMonthIdx0) ? yearNum - 1 : yearNum; // handles Dec->Jan wrap
+                    const daysInTxnMonth = new Date(txnYear, mon + 1, 0).getDate();
+                    const axisPos = day - daysInTxnMonth; // negative: e.g. day 30 of a 30-day month -> 0, day 29 -> -1
+                    return { axisPos, day, label: dateStr };
                 }
             }
 
+            // Group transactions by exact axisPos (same calendar day)
+            const byPos = {};
+            txns.forEach(t => {
+                const dk = parseDateKey(t.date);
+                if (!dk) return;
+                if (!byPos[dk.axisPos]) byPos[dk.axisPos] = { dateKey: dk, txns: [] };
+                byPos[dk.axisPos].txns.push(t);
+            });
+
+            const sortedPositions = Object.keys(byPos).map(Number).sort((a,b)=>a-b);
+            const minPos = sortedPositions.length ? Math.min(0, sortedPositions[0]) : 0;
+            const maxPos = daysInMonth; // always extend to the last day of the month
+
+            // ── Build cumulative points across EVERY day in the visible range ──
+            // (not just days with transactions) so the x-axis is a true linear
+            // date scale with even spacing for every calendar day.
+            let cumulative = 0;
+            const points = [];
+            for (let pos = minPos; pos <= maxPos; pos++) {
+                const entry = byPos[pos];
+                const dayTxns = entry ? entry.txns : [];
+                const dayTotal = dayTxns.reduce((s,t) => s+(parseFloat(t.amount)||0), 0);
+                cumulative += dayTotal;
+
+                let label;
+                if (pos <= 0 && pos !== 0) {
+                    label = entry ? entry.dateKey.label : '';
+                } else if (pos === 0) {
+                    label = entry ? entry.dateKey.label : (monthAbbrev + '-0');
+                } else {
+                    label = monthAbbrev + '-' + pos;
+                }
+
+                points.push({
+                    pos,
+                    cum: cumulative,
+                    txns: dayTxns,
+                    dayTotal,
+                    label,
+                    hasTxn: dayTxns.length > 0,
+                    isFuture: false // set below
+                });
+            }
+
+            // Mark which points are "in the future" relative to today, for visual styling
+            const today = new Date();
+            const isCurrentMonth = (today.getFullYear() === yearNum && today.getMonth() === selMonthIdx0);
+            const todayDayNum = isCurrentMonth ? today.getDate() : null;
+            if (todayDayNum !== null) {
+                points.forEach(p => { p.isFuture = p.pos > todayDayNum; });
+            }
+
             // ── Benchmark: historical average pace for this category ──
-            const daysInMonth = monthAbbrev ? new Date(yearNum, (parseInt(monthNumStr)-1)+1, 0).getDate() : 31;
+            // Starts exactly at day 1 of the month (pos=1) — never before —
+            // even though the actual spend line may start earlier due to
+            // pre-month transactions assigned to this budget.
             const benchmark = getBenchmarkForMonth(cat, daysInMonth);
 
             const benchmarkRowEl = document.getElementById('trackerBenchmarkRow');
             const benchmarkTextEl = document.getElementById('trackerBenchmarkText');
             if (benchmark) {
                 benchmarkRowEl.style.display = 'block';
-                const lastRealPt = points.filter(p=>!p.isEndAnchor).slice(-1)[0];
-                const todayDay = lastRealPt ? lastRealPt.day : 0;
-                const benchAtDay = benchmark.byDay[todayDay] || benchmark.byDay[daysInMonth];
+                const referenceDay = todayDayNum !== null ? todayDayNum : maxPos;
+                const realPoints = points.filter(p => !p.isFuture);
+                const lastRealPt = realPoints[realPoints.length - 1];
                 const actualNow  = lastRealPt ? lastRealPt.cum : 0;
+                const benchAtDay = benchmark.byDay[Math.max(1, referenceDay)] || benchmark.byDay[daysInMonth];
                 const diff = actualNow - benchAtDay;
                 const diffPct = benchAtDay > 0 ? (diff/benchAtDay*100) : 0;
                 const fmt = v => '$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-                const paceWord = diff > 0 ? 'above' : diff < 0 ? 'below' : 'right on';
+                const paceWord  = diff > 0 ? 'above' : diff < 0 ? 'below' : 'right on';
                 const paceColor = diff > 0 ? '#e53e3e' : diff < 0 ? '#38a169' : '#4a5568';
                 benchmarkTextEl.innerHTML =
                     `📊 You're <strong style="color:${paceColor}">${fmt(diff)} ${paceWord} average pace</strong> ` +
-                    `(typical by day ${todayDay}: ${fmt(benchAtDay)}, you're at ${fmt(actualNow)}, ${Math.abs(diffPct).toFixed(0)}% ${paceWord}). ` +
+                    `(typical by day ${referenceDay}: ${fmt(benchAtDay)}, you're at ${fmt(actualNow)}, ${Math.abs(diffPct).toFixed(0)}% ${paceWord}). ` +
                     `Typical full-month total: ${fmt(benchmark.avgMonthTotal)}.`;
             } else {
                 benchmarkRowEl.style.display = 'none';
@@ -4568,10 +4582,10 @@
                 summaryEl.style.color = budget && total > budget ? '#e53e3e' : '#38a169';
             }
 
-            requestAnimationFrame(() => drawSpendTrackerChart(points, budget, cat, benchmark));
+            requestAnimationFrame(() => drawSpendTrackerChart(points, budget, cat, benchmark, minPos, maxPos));
         }
 
-        function drawSpendTrackerChart(points, budget, cat, benchmark) {
+        function drawSpendTrackerChart(points, budget, cat, benchmark, minPos, maxPos) {
             const canvas = document.getElementById('spendTrackerChart');
             if (!canvas) return;
             const ctx = canvas.getContext('2d');
@@ -4585,18 +4599,24 @@
             const PAD_L=70, PAD_R=20, PAD_T=20, PAD_B=40;
             const chartW=W-PAD_L-PAD_R, chartH=H-PAD_T-PAD_B;
 
-            const benchmarkVals = benchmark ? Object.values(benchmark.byDay) : [];
+            // Benchmark series — only valid from pos=1 (day 1 of month) onward
+            const benchmarkSeries = benchmark
+                ? points.filter(p => p.pos >= 1 && benchmark.byDay[p.pos] !== undefined)
+                        .map(p => ({ pos: p.pos, val: benchmark.byDay[p.pos] }))
+                : [];
+
             const maxVal = Math.max(
                 ...points.map(p=>p.cum),
-                ...benchmarkVals,
+                ...benchmarkSeries.map(b=>b.val),
                 budget || 0
             ) * 1.15 || 100;
 
-            const maxSeq = Math.max(1, points.length - 1);
-            const xScale = seq => PAD_L + (seq/maxSeq)*chartW;
-            const yScale = v   => PAD_T + chartH - (v/maxVal)*chartH;
+            // ── True linear date scale: every calendar day gets equal spacing ──
+            const totalRange = maxPos - minPos;
+            const xScale = pos => PAD_L + ((pos - minPos) / totalRange) * chartW;
+            const yScale = v   => PAD_T + chartH - (v / maxVal) * chartH;
 
-            // Grid lines
+            // Grid lines (horizontal, $ axis)
             for (let i=0; i<=4; i++) {
                 const y = PAD_T + (chartH/4)*i;
                 const v = maxVal*(1-i/4);
@@ -4606,18 +4626,29 @@
                 ctx.fillText('$'+Math.round(v).toLocaleString(), PAD_L-6, y+4);
             }
 
-            // X axis labels — show actual transaction dates at intervals, evenly spaced
-            const labelPoints = points.slice(1); // skip origin
-            const maxLabels = Math.min(8, labelPoints.length);
-            const labelStep = Math.max(1, Math.ceil(labelPoints.length / maxLabels));
-            labelPoints.forEach((p, i) => {
-                if (i % labelStep !== 0 && i !== labelPoints.length - 1) return;
-                const x = xScale(p.seq);
+            // X axis labels — evenly spaced across the full linear date range,
+            // showing every calendar day's label at a reasonable interval
+            const totalDays = points.length;
+            const maxLabels = 9;
+            const labelStep = Math.max(1, Math.ceil(totalDays / maxLabels));
+            points.forEach((p, i) => {
+                const isLast = i === points.length - 1;
+                if (i % labelStep !== 0 && !isLast) return;
+                const x = xScale(p.pos);
                 ctx.fillStyle='#a0aec0'; ctx.font='10px system-ui,sans-serif'; ctx.textAlign='center';
                 ctx.fillText(p.label, x, H-PAD_B+14);
                 ctx.strokeStyle='#f0f0f0'; ctx.lineWidth=1;
                 ctx.beginPath(); ctx.moveTo(x,PAD_T); ctx.lineTo(x,PAD_T+chartH); ctx.stroke();
             });
+
+            // Vertical marker at day 1 of the month — helps visually separate
+            // the pre-month carryover (if any) from the actual month
+            if (minPos < 0) {
+                const x1 = xScale(1);
+                ctx.strokeStyle = '#cbd5e0'; ctx.lineWidth = 1.5; ctx.setLineDash([2,2]);
+                ctx.beginPath(); ctx.moveTo(x1, PAD_T); ctx.lineTo(x1, PAD_T+chartH); ctx.stroke();
+                ctx.setLineDash([]);
+            }
 
             // Budget line
             if (budget) {
@@ -4629,52 +4660,40 @@
                 ctx.fillText('Budget: $'+Math.round(budget).toLocaleString(), PAD_L+4, by-5);
             }
 
-            // Benchmark line — historical average pace for this category
-            let benchmarkPoints = null;
-            if (benchmark) {
-                const maxSeqForBenchmark = points.length - 1;
-                benchmarkPoints = [];
-                points.forEach(p => {
-                    const day = p.day || 0;
-                    const val = benchmark.byDay[day];
-                    if (val !== undefined) benchmarkPoints.push({ seq: p.seq, day, val });
+            // Benchmark line — historical average pace, starts strictly at day 1
+            if (benchmarkSeries.length > 0) {
+                ctx.strokeStyle = '#9f7aea'; ctx.lineWidth = 2; ctx.setLineDash([3,3]);
+                ctx.beginPath();
+                benchmarkSeries.forEach((bp, i) => {
+                    const x = xScale(bp.pos), y = yScale(bp.val);
+                    i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
                 });
-                if (benchmarkPoints.length > 0) {
-                    ctx.strokeStyle = '#9f7aea'; ctx.lineWidth = 2; ctx.setLineDash([3,3]);
-                    ctx.beginPath();
-                    benchmarkPoints.forEach((bp, i) => {
-                        const x = xScale(bp.seq), y = yScale(bp.val);
-                        i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
-                    });
-                    ctx.stroke();
-                    ctx.setLineDash([]);
-                }
+                ctx.stroke();
+                ctx.setLineDash([]);
             }
 
-            // Draw cumulative line — color changes to red when over budget
-            // The segment leading into the end-of-month anchor is dashed and
-            // lighter, since it represents "no further spending yet" rather
-            // than an actual transaction.
-            if (points.length > 1) {
-                for (let i=1; i<points.length; i++) {
-                    const prev = points[i-1], curr = points[i];
-                    const overBudget = budget && curr.cum > budget;
-                    ctx.strokeStyle = overBudget ? '#e53e3e' : '#48bb78';
-                    ctx.lineWidth = 2.5;
-                    ctx.setLineDash(curr.isEndAnchor ? [4,4] : []);
-                    ctx.globalAlpha = curr.isEndAnchor ? 0.5 : 1;
-                    ctx.beginPath();
-                    ctx.moveTo(xScale(prev.seq), yScale(prev.cum));
-                    ctx.lineTo(xScale(curr.seq), yScale(curr.cum));
-                    ctx.stroke();
-                    ctx.globalAlpha = 1; ctx.setLineDash([]);
-                }
+            // ── Cumulative spend line — true linear date axis, one segment per day ──
+            // Segments beyond "today" (future days with no spend yet) are drawn
+            // dashed and faded, since they represent "no further spending yet"
+            // rather than an actual flat trend.
+            for (let i=1; i<points.length; i++) {
+                const prev = points[i-1], curr = points[i];
+                const overBudget = budget && curr.cum > budget;
+                ctx.strokeStyle = overBudget ? '#e53e3e' : '#48bb78';
+                ctx.lineWidth = 2.5;
+                ctx.setLineDash(curr.isFuture ? [4,4] : []);
+                ctx.globalAlpha = curr.isFuture ? 0.45 : 1;
+                ctx.beginPath();
+                ctx.moveTo(xScale(prev.pos), yScale(prev.cum));
+                ctx.lineTo(xScale(curr.pos), yScale(curr.cum));
+                ctx.stroke();
+                ctx.globalAlpha = 1; ctx.setLineDash([]);
             }
 
-            // Dots at each real spending day (skip day 0 origin and the end anchor)
-            points.slice(1).forEach(p => {
-                if (p.isEndAnchor) return; // no dot for the projected month-end point
-                const x = xScale(p.seq), y = yScale(p.cum);
+            // Dots only on days that actually had a transaction
+            points.forEach(p => {
+                if (!p.hasTxn) return;
+                const x = xScale(p.pos), y = yScale(p.cum);
                 const over = budget && p.cum > budget;
                 ctx.beginPath(); ctx.arc(x,y,4,0,Math.PI*2);
                 ctx.fillStyle = over ? '#e53e3e' : '#48bb78';
@@ -4689,22 +4708,22 @@
                 legendEl.innerHTML =
                     `<span><span style="display:inline-block;width:20px;height:3px;background:#48bb78;border-radius:2px;vertical-align:middle;margin-right:5px;"></span>Cumulative spend</span>` +
                     (budget ? `<span><span style="display:inline-block;width:20px;height:3px;background:#f6ad55;vertical-align:middle;margin-right:5px;border-top:2px dashed #f6ad55;"></span>Budget</span>` : '') +
-                    (benchmark ? `<span><span style="display:inline-block;width:20px;height:3px;background:#9f7aea;vertical-align:middle;margin-right:5px;border-top:2px dashed #9f7aea;"></span>Historical avg pace</span>` : '') +
+                    (benchmarkSeries.length ? `<span><span style="display:inline-block;width:20px;height:3px;background:#9f7aea;vertical-align:middle;margin-right:5px;border-top:2px dashed #9f7aea;"></span>Historical avg pace</span>` : '') +
                     `<span style="margin-left:auto;font-weight:700;">Total: ${totalFmt}</span>`;
             }
 
             // Store data for tooltip
-            canvas._trackerPoints = points.slice(1); // skip origin
+            canvas._trackerPoints = points;
             canvas._trackerXScale = xScale;
             canvas._trackerYScale = yScale;
+            canvas._trackerBenchmark = benchmark;
 
             addCanvasTooltip(canvas, (mx, my) => {
-                const pts = (canvas._trackerPoints || []).filter(p => !p.isEndAnchor);
-                if (!pts || pts.length===0) return null;
-                // Find closest point by x distance
+                const pts = canvas._trackerPoints || [];
+                if (!pts.length) return null;
                 let closest=null, minDist=30;
                 pts.forEach(p => {
-                    const d = Math.abs(mx - canvas._trackerXScale(p.seq));
+                    const d = Math.abs(mx - canvas._trackerXScale(p.pos));
                     if (d<minDist) { minDist=d; closest=p; }
                 });
                 if (!closest) return null;
@@ -4715,15 +4734,14 @@
                     `Running total: ${fmt(closest.cum)}`,
                 ];
                 if (budget) lines.push(`vs budget: ${(closest.cum/budget*100).toFixed(0)}%`);
-                if (benchmark && benchmark.byDay[closest.day] !== undefined) {
-                    lines.push(`Historical avg: ${fmt(benchmark.byDay[closest.day])}`);
+                if (benchmark && closest.pos >= 1 && benchmark.byDay[closest.pos] !== undefined) {
+                    lines.push(`Historical avg: ${fmt(benchmark.byDay[closest.pos])}`);
                 }
-                // Add individual transactions
-                if (closest.txns.length <= 4) {
+                if (closest.txns.length > 0 && closest.txns.length <= 4) {
                     closest.txns.forEach(t => {
                         lines.push(`  • ${t.description.slice(0,28)}: ${fmt(t.amount)}`);
                     });
-                } else {
+                } else if (closest.txns.length > 4) {
                     lines.push(`  ${closest.txns.length} transactions`);
                 }
                 return lines;
@@ -4733,4 +4751,4 @@
     </script>
 </body>
 </html>
-<!-- v5.32 -->
+<!-- v5.33 -->
