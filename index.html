@@ -1,10 +1,10 @@
-<!-- v5.33 -->
+<!-- v5.34 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Finance Dashboard v5.33</title>
+    <title>Personal Finance Dashboard v5.34</title>
     <style>
         * {
             margin: 0;
@@ -974,7 +974,7 @@
     <div id="chartTooltip" class="chart-tooltip"></div>
     <div class="container">
         <div class="header">
-            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.33</span></h1>
+            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.34</span></h1>
             <div style="display: flex; gap: 15px; align-items: center; margin: 15px 0;">
                 <div class="mode-toggle">
                     <button id="testModeBtn" class="mode-btn active">🔧 TEST</button>
@@ -1044,46 +1044,65 @@
         <div class="error-message" id="errorMessage"></div>
         <div class="success-message" id="successMessage"></div>
         
-        <div class="stats">
-            <div class="stat-box" id="incomeBox">
-                <div style="display:flex; align-items:center; justify-content:space-between; gap:6px;">
-                    <div class="stat-label" id="incomeLabel">Total Income</div>
-                    <div style="display:flex; gap:4px;">
-                        <button id="incomeModeReal" onclick="setIncomeMode('real')" style="font-size:11px;padding:2px 7px;border-radius:10px;border:1px solid #667eea;background:#667eea;color:white;cursor:pointer;font-weight:600;">Real</button>
-                        <button id="incomeModeProjected" onclick="setIncomeMode('projected')" style="font-size:11px;padding:2px 7px;border-radius:10px;border:1px solid #cbd5e0;background:white;color:#718096;cursor:pointer;font-weight:600;">Projected</button>
-                    </div>
-                </div>
-                <div style="display:flex; align-items:center; gap:6px; margin-top:4px;">
-                    <div class="stat-value positive" id="totalIncome">$0.00</div>
-                    <button id="editProjectedBtn" onclick="startEditProjected()" style="display:none;background:none;border:none;cursor:pointer;font-size:14px;color:#667eea;padding:0;" title="Edit projected income">✏️</button>
-                </div>
-                <div id="projectedEditArea" style="display:none; margin-top:6px;">
-                    <input id="projectedInput" type="number" step="0.01"
-                        style="width:120px;padding:4px 8px;border:1px solid #667eea;border-radius:6px;font-size:14px;"
-                        onkeydown="if(event.key==='Enter')saveProjected(); if(event.key==='Escape')cancelEditProjected();">
-                    <button onclick="saveProjected()" style="margin-left:4px;padding:4px 10px;background:#667eea;color:white;border:none;border-radius:6px;cursor:pointer;font-size:13px;">Save</button>
-                    <button onclick="cancelEditProjected()" style="margin-left:2px;padding:4px 8px;background:#e2e8f0;color:#4a5568;border:none;border-radius:6px;cursor:pointer;font-size:13px;">✕</button>
-                </div>
+        <!-- REAL group -->
+        <div style="margin-bottom:6px;font-size:11px;font-weight:700;color:#667eea;letter-spacing:1px;text-transform:uppercase;">✅ Real</div>
+        <div class="stats" style="margin-bottom:18px;">
+            <div class="stat-box" style="border-top:4px solid #38a169;">
+                <div class="stat-label">Total Income</div>
+                <div class="stat-value positive" id="totalIncome">$0.00</div>
             </div>
-            <div class="stat-box">
+            <div class="stat-box" style="border-top:4px solid #e53e3e;">
                 <div class="stat-label">Total Expenses</div>
                 <div class="stat-value negative" id="totalExpenses">$0.00</div>
             </div>
-            <div class="stat-box">
+            <div class="stat-box" style="border-top:4px solid #667eea;">
                 <div class="stat-label">Net</div>
                 <div class="stat-value" id="netValue">$0.00</div>
             </div>
-            <div class="stat-box">
+            <div class="stat-box" style="border-top:4px solid #a0aec0;">
                 <div class="stat-label">Transactions</div>
                 <div class="stat-value" id="totalTransactions">0</div>
             </div>
-            <div class="stat-box">
-                <div class="stat-label">Fundos (depósitos)</div>
-                <div class="stat-value positive" id="fundosDepositos">$0.00</div>
+        </div>
+
+        <!-- PROJECTED group -->
+        <div style="margin-bottom:6px;font-size:11px;font-weight:700;color:#805ad5;letter-spacing:1px;text-transform:uppercase;">🔮 Projected</div>
+        <div class="stats" style="margin-bottom:18px;">
+            <div class="stat-box" style="border-top:4px solid #68d391;opacity:0.9;">
+                <div class="stat-label">Projected Income</div>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+                    <div class="stat-value positive" id="projectedIncomeDisplay">$11,500.00</div>
+                    <button onclick="startEditProjected()" style="background:none;border:none;cursor:pointer;font-size:13px;color:#667eea;padding:0;" title="Edit">✏️</button>
+                </div>
+                <div id="projectedEditArea" style="display:none;margin-top:6px;">
+                    <input id="projectedInput" type="number" step="0.01"
+                        style="width:110px;padding:4px 8px;border:1px solid #667eea;border-radius:6px;font-size:14px;"
+                        onkeydown="if(event.key==='Enter')saveProjected();if(event.key==='Escape')cancelEditProjected();">
+                    <button onclick="saveProjected()" style="margin-left:4px;padding:4px 10px;background:#667eea;color:white;border:none;border-radius:6px;cursor:pointer;font-size:12px;">Save</button>
+                    <button onclick="cancelEditProjected()" style="margin-left:2px;padding:4px 8px;background:#e2e8f0;color:#4a5568;border:none;border-radius:6px;cursor:pointer;font-size:12px;">✕</button>
+                </div>
             </div>
-            <div class="stat-box">
-                <div class="stat-label">Fundos (Retiradas)</div>
-                <div class="stat-value negative" id="fundosRetiradas">$0.00</div>
+            <div class="stat-box" style="border-top:4px solid #fc8181;opacity:0.9;">
+                <div class="stat-label">Projected Expenses</div>
+                <div class="stat-value negative" id="projectedExpenses">$0.00</div>
+                <div class="stat-label" style="font-size:11px;margin-top:3px;color:#a0aec0;">Sum of budgets</div>
+            </div>
+            <div class="stat-box" style="border-top:4px solid #9f7aea;opacity:0.9;">
+                <div class="stat-label">Projected Net</div>
+                <div class="stat-value" id="projectedNet">$0.00</div>
+            </div>
+        </div>
+
+        <!-- FUNDOS (secondary) -->
+        <div style="margin-bottom:6px;font-size:11px;font-weight:700;color:#a0aec0;letter-spacing:1px;text-transform:uppercase;">💼 Fundos</div>
+        <div class="stats" style="margin-bottom:4px;">
+            <div class="stat-box" style="border-top:3px solid #68d391;background:#f7fdf9;">
+                <div class="stat-label" style="font-size:11px;">Fundos — Depósitos</div>
+                <div class="stat-value positive" id="fundosDepositos" style="font-size:20px;">$0.00</div>
+            </div>
+            <div class="stat-box" style="border-top:3px solid #fc8181;background:#fff8f8;">
+                <div class="stat-label" style="font-size:11px;">Fundos — Retiradas</div>
+                <div class="stat-value negative" id="fundosRetiradas" style="font-size:20px;">$0.00</div>
             </div>
         </div>
 
@@ -1888,9 +1907,11 @@
             
             data.forEach(item => {
                 // Separate Fundos calculations
-                if (item.category === 'Fundos (depósitos)' && item.amount < 0) {
-                    fundosDepositos += Math.abs(item.amount);
-                } else if (item.category === 'Fundos (Retiradas)' && item.amount > 0) {
+                if (item.category === 'Fundos (depósitos)') {
+                    // Negative = actual deposit (money coming in), positive = unusual reversal
+                    if (item.amount < 0) fundosDepositos += Math.abs(item.amount);
+                } else if (item.category === 'Fundos (Retiradas)') {
+                    // Sum all amounts: positives = withdrawals, negatives = refunds (reduce total)
                     fundosRetiradas += item.amount;
                 }
                 
@@ -1911,16 +1932,23 @@
                 categoryTotals[item.category] += item.amount;
             });
             
-            // Update stat boxes
+            // ── Update Real stat cards ──
             realIncomeValue = totalIncome;
-            document.getElementById('totalExpenses').textContent = '$' + totalExpenses.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            updateIncomeDisplay(); // sets income + net
-            
+            const fmt = v => '$' + Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+            document.getElementById('totalExpenses').textContent = fmt(totalExpenses);
+            document.getElementById('totalIncome').textContent  = fmt(totalIncome);
+            const realNet = totalIncome - totalExpenses;
+            const realNetEl = document.getElementById('netValue');
+            realNetEl.textContent = (realNet < 0 ? '-' : '') + fmt(realNet);
+            realNetEl.className = 'stat-value ' + (realNet >= 0 ? 'positive' : 'negative');
             document.getElementById('totalTransactions').textContent = data.length;
-            
-            // Update Fundos cards
-            document.getElementById('fundosDepositos').textContent = '$' + fundosDepositos.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            document.getElementById('fundosRetiradas').textContent = '$' + fundosRetiradas.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+            // ── Update Fundos cards (net of all amounts — negatives reduce total) ──
+            document.getElementById('fundosDepositos').textContent = fmt(fundosDepositos);
+            document.getElementById('fundosRetiradas').textContent = fmt(fundosRetiradas);
+
+            // ── Update Projected stat cards ──
+            updateProjectedCards();
             
             // Convert to array and sort by amount (descending)
             const sortedCategories = Object.entries(categoryTotals)
@@ -2337,7 +2365,7 @@
         // PROJECTED INCOME
         // ============================================
         let incomeMode = 'real';       // 'real' | 'projected'
-        let projectedIncome = 10400;   // hardcoded default, editable
+        let projectedIncome = 11500;   // hardcoded default, editable
         let realIncomeValue = 0;       // set by processData
 
         function setIncomeMode(mode) {
@@ -2360,17 +2388,39 @@
         }
 
         function updateIncomeDisplay() {
-            const val = incomeMode === 'projected' ? projectedIncome : realIncomeValue;
-            const label = incomeMode === 'projected' ? 'Projected Income' : 'Total Income';
-            document.getElementById('incomeLabel').textContent = label;
-            document.getElementById('totalIncome').textContent = '$' + val.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-            // Update Net card too
-            const expenses = parseFloat(document.getElementById('totalExpenses').textContent.replace(/[$,]/g,'')) || 0;
-            const net = val - expenses;
-            const netEl = document.getElementById('netValue');
-            netEl.textContent = '$' + net.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-            netEl.className = 'stat-value ' + (net >= 0 ? 'positive' : 'negative');
+            // Legacy: kept for compatibility with saveProjected etc.
+            updateProjectedCards();
         }
+
+        function updateProjectedCards() {
+            const fmt = v => '$' + Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+            // Projected income — editable, default $11,500
+            const projIncEl = document.getElementById('projectedIncomeDisplay');
+            if (projIncEl) projIncEl.textContent = fmt(projectedIncome);
+
+            // Projected expenses — sum of budgets for selected month/year,
+            // excluding Viagem - Brasil 2026, but including Elvira and all BUDGET_CATEGORY_ORDER
+            const selectedYear  = document.getElementById('yearFilter').value;
+            const selectedMonth = document.getElementById('monthFilter').value;
+            const EXCLUDE_FROM_PROJECTED = ['Viagem - Brasil 2026'];
+            const projExpenses = allBudgets
+                .filter(b => String(b.year) === selectedYear && b.month === selectedMonth
+                          && !EXCLUDE_FROM_PROJECTED.includes(b.category))
+                .reduce((s, b) => s + (parseFloat(b.budget) || 0), 0);
+
+            const projExpEl = document.getElementById('projectedExpenses');
+            if (projExpEl) projExpEl.textContent = fmt(projExpenses);
+
+            // Projected Net
+            const projNet = projectedIncome - projExpenses;
+            const projNetEl = document.getElementById('projectedNet');
+            if (projNetEl) {
+                projNetEl.textContent = (projNet < 0 ? '-' : '') + fmt(projNet);
+                projNetEl.className = 'stat-value ' + (projNet >= 0 ? 'positive' : 'negative');
+            }
+        }
+
 
         function startEditProjected() {
             const area = document.getElementById('projectedEditArea');
@@ -4751,4 +4801,4 @@
     </script>
 </body>
 </html>
-<!-- v5.33 -->
+<!-- v5.34 -->
