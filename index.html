@@ -1,10 +1,10 @@
-<!-- v5.40 -->
+<!-- v5.41 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Finance Dashboard v5.40</title>
+    <title>Personal Finance Dashboard v5.41</title>
     <style>
         * {
             margin: 0;
@@ -999,7 +999,7 @@
     <div id="chartTooltip" class="chart-tooltip"></div>
     <div class="container">
         <div class="header">
-            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.40</span></h1>
+            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.41</span></h1>
             <div style="display: flex; gap: 15px; align-items: center; margin: 15px 0;">
                 <div class="mode-toggle">
                     <button id="testModeBtn" class="mode-btn active">🔧 TEST</button>
@@ -4670,6 +4670,23 @@
 
             const selectedYear  = document.getElementById('yearFilter').value;
             const selectedMonth = document.getElementById('monthFilter').value;
+
+            // Can't render a day-by-day chart without a specific month selected
+            if (!selectedMonth || selectedMonth === 'all' || !selectedYear || selectedYear === 'all') {
+                const canvas = document.getElementById('spendTrackerChart');
+                if (canvas) {
+                    const ctx = canvas.getContext('2d');
+                    const dpr = window.devicePixelRatio || 1;
+                    const W = canvas.getBoundingClientRect().width || 400;
+                    canvas.width = W*dpr; canvas.height = 100*dpr;
+                    ctx.scale(dpr, dpr);
+                    ctx.clearRect(0,0,W,100);
+                    ctx.fillStyle='#a0aec0'; ctx.font='14px system-ui,sans-serif'; ctx.textAlign='center';
+                    ctx.fillText('Select a specific month to view the spend tracker', W/2, 50);
+                }
+                return;
+            }
+
             const budgetEntry   = allBudgets.find(b =>
                 String(b.year) === selectedYear && b.month === selectedMonth && b.category === cat
             );
@@ -4744,19 +4761,18 @@
                     cum: cumulative,
                     txns: dayTxns,
                     dayTotal,
+                    isFuture: false,  // set below
                     label,
                     hasTxn: dayTxns.length > 0,
                     isFuture: false // set below
                 });
             }
 
-            // Mark which points are "in the future" relative to today, for visual styling
+            // Mark future points relative to today
             const today = new Date();
             const isCurrentMonth = (today.getFullYear() === yearNum && today.getMonth() === selMonthIdx0);
             const todayDayNum = isCurrentMonth ? today.getDate() : null;
-            if (todayDayNum !== null) {
-                points.forEach(p => { p.isFuture = p.pos > todayDayNum; });
-            }
+            points.forEach(p => { p.isFuture = todayDayNum !== null && p.pos > todayDayNum; });
 
             // ── Benchmark: historical average pace for this category ──
             // Starts exactly at day 1 of the month (pos=1) — never before —
@@ -5230,4 +5246,4 @@
     </script>
 </body>
 </html>
-<!-- v5.40 -->
+<!-- v5.41 -->
