@@ -1,10 +1,10 @@
-<!-- v5.37 -->
+<!-- v5.39 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Finance Dashboard v5.37</title>
+    <title>Personal Finance Dashboard v5.39</title>
     <style>
         * {
             margin: 0;
@@ -968,13 +968,38 @@
             display: none;
         }
         .ai-thinking.visible { display: inline; }
+
+        /* ===================== PENDING CHIP ===================== */
+        .pending-chip {
+            display: inline-block;
+            background: #fffbeb;
+            border: 1px solid #f6ad55;
+            color: #c05621;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 8px;
+            margin-left: 6px;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+        .pending-notice {
+            font-size: 12px;
+            color: #c05621;
+            background: #fffbeb;
+            border: 1px solid #f6ad55;
+            border-radius: 8px;
+            padding: 5px 10px;
+            margin-top: 6px;
+            display: inline-block;
+        }
     </style>
 </head>
 <body>
     <div id="chartTooltip" class="chart-tooltip"></div>
     <div class="container">
         <div class="header">
-            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.37</span></h1>
+            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.39</span></h1>
             <div style="display: flex; gap: 15px; align-items: center; margin: 15px 0;">
                 <div class="mode-toggle">
                     <button id="testModeBtn" class="mode-btn active">🔧 TEST</button>
@@ -1044,6 +1069,10 @@
         <div class="error-message" id="errorMessage"></div>
         <div class="success-message" id="successMessage"></div>
         
+        <!-- Financial Summary collapsible wrapper -->
+        <div class="card" id="financialSummaryCard">
+            <h2>💳 Financial Summary</h2>
+
         <!-- REAL group -->
         <div style="margin-bottom:6px;font-size:11px;font-weight:700;color:#667eea;letter-spacing:1px;text-transform:uppercase;">✅ Real</div>
         <div class="stats" style="margin-bottom:18px;">
@@ -1136,13 +1165,31 @@
                         <option value="">— Select category —</option>
                     </select>
                 </div>
-                <span id="trackerSummary" style="font-size:13px;color:#718096;"></span>
+<span id="trackerSummary" style="display:none;"></span>
             </div>
-            <div id="trackerBenchmarkRow" style="display:none;margin-bottom:14px;padding:10px 14px;background:#f7fafc;border-radius:10px;border-left:3px solid #9f7aea;font-size:13px;color:#4a5568;">
-                <span id="trackerBenchmarkText"></span>
+            <div id="trackerPendingNotice" style="display:none;margin-bottom:8px;"></div>
+
+            <!-- Tracker stat chips row -->
+            <div id="trackerStatsRow" style="display:none;margin-bottom:12px;">
+                <!-- Chips row -->
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;align-items:center;">
+                    <div id="trackerChipSpent" style="padding:5px 12px;border-radius:16px;background:#edf2f7;font-size:13px;font-weight:600;color:#2d3748;"></div>
+                    <div id="trackerChipPace" style="padding:5px 12px;border-radius:16px;font-size:13px;font-weight:700;"></div>
+                    <div id="trackerChipProjected" style="padding:5px 12px;border-radius:16px;background:#edf2f7;font-size:13px;font-weight:600;color:#2d3748;"></div>
+                </div>
+                <!-- Budget progress bar (reusing budget table style) -->
+                <div id="trackerBudgetBar" style="display:none;">
+                    <div style="display:flex;justify-content:space-between;font-size:12px;color:#718096;margin-bottom:4px;">
+                        <span id="trackerBudgetLabel"></span>
+                        <span id="trackerBudgetRemaining"></span>
+                    </div>
+                    <div class="progress-bar-container" style="width:100%;height:28px;">
+                        <div id="trackerProgressBar" class="progress-bar low" style="width:0%;height:100%;line-height:28px;"></div>
+                    </div>
+                </div>
             </div>
-            <div style="overflow-x:auto;">
-                <canvas id="spendTrackerChart" height="280" style="width:100%;min-width:400px;display:block;"></canvas>
+            <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+                <canvas id="spendTrackerChart" height="280" style="width:100%;min-width:500px;display:block;cursor:crosshair;"></canvas>
             </div>
             <div id="spendTrackerLegend" style="display:flex;gap:20px;margin-top:10px;font-size:13px;color:#4a5568;flex-wrap:wrap;"></div>
         </div>
@@ -2133,7 +2180,11 @@
                 // Category
                 const tdCategory = document.createElement('td');
                 tdCategory.className = 'budget-category';
-                tdCategory.innerHTML = '<span class="mensal-cat-toggle" id="tog-' + rowId + '">&#9658;</span>' + row.category;
+                const pendingTxns = transactions.filter(t => t.category === row.category && t.account === '[Pending]');
+                const pendingChip = pendingTxns.length > 0
+                    ? '<span class="pending-chip">⏳ ' + pendingTxns.length + ' pending</span>'
+                    : '';
+                tdCategory.innerHTML = '<span class="mensal-cat-toggle" id="tog-' + rowId + '">&#9658;</span>' + row.category + pendingChip;
                 tr.appendChild(tdCategory);
                 
                 // Budget
@@ -2304,6 +2355,15 @@
         window.onload = function() {
             initCollapsibleCards();
             restoreApiKey();
+            // Force Financial Summary collapsed on mobile only
+            const fsCard = document.getElementById('financialSummaryCard');
+            if (fsCard && window.innerWidth <= 768) {
+                const fsBody   = fsCard.querySelector('.card-body');
+                const fsToggle = fsCard.querySelector('.card-toggle');
+                if (fsBody)   fsBody.classList.add('collapsed');
+                if (fsToggle) fsToggle.classList.add('collapsed');
+            }
+
             // Force Quick Entry card collapsed on all devices (iframe is heavy, load on demand)
             const qeCard = document.getElementById('quickEntryCard');
             if (qeCard) {
@@ -2792,7 +2852,11 @@
 
                 const tdC = document.createElement('td');
                 tdC.className = 'budget-category';
-                tdC.innerHTML = '<span class="fundos-cat-toggle" id="tog-' + rowId + '">&#9658;</span>' + row.category;
+                const fPending = transactions.filter(t => t.categoriaFundos === row.category && t.account === '[Pending]');
+                const fChip = fPending.length > 0
+                    ? '<span class="pending-chip">⏳ ' + fPending.length + ' pending</span>'
+                    : '';
+                tdC.innerHTML = '<span class="fundos-cat-toggle" id="tog-' + rowId + '">&#9658;</span>' + row.category + fChip;
                 tr.appendChild(tdC);
 
                 const tdB = document.createElement('td'); tdB.className = 'budget-amount'; tdB.style.textAlign = 'right';
@@ -4695,7 +4759,7 @@
             const benchmarkRowEl = document.getElementById('trackerBenchmarkRow');
             const benchmarkTextEl = document.getElementById('trackerBenchmarkText');
             if (benchmark) {
-                benchmarkRowEl.style.display = 'block';
+                benchmarkRowEl.style.display = 'none'; // replaced by chips
                 const fmt = v => '$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
                 const lastRealPt = points.filter(p => p.hasTxn && !p.isFuture).slice(-1)[0];
                 const actualNow  = lastRealPt ? lastRealPt.cum : 0;
@@ -4710,10 +4774,7 @@
                     const diffPct = benchAtWknd > 0 ? (diff/benchAtWknd*100) : 0;
                     const paceWord  = diff > 0 ? 'above' : diff < 0 ? 'below' : 'right on';
                     const paceColor = diff > 0 ? '#e53e3e' : diff < 0 ? '#38a169' : '#4a5568';
-                    benchmarkTextEl.innerHTML =
-                        `📊 Through Weekend ${refWknd}: you're at ${fmt(actualNow)}, benchmark is ${fmt(benchAtWknd)} — ` +
-                        `<strong style="color:${paceColor}">${fmt(diff)} ${paceWord} average pace</strong> (${Math.abs(diffPct).toFixed(0)}%). ` +
-                        `Typical full-month total: ${fmt(benchmark.avgMonthTotal)}.`;
+                    // Pace info now shown in chips above
                 } else {
                     const referenceDay = todayDayNum !== null ? todayDayNum : maxPos;
                     const benchAtDay = benchmark.byDay[Math.max(1, referenceDay)] || benchmark.byDay[daysInMonth];
@@ -4721,24 +4782,106 @@
                     const diffPct = benchAtDay > 0 ? (diff/benchAtDay*100) : 0;
                     const paceWord  = diff > 0 ? 'above' : diff < 0 ? 'below' : 'right on';
                     const paceColor = diff > 0 ? '#e53e3e' : diff < 0 ? '#38a169' : '#4a5568';
-                    benchmarkTextEl.innerHTML =
-                        `📊 You're <strong style="color:${paceColor}">${fmt(diff)} ${paceWord} average pace</strong> ` +
-                        `(typical by day ${referenceDay}: ${fmt(benchAtDay)}, you're at ${fmt(actualNow)}, ${Math.abs(diffPct).toFixed(0)}% ${paceWord}). ` +
-                        `Typical full-month total: ${fmt(benchmark.avgMonthTotal)}.`;
+                    // Pace info now shown in chips above
                 }
             } else {
                 benchmarkRowEl.style.display = 'none';
             }
 
-            // Summary line
-            const summaryEl = document.getElementById('trackerSummary');
-            if (summaryEl) {
-                const total = cumulative;
-                const fmt = v => '$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-                const budgetStr = budget ? ` of ${fmt(budget)} budget (${(total/budget*100).toFixed(0)}%)` : '';
-                summaryEl.textContent = `Total: ${fmt(total)}${budgetStr}`;
-                summaryEl.style.color = budget && total > budget ? '#e53e3e' : '#38a169';
+            const fmtT = v => '$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+            // Pending notice
+            const pendingInCat = filteredTransactions.filter(t => t.category === cat && t.account === '[Pending]');
+            const pendingNoticeEl = document.getElementById('trackerPendingNotice');
+            if (pendingNoticeEl) {
+                if (pendingInCat.length > 0) {
+                    const pendingTotal = pendingInCat.reduce((s,t) => s+(parseFloat(t.amount)||0), 0);
+                    pendingNoticeEl.style.display = 'block';
+                    pendingNoticeEl.innerHTML = '<span class="pending-notice">⏳ ' + pendingInCat.length +
+                        ' pending transaction' + (pendingInCat.length > 1 ? 's' : '') +
+                        ' totalling ' + fmtT(pendingTotal) +
+                        ' — numbers may change once confirmed</span>';
+                } else {
+                    pendingNoticeEl.style.display = 'none';
+                }
             }
+
+            // ── Stat chips + budget bar ──
+            const statsRowEl = document.getElementById('trackerStatsRow');
+            if (statsRowEl) {
+                statsRowEl.style.display = 'block';
+
+                // Current cumulative spend (last real non-future point)
+                const lastRealPt = points.filter(p => !p.isFuture && p.pos >= 0).slice(-1)[0];
+                const actualNow  = lastRealPt ? lastRealPt.cum : 0;
+
+                // Chip 1: spent so far
+                const chipSpent = document.getElementById('trackerChipSpent');
+                if (chipSpent) chipSpent.textContent = '💰 Spent: ' + fmtT(actualNow);
+
+                // Chip 2: pace vs benchmark
+                const chipPace = document.getElementById('trackerChipPace');
+                if (chipPace && benchmark) {
+                    const refDay = todayDayNum || maxPos;
+                    let benchVal;
+                    if (benchmark.weekendMode) {
+                        const mw = getMonthWeekends(yearNum, selMonthIdx0+1);
+                        const passed = mw.filter(w => w.days.some(d => d <= refDay));
+                        const wn = passed.length || 1;
+                        benchVal = benchmark.byWeekend[wn] || benchmark.byWeekend[5];
+                    } else {
+                        benchVal = benchmark.byDay[Math.max(1, refDay)] || benchmark.byDay[daysInMonth];
+                    }
+                    const diff    = actualNow - benchVal;
+                    const diffPct = benchVal > 0 ? Math.abs(diff/benchVal*100).toFixed(0) : 0;
+                    const isBelow = diff <= 0;
+                    chipPace.textContent = (isBelow ? '▼ ' : '▲ ') + fmtT(diff) +
+                        (isBelow ? ' below' : ' above') + ' avg (' + diffPct + '%)';
+                    chipPace.style.background = isBelow ? '#f0fff4' : '#fff5f5';
+                    chipPace.style.color      = isBelow ? '#276749' : '#9b2c2c';
+                    chipPace.style.border     = '1px solid ' + (isBelow ? '#9ae6b4' : '#feb2b2');
+                } else if (chipPace) {
+                    chipPace.style.display = 'none';
+                }
+
+                // Chip 3: projected month-end (linear extrapolation)
+                const chipProj = document.getElementById('trackerChipProjected');
+                if (chipProj && todayDayNum && actualNow > 0) {
+                    const dailyRate    = actualNow / todayDayNum;
+                    const projectedEnd = dailyRate * daysInMonth;
+                    chipProj.textContent = '📅 On pace for: ' + fmtT(projectedEnd);
+                    if (budget) {
+                        chipProj.textContent += ' vs ' + fmtT(budget) + ' budget';
+                        chipProj.style.color = projectedEnd > budget ? '#9b2c2c' : '#276749';
+                        chipProj.style.background = projectedEnd > budget ? '#fff5f5' : '#f0fff4';
+                        chipProj.style.border = '1px solid ' + (projectedEnd > budget ? '#feb2b2' : '#9ae6b4');
+                    }
+                } else if (chipProj) {
+                    chipProj.style.display = todayDayNum ? 'block' : 'none';
+                }
+
+                // Budget progress bar
+                const budgetBarEl  = document.getElementById('trackerBudgetBar');
+                const budgetLblEl  = document.getElementById('trackerBudgetLabel');
+                const budgetRemEl  = document.getElementById('trackerBudgetRemaining');
+                const progressBar  = document.getElementById('trackerProgressBar');
+                if (budget && budgetBarEl) {
+                    budgetBarEl.style.display = 'block';
+                    const pct  = Math.min((actualNow / budget) * 100, 100);
+                    const rem  = budget - actualNow;
+                    const barClass = pct <= 75 ? 'low' : pct <= 100 ? 'medium' : 'high';
+                    budgetLblEl.textContent  = 'Budget: ' + fmtT(budget) + '  |  Spent: ' + fmtT(actualNow);
+                    budgetRemEl.textContent  = (rem >= 0 ? 'Remaining: ' : 'Over by: ') + fmtT(rem);
+                    budgetRemEl.style.color  = rem >= 0 ? '#38a169' : '#e53e3e';
+                    progressBar.style.width  = pct + '%';
+                    progressBar.className    = 'progress-bar ' + barClass;
+                    progressBar.textContent  = pct.toFixed(0) + '%';
+                } else if (budgetBarEl) {
+                    budgetBarEl.style.display = 'none';
+                }
+            }
+
+            // Summary handled by chips above
 
             requestAnimationFrame(() => drawSpendTrackerChart(points, budget, cat, benchmark, minPos, maxPos));
         }
@@ -5028,7 +5171,7 @@
             canvas._trackerYScale = yScale;
             canvas._trackerBenchmark = benchmark;
 
-            addCanvasTooltip(canvas, (mx, my) => {
+            const _trackerTooltipFn = (mx, my) => {
                 const pts = canvas._trackerPoints || [];
                 if (!pts.length) return null;
                 let closest=null, minDist=30;
@@ -5054,11 +5197,34 @@
                 } else if (closest.txns.length > 4) {
                     lines.push(`  ${closest.txns.length} transactions`);
                 }
-                return lines;
-            });
+                                return lines;
+            };
+            addCanvasTooltip(canvas, _trackerTooltipFn);
+            addCanvasTapTooltip(canvas, _trackerTooltipFn);
+        }
+
+
+        // ── Mobile tap tooltip for spend tracker ──
+        function addCanvasTapTooltip(canvas, getTooltipData) {
+            let tapTimeout = null;
+            canvas.addEventListener('touchstart', e => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const rect  = canvas.getBoundingClientRect();
+                const mx    = touch.clientX - rect.left;
+                const my    = touch.clientY - rect.top;
+                const data  = getTooltipData(mx, my);
+                if (data) {
+                    showTooltip(touch, data);
+                    clearTimeout(tapTimeout);
+                    tapTimeout = setTimeout(hideTooltip, 3000);
+                } else {
+                    hideTooltip();
+                }
+            }, { passive: false });
         }
 
     </script>
 </body>
 </html>
-<!-- v5.37 -->
+<!-- v5.39 -->
