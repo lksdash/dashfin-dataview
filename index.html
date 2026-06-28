@@ -1,4 +1,4 @@
-<!-- v5.42 -->
+<!-- v5.42-debug -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -999,7 +999,7 @@
     <div id="chartTooltip" class="chart-tooltip"></div>
     <div class="container">
         <div class="header">
-            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.42</span></h1>
+            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.42-debug</span></h1>
             <div style="display: flex; gap: 15px; align-items: center; margin: 15px 0;">
                 <div class="mode-toggle">
                     <button id="testModeBtn" class="mode-btn active">🔧 TEST</button>
@@ -4662,6 +4662,7 @@
         // ============================================
         function renderSpendTracker() {
             const cat = document.getElementById('trackerCategoryFilter')?.value;
+            console.log('TRACKER: cat=', cat, 'filteredTxns=', filteredTransactions?.length);
             if (!cat) return;
 
             const txns = filteredTransactions.filter(t => t.category === cat);
@@ -5248,4 +5249,4 @@
     </script>
 </body>
 </html>
-<!-- v5.42 -->
+<!-- v5.42-debug -->
