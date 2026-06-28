@@ -1,10 +1,10 @@
-<!-- v5.39 -->
+<!-- v5.40 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Finance Dashboard v5.39</title>
+    <title>Personal Finance Dashboard v5.40</title>
     <style>
         * {
             margin: 0;
@@ -999,7 +999,7 @@
     <div id="chartTooltip" class="chart-tooltip"></div>
     <div class="container">
         <div class="header">
-            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.39</span></h1>
+            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.40</span></h1>
             <div style="display: flex; gap: 15px; align-items: center; margin: 15px 0;">
                 <div class="mode-toggle">
                     <button id="testModeBtn" class="mode-btn active">🔧 TEST</button>
@@ -1069,11 +1069,9 @@
         <div class="error-message" id="errorMessage"></div>
         <div class="success-message" id="successMessage"></div>
         
-        <!-- Financial Summary collapsible wrapper -->
         <div class="card" id="financialSummaryCard">
             <h2>💳 Financial Summary</h2>
-
-        <!-- REAL group -->
+            <!-- REAL group -->
         <div style="margin-bottom:6px;font-size:11px;font-weight:700;color:#667eea;letter-spacing:1px;text-transform:uppercase;">✅ Real</div>
         <div class="stats" style="margin-bottom:18px;">
             <div class="stat-box" style="border-top:4px solid #38a169;">
@@ -1134,6 +1132,9 @@
                 <div class="stat-value negative" id="fundosRetiradas" style="font-size:20px;">$0.00</div>
             </div>
         </div>
+        </div>
+
+
 
         <div class="card">
             <h2>📊 Budget Overview</h2>
@@ -1197,8 +1198,15 @@
         <!-- Quick Entry Form — collapsed by default -->
         <div class="card" id="quickEntryCard">
             <h2>➕ Quick Transaction Entry</h2>
-            <div style="font-size:13px;color:#718096;margin-bottom:12px;">
+            <div style="font-size:13px;color:#718096;margin-bottom:8px;">
                 Add a pending transaction that will be copied to finance_input automatically.
+            </div>
+            <div style="margin-bottom:12px;">
+                <a href="https://docs.google.com/forms/d/1s57fU75C5bA-wofW9tF4qjbzpJnPyXIOAW09oRpKFnU/edit?chromeless=1&pli=1"
+                   target="_blank"
+                   style="font-size:12px;color:#667eea;text-decoration:none;font-weight:600;">
+                    ✏️ Edit / review form responses
+                </a>
             </div>
             <div style="overflow:hidden;">
                 <iframe
@@ -4810,78 +4818,73 @@
             const statsRowEl = document.getElementById('trackerStatsRow');
             if (statsRowEl) {
                 statsRowEl.style.display = 'block';
+                const lastRealPt = points.filter(p => !p.isFuture && p.hasTxn).slice(-1)[0];
+                const actualNow  = lastRealPt ? lastRealPt.cum : (points.length ? points[points.length-1].cum : 0);
 
-                // Current cumulative spend (last real non-future point)
-                const lastRealPt = points.filter(p => !p.isFuture && p.pos >= 0).slice(-1)[0];
-                const actualNow  = lastRealPt ? lastRealPt.cum : 0;
-
-                // Chip 1: spent so far
                 const chipSpent = document.getElementById('trackerChipSpent');
-                if (chipSpent) chipSpent.textContent = '💰 Spent: ' + fmtT(actualNow);
+                if (chipSpent) chipSpent.textContent = '💰 ' + fmtT(actualNow);
 
-                // Chip 2: pace vs benchmark
                 const chipPace = document.getElementById('trackerChipPace');
-                if (chipPace && benchmark) {
-                    const refDay = todayDayNum || maxPos;
-                    let benchVal;
-                    if (benchmark.weekendMode) {
-                        const mw = getMonthWeekends(yearNum, selMonthIdx0+1);
-                        const passed = mw.filter(w => w.days.some(d => d <= refDay));
-                        const wn = passed.length || 1;
-                        benchVal = benchmark.byWeekend[wn] || benchmark.byWeekend[5];
+                if (chipPace) {
+                    if (benchmark) {
+                        const refDay = todayDayNum || maxPos;
+                        let benchVal;
+                        if (benchmark.weekendMode) {
+                            const mw = getMonthWeekends(yearNum, selMonthIdx0+1);
+                            const passed = mw.filter(w => w.days.some(d => d <= refDay));
+                            benchVal = benchmark.byWeekend[passed.length || 1] || benchmark.byWeekend[5];
+                        } else {
+                            benchVal = benchmark.byDay[Math.max(1, refDay)] || benchmark.byDay[daysInMonth];
+                        }
+                        const diff    = actualNow - benchVal;
+                        const diffPct = benchVal > 0 ? Math.abs(diff/benchVal*100).toFixed(0) : 0;
+                        const isBelow = diff <= 0;
+                        chipPace.style.display = 'block';
+                        chipPace.textContent = (isBelow ? '▼ ' : '▲ ') + fmtT(diff) +
+                            (isBelow ? ' below' : ' above') + ' avg (' + diffPct + '%)';
+                        chipPace.style.background = isBelow ? '#f0fff4' : '#fff5f5';
+                        chipPace.style.color      = isBelow ? '#276749' : '#9b2c2c';
+                        chipPace.style.border     = '1px solid ' + (isBelow ? '#9ae6b4' : '#feb2b2');
                     } else {
-                        benchVal = benchmark.byDay[Math.max(1, refDay)] || benchmark.byDay[daysInMonth];
+                        chipPace.style.display = 'none';
                     }
-                    const diff    = actualNow - benchVal;
-                    const diffPct = benchVal > 0 ? Math.abs(diff/benchVal*100).toFixed(0) : 0;
-                    const isBelow = diff <= 0;
-                    chipPace.textContent = (isBelow ? '▼ ' : '▲ ') + fmtT(diff) +
-                        (isBelow ? ' below' : ' above') + ' avg (' + diffPct + '%)';
-                    chipPace.style.background = isBelow ? '#f0fff4' : '#fff5f5';
-                    chipPace.style.color      = isBelow ? '#276749' : '#9b2c2c';
-                    chipPace.style.border     = '1px solid ' + (isBelow ? '#9ae6b4' : '#feb2b2');
-                } else if (chipPace) {
-                    chipPace.style.display = 'none';
                 }
 
-                // Chip 3: projected month-end (linear extrapolation)
                 const chipProj = document.getElementById('trackerChipProjected');
-                if (chipProj && todayDayNum && actualNow > 0) {
-                    const dailyRate    = actualNow / todayDayNum;
-                    const projectedEnd = dailyRate * daysInMonth;
-                    chipProj.textContent = '📅 On pace for: ' + fmtT(projectedEnd);
-                    if (budget) {
-                        chipProj.textContent += ' vs ' + fmtT(budget) + ' budget';
-                        chipProj.style.color = projectedEnd > budget ? '#9b2c2c' : '#276749';
-                        chipProj.style.background = projectedEnd > budget ? '#fff5f5' : '#f0fff4';
-                        chipProj.style.border = '1px solid ' + (projectedEnd > budget ? '#feb2b2' : '#9ae6b4');
+                if (chipProj) {
+                    if (todayDayNum && todayDayNum > 0 && actualNow > 0) {
+                        const projectedEnd = (actualNow / todayDayNum) * daysInMonth;
+                        chipProj.style.display = 'block';
+                        chipProj.textContent = '📅 ' + fmtT(projectedEnd) + ' projected';
+                        const over = budget && projectedEnd > budget;
+                        chipProj.style.background = budget ? (over ? '#fff5f5' : '#f0fff4') : '#edf2f7';
+                        chipProj.style.color      = budget ? (over ? '#9b2c2c' : '#276749') : '#2d3748';
+                        chipProj.style.border     = budget ? ('1px solid ' + (over ? '#feb2b2' : '#9ae6b4')) : 'none';
+                    } else {
+                        chipProj.style.display = 'none';
                     }
-                } else if (chipProj) {
-                    chipProj.style.display = todayDayNum ? 'block' : 'none';
                 }
 
-                // Budget progress bar
-                const budgetBarEl  = document.getElementById('trackerBudgetBar');
-                const budgetLblEl  = document.getElementById('trackerBudgetLabel');
-                const budgetRemEl  = document.getElementById('trackerBudgetRemaining');
-                const progressBar  = document.getElementById('trackerProgressBar');
-                if (budget && budgetBarEl) {
-                    budgetBarEl.style.display = 'block';
-                    const pct  = Math.min((actualNow / budget) * 100, 100);
-                    const rem  = budget - actualNow;
-                    const barClass = pct <= 75 ? 'low' : pct <= 100 ? 'medium' : 'high';
-                    budgetLblEl.textContent  = 'Budget: ' + fmtT(budget) + '  |  Spent: ' + fmtT(actualNow);
-                    budgetRemEl.textContent  = (rem >= 0 ? 'Remaining: ' : 'Over by: ') + fmtT(rem);
-                    budgetRemEl.style.color  = rem >= 0 ? '#38a169' : '#e53e3e';
-                    progressBar.style.width  = pct + '%';
-                    progressBar.className    = 'progress-bar ' + barClass;
-                    progressBar.textContent  = pct.toFixed(0) + '%';
-                } else if (budgetBarEl) {
-                    budgetBarEl.style.display = 'none';
+                const budgetBarEl = document.getElementById('trackerBudgetBar');
+                if (budgetBarEl) {
+                    if (budget && budget > 0) {
+                        budgetBarEl.style.display = 'block';
+                        const pct = Math.min((actualNow / budget) * 100, 100);
+                        const rem = budget - actualNow;
+                        document.getElementById('trackerBudgetLabel').textContent =
+                            'Budget: ' + fmtT(budget) + '  |  Spent: ' + fmtT(actualNow);
+                        const remEl = document.getElementById('trackerBudgetRemaining');
+                        remEl.textContent = (rem >= 0 ? 'Remaining: ' : 'Over by: ') + fmtT(rem);
+                        remEl.style.color = rem >= 0 ? '#38a169' : '#e53e3e';
+                        const pb = document.getElementById('trackerProgressBar');
+                        pb.style.width  = pct.toFixed(0) + '%';
+                        pb.className    = 'progress-bar ' + (pct <= 75 ? 'low' : pct <= 100 ? 'medium' : 'high');
+                        pb.textContent  = pct.toFixed(0) + '%';
+                    } else {
+                        budgetBarEl.style.display = 'none';
+                    }
                 }
             }
-
-            // Summary handled by chips above
 
             requestAnimationFrame(() => drawSpendTrackerChart(points, budget, cat, benchmark, minPos, maxPos));
         }
@@ -5227,4 +5230,4 @@
     </script>
 </body>
 </html>
-<!-- v5.39 -->
+<!-- v5.40 -->
