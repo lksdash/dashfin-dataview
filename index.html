@@ -1,10 +1,10 @@
-<!-- v5.41 -->
+<!-- v5.42 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Finance Dashboard v5.41</title>
+    <title>Personal Finance Dashboard v5.42</title>
     <style>
         * {
             margin: 0;
@@ -999,7 +999,7 @@
     <div id="chartTooltip" class="chart-tooltip"></div>
     <div class="container">
         <div class="header">
-            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.41</span></h1>
+            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.42</span></h1>
             <div style="display: flex; gap: 15px; align-items: center; margin: 15px 0;">
                 <div class="mode-toggle">
                     <button id="testModeBtn" class="mode-btn active">🔧 TEST</button>
@@ -1751,7 +1751,7 @@
                 selectedMonth === 'all' ? filteredTransactions[filteredTransactions.length - 1]?.month : selectedMonth
             );
 
-            populateTrackerCategoryFilter();
+            setTimeout(() => populateTrackerCategoryFilter(), 0);
             
             // Update transaction filter (reset to prompt state on month change)
             hasFilteredOnce = false;
@@ -2363,6 +2363,8 @@
         window.onload = function() {
             initCollapsibleCards();
             restoreApiKey();
+            // Redraw tracker after collapsible init (DOM is rebuilt during init)
+            setTimeout(() => { if (typeof renderSpendTracker === 'function') renderSpendTracker(); }, 50);
             // Force Financial Summary collapsed on mobile only
             const fsCard = document.getElementById('financialSummaryCard');
             if (fsCard && window.innerWidth <= 768) {
@@ -5246,4 +5248,4 @@
     </script>
 </body>
 </html>
-<!-- v5.41 -->
+<!-- v5.42 -->
