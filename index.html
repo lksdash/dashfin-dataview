@@ -1,4 +1,4 @@
-<!-- v5.42-debug -->
+<!-- v5.43 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -999,7 +999,7 @@
     <div id="chartTooltip" class="chart-tooltip"></div>
     <div class="container">
         <div class="header">
-            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.42-debug</span></h1>
+            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.43</span></h1>
             <div style="display: flex; gap: 15px; align-items: center; margin: 15px 0;">
                 <div class="mode-toggle">
                     <button id="testModeBtn" class="mode-btn active">🔧 TEST</button>
@@ -4662,7 +4662,6 @@
         // ============================================
         function renderSpendTracker() {
             const cat = document.getElementById('trackerCategoryFilter')?.value;
-            console.log('TRACKER: cat=', cat, 'filteredTxns=', filteredTransactions?.length);
             if (!cat) return;
 
             const txns = filteredTransactions.filter(t => t.category === cat);
@@ -4786,7 +4785,7 @@
             const benchmarkRowEl = document.getElementById('trackerBenchmarkRow');
             const benchmarkTextEl = document.getElementById('trackerBenchmarkText');
             if (benchmark) {
-                benchmarkRowEl.style.display = 'none'; // replaced by chips
+                if (benchmarkRowEl) benchmarkRowEl.style.display = 'none'; // replaced by chips
                 const fmt = v => '$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
                 const lastRealPt = points.filter(p => p.hasTxn && !p.isFuture).slice(-1)[0];
                 const actualNow  = lastRealPt ? lastRealPt.cum : 0;
@@ -4812,7 +4811,7 @@
                     // Pace info now shown in chips above
                 }
             } else {
-                benchmarkRowEl.style.display = 'none';
+                if (benchmarkRowEl) benchmarkRowEl.style.display = 'none';
             }
 
             const fmtT = v => '$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -5249,4 +5248,4 @@
     </script>
 </body>
 </html>
-<!-- v5.42-debug -->
+<!-- v5.43 -->
