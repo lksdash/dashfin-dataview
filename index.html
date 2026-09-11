@@ -1,10 +1,10 @@
-<!-- v5.43 -->
+<!-- v5.44 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Finance Dashboard v5.42</title>
+    <title>Personal Finance Dashboard v5.44</title>
     <style>
         * {
             margin: 0;
@@ -999,7 +999,7 @@
     <div id="chartTooltip" class="chart-tooltip"></div>
     <div class="container">
         <div class="header">
-            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.43</span></h1>
+            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.44</span></h1>
             <div style="display: flex; gap: 15px; align-items: center; margin: 15px 0;">
                 <div class="mode-toggle">
                     <button id="testModeBtn" class="mode-btn active">🔧 TEST</button>
@@ -1176,7 +1176,7 @@
                 <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;align-items:center;">
                     <div id="trackerChipSpent" style="padding:5px 12px;border-radius:16px;background:#edf2f7;font-size:13px;font-weight:600;color:#2d3748;"></div>
                     <div id="trackerChipPace" style="padding:5px 12px;border-radius:16px;font-size:13px;font-weight:700;"></div>
-                    <div id="trackerChipProjected" style="padding:5px 12px;border-radius:16px;background:#edf2f7;font-size:13px;font-weight:600;color:#2d3748;"></div>
+                    <div id="trackerChipProjected" style="display:none;"></div>
                 </div>
                 <!-- Budget progress bar (reusing budget table style) -->
                 <div id="trackerBudgetBar" style="display:none;">
@@ -2546,25 +2546,23 @@
         let sortDir = 'asc';       // 'asc' | 'desc'
         let hasFilteredOnce = false;
 
+        // Categories shown in the Monthly Spend Tracker dropdown
+        const TRACKER_CATEGORY_ALLOWLIST = ['Groceries', 'Carro', 'Saídas - Weekend', 'Saídas - Mid-Week'];
+        const TRACKER_DEFAULT_CATEGORY   = 'Groceries';
+
         function populateTrackerCategoryFilter() {
             const sel = document.getElementById('trackerCategoryFilter');
             if (!sel) return;
             const prev = sel.value;
             sel.innerHTML = '<option value="">— Select category —</option>';
-            BUDGET_CATEGORY_ORDER.forEach(cat => {
+            TRACKER_CATEGORY_ALLOWLIST.forEach(cat => {
                 const o = document.createElement('option');
                 o.value = cat; o.textContent = cat;
                 sel.appendChild(o);
             });
-            // Also add any extra categories present in data
-            const extras = [...new Set(filteredTransactions.map(t=>t.category))]
-                .filter(c => !EXCLUDED_CATEGORIES.includes(c) && !BUDGET_CATEGORY_ORDER.includes(c) && c !== 'Entradas');
-            extras.sort().forEach(cat => {
-                const o = document.createElement('option');
-                o.value = cat; o.textContent = cat;
-                sel.appendChild(o);
-            });
-            sel.value = prev && [...sel.options].some(o=>o.value===prev) ? prev : (BUDGET_CATEGORY_ORDER[0] || '');
+            // Keep previous selection if it's in the allowlist, otherwise default to Groceries
+            const validPrev = prev && TRACKER_CATEGORY_ALLOWLIST.includes(prev);
+            sel.value = validPrev ? prev : TRACKER_DEFAULT_CATEGORY;
             renderSpendTracker();
         }
 
@@ -4216,10 +4214,35 @@
                 ctx.fillText(m.split('-')[1], x, H - PAD_B + 14);
             });
 
-            // Store points for tooltip
-            canvas._tooltipPoints = months.map((m,i) => ({
-                x: xScale(i), y: yScale(totals[i]), label: m.split('-')[1]+' '+m.split('-')[0], value: totals[i]
-            }));
+            // Compute cumulative deposits per month for tooltip
+            let cumDeposits = 0;
+            const cumDepositsByMonth = months.map((m, i) => {
+                const monthData = allInvestData.filter(r => r.ym === m && (!accountFilter || accountFilter.includes(r.account)));
+                if (i === 0) {
+                    // First month: use position as baseline (no prior month to compare)
+                    cumDeposits = monthData.reduce((s, r) => s + Math.max(0, r.deposits || 0), 0);
+                } else {
+                    // Add net new deposits this month
+                    const newDeps = monthData.reduce((s, r) => s + Math.max(0, r.deposits || 0), 0);
+                    cumDeposits += newDeps;
+                }
+                return cumDeposits;
+            });
+
+            // Store points for tooltip (with deposits + gains breakdown)
+            let cumGainsForTooltip = 0;
+            const monthlyGainsForTooltip = computeMonthlyGains(months);
+            canvas._tooltipPoints = months.map((m,i) => {
+                cumGainsForTooltip += monthlyGainsForTooltip[i];
+                return {
+                    x: xScale(i),
+                    y: yScale(totals[i]),
+                    label: m.split('-')[1]+' '+m.split('-')[0],
+                    total: totals[i],
+                    deposits: cumDepositsByMonth[i],
+                    gains: cumGainsForTooltip
+                };
+            });
             addCanvasTooltip(canvas, (mx,my) => {
                 const pts = canvas._tooltipPoints || [];
                 let closest=null, minDist=25;
@@ -4228,8 +4251,14 @@
                     if(d<minDist){minDist=d;closest=pt;}
                 });
                 if(!closest) return null;
-                const fmt = v => '$'+v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-                return [`📅 ${closest.label}`, `Portfolio: ${fmt(closest.value)}`];
+                const fmt = v => '$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+                const sign = v => v >= 0 ? '+' : '-';
+                return [
+                    `📅 ${closest.label}`,
+                    `💰 Total Portfolio: ${fmt(closest.total)}`,
+                    `🟢 Deposits: ${fmt(closest.deposits)}`,
+                    `✨ Gains: ${sign(closest.gains)}${fmt(closest.gains)}`
+                ];
             });
 
             // Gains line (cumulative investment gains, excluding deposits)
@@ -5248,4 +5277,4 @@
     </script>
 </body>
 </html>
-<!-- v5.43 -->
+<!-- v5.44 -->
