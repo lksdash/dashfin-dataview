@@ -1115,10 +1115,12 @@
                 <div class="stat-value negative" id="projectedExpenses">$0.00</div>
                 <div class="stat-label" style="font-size:11px;margin-top:3px;color:#a0aec0;">Sum of budgets</div>
                 <div id="projectedLowTarget" style="display:none;font-size:11px;margin-top:2px;color:#3182ce;font-weight:600;"></div>
+                <div id="projectedLowSavings" style="display:none;font-size:11px;margin-top:1px;color:#38a169;font-weight:600;"></div>
             </div>
             <div class="stat-box" style="border-top:4px solid #9f7aea;opacity:0.9;">
                 <div class="stat-label">Projected Net</div>
                 <div class="stat-value" id="projectedNet">$0.00</div>
+                <div id="projectedNetLow" style="display:none;font-size:11px;margin-top:3px;color:#805ad5;font-weight:600;"></div>
             </div>
         </div>
 
@@ -2664,20 +2666,28 @@
             const projExpEl = document.getElementById('projectedExpenses');
             if (projExpEl) projExpEl.textContent = fmt(projExpenses);
 
-            // Low target sub-label — only shown when month has low_budget data that differs from budget
-            const projLowEl = document.getElementById('projectedLowTarget');
-            if (projLowEl) {
-                const hasLow = monthBudgets.some(b => b.low_budget != null && b.low_budget !== b.budget);
-                if (hasLow) {
-                    const lowTotal = monthBudgets.reduce((s, b) => {
-                        const low = (b.low_budget != null) ? parseFloat(b.low_budget) : parseFloat(b.budget);
-                        return s + (isNaN(low) ? 0 : low);
-                    }, 0);
-                    projLowEl.textContent = 'Low target: ' + fmt(lowTotal);
-                    projLowEl.style.display = 'block';
-                } else {
-                    projLowEl.style.display = 'none';
-                }
+            // Low target sub-labels — only shown when month has low_budget data that differs from budget
+            const projLowEl      = document.getElementById('projectedLowTarget');
+            const projLowSavings = document.getElementById('projectedLowSavings');
+            const projNetLowEl   = document.getElementById('projectedNetLow');
+            const hasLow = monthBudgets.some(b => b.low_budget != null && b.low_budget !== b.budget);
+            if (hasLow) {
+                const lowTotal = monthBudgets.reduce((s, b) => {
+                    const low = (b.low_budget != null) ? parseFloat(b.low_budget) : parseFloat(b.budget);
+                    return s + (isNaN(low) ? 0 : low);
+                }, 0);
+                const savings = projExpenses - lowTotal;
+                const netLow  = projectedIncome - lowTotal;
+
+                if (projLowEl)      { projLowEl.textContent      = 'Low target: ' + fmt(lowTotal);          projLowEl.style.display      = 'block'; }
+                if (projLowSavings) { projLowSavings.textContent  = '↓ ' + fmt(savings) + ' potential savings'; projLowSavings.style.display = 'block'; }
+                if (projNetLowEl)   { projNetLowEl.textContent    = 'Low budget net: ' + (netLow < 0 ? '−' : '') + fmt(netLow);
+                                      projNetLowEl.style.color    = netLow >= 0 ? '#805ad5' : '#e53e3e';
+                                      projNetLowEl.style.display  = 'block'; }
+            } else {
+                if (projLowEl)      projLowEl.style.display      = 'none';
+                if (projLowSavings) projLowSavings.style.display = 'none';
+                if (projNetLowEl)   projNetLowEl.style.display   = 'none';
             }
 
             // Projected Net
