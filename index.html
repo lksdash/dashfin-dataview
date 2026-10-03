@@ -1943,24 +1943,29 @@
                 // Each row has a 'c' array with cell values
                 const cells = row.c;
                 
-                // Skip empty rows (expecting 4 columns: Year, Month, Category, Budget)
+                // Skip empty rows (expecting at least 4 columns: Year, Month, Category, Budget)
+                // Column 5 (index 4) is optional: Low Budget (added Oct 2026 onwards)
                 if (!cells || cells.length < 4) return;
-                
+
                 // Extract values
                 // Note: Month is a DATE type in Google Sheets, so we use the formatted value (f)
                 const year = cells[0]?.v || '';
                 const month = cells[1]?.f || cells[1]?.v || ''; // Use formatted value for month
                 const category = cells[2]?.v || '';
                 const budget = cells[3]?.v || 0;
-                
+                // Low Budget: column E (index 4) — present only for months that define it
+                const rawLow = cells.length >= 5 ? cells[4]?.v : undefined;
+                const low_budget = (rawLow != null && rawLow !== '') ? parseFloat(rawLow) : null;
+
                 // Skip if essential fields are missing
                 if (!year || !month || !category) return;
-                
+
                 budgets.push({
                     year: year.toString(),
                     month: month,
                     category: category,
-                    budget: parseFloat(budget) || 0
+                    budget: parseFloat(budget) || 0,
+                    low_budget: low_budget
                 });
             });
             
