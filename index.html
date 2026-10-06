@@ -1,10 +1,10 @@
-<!-- v5.52 -->
+<!-- v5.53 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Finance Dashboard v5.52</title>
+    <title>Personal Finance Dashboard v5.53</title>
     <style>
         * {
             margin: 0;
@@ -1302,6 +1302,12 @@
                     <canvas id="spendTrackerChart-Carro" height="280" style="width:100%;min-width:500px;display:block;cursor:crosshair;"></canvas>
                 </div>
                 <div id="spendTrackerLegend-Carro" style="display:flex;gap:20px;margin-top:10px;font-size:13px;color:#4a5568;flex-wrap:wrap;"></div>
+            </div>
+
+            <!-- Saídas Weekend Breakdown card -->
+            <div id="spend-card-SaidasWeekendBreakdown" class="card">
+                <h2>🎉 Saídas - Weekend Breakdown</h2>
+                <div id="saidasWeekendTable"></div>
             </div>
 
             <div id="spend-card-Saidas-Weekend" class="card">
@@ -2759,6 +2765,7 @@
 
         function renderAllSpendCards() {
             renderGroceriesWeeklyCard();
+            renderSaidasWeekendBreakdownCard();
             SPEND_TAB_CATEGORIES.forEach(({ cat, suffix }) => renderSpendTrackerCard(cat, suffix));
         }
 
@@ -2970,6 +2977,264 @@
             container.innerHTML = '';
             container.appendChild(table);
             container.appendChild(subLabel);
+        }
+
+        function renderSaidasWeekendBreakdownCard() {
+            const container = document.getElementById('saidasWeekendTable');
+            if (!container) return;
+
+            const selectedYear  = document.getElementById('yearFilter').value;
+            const selectedMonth = document.getElementById('monthFilter').value;
+
+            if (!selectedYear || selectedYear === 'all' || !selectedMonth || selectedMonth === 'all') {
+                container.innerHTML = '<p style="color:#718096;font-size:13px;">Select a specific month to see weekend breakdown.</p>';
+                return;
+            }
+
+            const yearNum  = parseInt(selectedYear, 10);
+            const monthNum = parseInt(selectedMonth.split('-')[0], 10);
+            const daysInMonth = new Date(yearNum, monthNum, 0).getDate();
+
+            // Build weekend clusters anchored on Saturdays.
+            // Strategy: iterate all Saturdays in the month. Each Saturday anchors a cluster
+            // with the following Sunday (which may fall in the next month — we cap at daysInMonth).
+            // Special case: if day 1 is a Sunday, it pairs with the last Saturday of the previous
+            // month (shown as a cross-month label, spending on that day counted in this month).
+            const clusters = [];
+
+            // Day-of-week for day 1 (0=Sun … 6=Sat)
+            const firstDow = new Date(yearNum, monthNum - 1, 1).getDay();
+
+            // If month opens on Sunday, create a cross-month cluster: prev-month's last Saturday + this Sunday
+            if (firstDow === 0) {
+                const prevMonthLastDay = new Date(yearNum, monthNum - 1, 0);
+                const prevSatDay = prevMonthLastDay.getDate(); // this will be a Saturday by definition (day before a Sunday month start)
+                const prevMonthAbb = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][prevMonthLastDay.getMonth()];
+                const curMonthAbb  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][monthNum - 1];
+                clusters.push({
+                    label: prevMonthAbb + ' ' + prevSatDay + ' – ' + curMonthAbb + ' 1',
+                    days: [1],          // only day 1 of this month contributes spend
+                    crossMonth: true
+                });
+            }
+
+            // Find all Saturdays in this month
+            // First Saturday: if firstDow <= 6, firstSat = (6 - firstDow) + 1 (could be day 1 if month starts on Sat)
+            let firstSat = 1 + ((6 - firstDow + 7) % 7);
+            const curMonthAbb = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][monthNum - 1];
+
+            for (let sat = firstSat; sat <= daysInMonth; sat += 7) {
+                const sun = sat + 1;
+                const sunInMonth = sun <= daysInMonth;
+                const label = curMonthAbb + ' ' + sat + (sunInMonth ? '–' + sun : ' (Sat only)');
+                clusters.push({
+                    label,
+                    days: sunInMonth ? [sat, sun] : [sat],
+                    crossMonth: false
+                });
+            }
+
+            // Budget: low_budget split equally across number of clusters
+            const budgetRow = allBudgets.find(b =>
+                b.year === selectedYear && b.month === selectedMonth && b.category === 'Saídas - Weekend'
+            );
+            const totalBudget = (budgetRow?.low_budget != null) ? budgetRow.low_budget : (budgetRow?.budget ?? 0);
+            const perWeekendBudget = clusters.length > 0 ? totalBudget / clusters.length : 0;
+
+            // Parse "Mon-DD" dates (reuse same helper pattern)
+            const MONTH_ABB_SW = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
+            function parseDashDateSW(dateStr) {
+                if (!dateStr) return null;
+                const parts = dateStr.split('-');
+                if (parts.length < 2) return null;
+                const mo = MONTH_ABB_SW[parts[0]];
+                const dy = parseInt(parts[1], 10);
+                if (!mo || isNaN(dy)) return null;
+                return { mo, dy };
+            }
+
+            const txns = filteredTransactions.filter(t => t.category === 'Saídas - Weekend');
+
+            // Sum spending per cluster
+            const clusterTxns = clusters.map(c =>
+                txns.filter(t => {
+                    const p = parseDashDateSW(t.date);
+                    if (!p) return false;
+                    if (p.mo !== monthNum) return false;
+                    return c.days.includes(p.dy);
+                })
+            );
+            const clusterSpent = clusterTxns.map(ctxns =>
+                ctxns.reduce((s, t) => s + (parseFloat(t.amount) || 0), 0)
+            );
+
+            // Determine current cluster (only when viewing current month)
+            const today = new Date();
+            let currentClusterIdx = -1;
+            if (today.getFullYear() === yearNum && (today.getMonth() + 1) === monthNum) {
+                const todayDay = today.getDate();
+                currentClusterIdx = clusters.findIndex(c => c.days.includes(todayDay));
+            }
+
+            const fmt = v => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+            // Inject styles (shared with wk-styles, only add sw-styles once)
+            if (!document.getElementById('sw-styles')) {
+                const s = document.createElement('style');
+                s.id = 'sw-styles';
+                s.textContent = `
+                  #saidasWeekendTable table { width:100%; border-collapse:collapse; font-size:13px; }
+                  #saidasWeekendTable th { text-align:left; padding:6px 8px; border-bottom:2px solid #e2e8f0; color:#4a5568; font-weight:600; font-size:12px; }
+                  #saidasWeekendTable td { padding:7px 8px; border-bottom:1px solid #f0f0f0; vertical-align:middle; }
+                  #saidasWeekendTable tr.sw-data-row { cursor:pointer; }
+                  #saidasWeekendTable tr.sw-data-row:hover { background:#f7fafc; }
+                  #saidasWeekendTable tr.sw-current { background:#fff5f0; }
+                  #saidasWeekendTable tr.sw-current:hover { background:#fed7aa; }
+                  #saidasWeekendTable tr.sw-total-row td { border-top:2px solid #cbd5e0; font-weight:700; border-bottom:none; }
+                  .sw-detail-row { display:none; }
+                  .sw-detail-row.open { display:table-row; }
+                  .sw-detail-cell { padding:0 !important; background:#fff5f0; border-bottom:2px solid #f6ad55; }
+                  .sw-detail-inner { padding:10px 16px; }
+                  .sw-toggle { display:inline-block; width:14px; font-size:10px; color:#dd6b20; user-select:none; margin-right:5px; }
+                `;
+                document.head.appendChild(s);
+            }
+
+            const table = document.createElement('table');
+            const thead = table.createTHead();
+            const hRow  = thead.insertRow();
+            ['', 'Weekend', 'Spent', 'Budget', 'Progress'].forEach((h, hi) => {
+                const th = document.createElement('th');
+                if (hi === 0) { th.style.width = '14px'; th.style.padding = '6px 2px 6px 8px'; }
+                if (hi === 2 || hi === 3) th.style.textAlign = 'right';
+                if (hi === 4) th.style.minWidth = '100px';
+                th.textContent = h;
+                hRow.appendChild(th);
+            });
+
+            const tbody = table.createTBody();
+            let grandSpent = 0;
+
+            clusters.forEach((c, i) => {
+                const spent  = clusterSpent[i];
+                const budget = perWeekendBudget;
+                grandSpent  += spent;
+                const pct    = budget > 0 ? Math.min((spent / budget) * 100, 100) : 0;
+                const over   = spent > budget;
+                const isCurrent = i === currentClusterIdx;
+                const detailId  = 'sw-detail-' + i;
+
+                const tr = tbody.insertRow();
+                tr.className = 'sw-data-row' + (isCurrent ? ' sw-current' : '');
+                tr.onclick = () => toggleSwDetail(detailId, i, clusterTxns[i]);
+
+                // Toggle
+                const tdTog = tr.insertCell(); tdTog.style.cssText = 'padding:7px 2px 7px 8px;';
+                tdTog.innerHTML = '<span class="sw-toggle" id="sw-tog-' + i + '">&#9658;</span>';
+
+                // Label
+                const tdLabel = tr.insertCell();
+                tdLabel.innerHTML = '<strong>' + c.label + '</strong>' +
+                    (c.crossMonth ? ' <span style="font-size:10px;background:#718096;color:#fff;border-radius:3px;padding:1px 5px;margin-left:4px">cross-month</span>' : '') +
+                    (isCurrent ? ' <span style="font-size:10px;background:#dd6b20;color:#fff;border-radius:3px;padding:1px 5px;margin-left:4px">today</span>' : '');
+
+                // Spent
+                const tdSpent = tr.insertCell();
+                tdSpent.style.cssText = 'text-align:right;font-weight:600;color:' + (over ? '#e53e3e' : '#2d3748');
+                tdSpent.textContent = fmt(spent);
+
+                // Budget
+                const tdBudget = tr.insertCell();
+                tdBudget.style.cssText = 'text-align:right;color:#4a5568';
+                tdBudget.textContent = fmt(budget);
+
+                // Progress
+                const tdProg = tr.insertCell();
+                tdProg.innerHTML = '<div class="wk-bar-wrap"><div class="wk-bar-fill" style="width:' + pct.toFixed(1) + '%;background:' + (over ? '#fc8181' : '#68d391') + '"></div></div>' +
+                    '<span style="font-size:10px;color:#718096">' + pct.toFixed(0) + '%</span>';
+
+                // Detail row
+                const detailTr = tbody.insertRow();
+                detailTr.className = 'sw-detail-row';
+                detailTr.id = detailId;
+                const detailTd = detailTr.insertCell();
+                detailTd.className = 'sw-detail-cell';
+                detailTd.colSpan = 5;
+                detailTd.innerHTML = '<div class="sw-detail-inner"></div>';
+            });
+
+            // TOTAL row
+            const totalOver = grandSpent > totalBudget;
+            const totalPct  = totalBudget > 0 ? Math.min((grandSpent / totalBudget) * 100, 100) : 0;
+            const totalTr   = tbody.insertRow();
+            totalTr.className = 'sw-total-row';
+            totalTr.insertCell();
+            const lbl = totalTr.insertCell(); lbl.textContent = 'TOTAL (' + clusters.length + ' weekends)';
+            const spTd = totalTr.insertCell();
+            spTd.style.cssText = 'text-align:right;color:' + (totalOver ? '#e53e3e' : '#2d3748');
+            spTd.textContent = fmt(grandSpent);
+            const buTd = totalTr.insertCell();
+            buTd.style.cssText = 'text-align:right;color:#4a5568';
+            buTd.textContent = fmt(totalBudget);
+            const prTd = totalTr.insertCell();
+            prTd.innerHTML = '<div class="wk-bar-wrap"><div class="wk-bar-fill" style="width:' + totalPct.toFixed(1) + '%;background:' + (totalOver ? '#fc8181' : '#68d391') + '"></div></div>' +
+                '<span style="font-size:10px;color:#718096">' + totalPct.toFixed(0) + '%</span>';
+
+            // Sub-label
+            const subLabel = document.createElement('div');
+            const isLowBudget = budgetRow?.low_budget != null && budgetRow.low_budget !== budgetRow.budget;
+            subLabel.style.cssText = 'font-size:11px;margin-top:8px;' + (isLowBudget ? 'color:#dd6b20' : 'color:#718096');
+            subLabel.textContent = (isLowBudget ? 'Low budget target: ' : 'Budget: ') +
+                fmt(totalBudget) + ' ÷ ' + clusters.length + ' weekends = ' + fmt(perWeekendBudget) + '/weekend';
+
+            container.innerHTML = '';
+            container.appendChild(table);
+            container.appendChild(subLabel);
+        }
+
+        function toggleSwDetail(detailId, idx, txns) {
+            const detailRow = document.getElementById(detailId);
+            const toggle    = document.getElementById('sw-tog-' + idx);
+            if (!detailRow) return;
+
+            const isOpen = detailRow.classList.contains('open');
+            if (isOpen) {
+                detailRow.classList.remove('open');
+                toggle.innerHTML = '&#9658;';
+                return;
+            }
+            detailRow.classList.add('open');
+            toggle.innerHTML = '&#9660;';
+
+            const cell = detailRow.querySelector('.sw-detail-inner');
+            if (!txns || txns.length === 0) {
+                cell.innerHTML = '<em style="color:#a0aec0;font-size:13px;padding:4px 0;display:block;">No transactions this weekend</em>';
+                return;
+            }
+
+            const mo = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
+            const dv = d => { const p=(d||'').split('-'); return (mo[p[0]]||0)*100+parseInt(p[1]||0); };
+            const sorted = [...txns].sort((a,b) => dv(a.date)-dv(b.date));
+
+            let html = '<table class="fundos-detail-table"><thead><tr>' +
+                '<th>Date</th><th>Account</th><th>Description</th>' +
+                '<th style="text-align:right">Amount</th><th>Notes</th>' +
+                '</tr></thead><tbody>';
+            sorted.forEach(t => {
+                const amt    = parseFloat(t.amount);
+                const absAmt = Math.abs(amt).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+                const amtStr = amt < 0 ? '($' + absAmt + ')' : '$' + absAmt;
+                const amtCls = amt < 0 ? 'color:#38a169' : 'color:#e53e3e';
+                html += '<tr>' +
+                    '<td style="white-space:nowrap;font-weight:600;">' + (t.date||'') + '</td>' +
+                    '<td style="color:#718096;font-size:12px;">' + (t.account||'') + '</td>' +
+                    '<td>' + (t.description||'') + '</td>' +
+                    '<td style="text-align:right;font-weight:700;' + amtCls + ';white-space:nowrap;">' + amtStr + '</td>' +
+                    '<td style="color:#718096;font-style:italic;font-size:12px;">' + (t.notes||'&mdash;') + '</td>' +
+                    '</tr>';
+            });
+            html += '</tbody></table>';
+            cell.innerHTML = html;
         }
 
         function toggleWkDetail(detailId, weekIdx, txns) {
