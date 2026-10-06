@@ -1,10 +1,10 @@
-<!-- v5.48 -->
+<!-- v5.52 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Finance Dashboard v5.48</title>
+    <title>Personal Finance Dashboard v5.52</title>
     <style>
         * {
             margin: 0;
@@ -1246,6 +1246,12 @@
                 <option value="Saídas - Weekend">Saídas - Weekend</option>
                 <option value="Saídas - Mid-Week">Saídas - Mid-Week</option>
             </select>
+
+            <!-- Groceries Weekly Breakdown card -->
+            <div id="spend-card-GroceriesWeekly" class="card">
+                <h2>🛒 Groceries — Weekly Breakdown</h2>
+                <div id="groceriesWeeklyTable"></div>
+            </div>
 
             <!-- Per-category tracker cards -->
             <div id="spend-card-Groceries" class="card">
@@ -2752,7 +2758,265 @@
         }
 
         function renderAllSpendCards() {
+            renderGroceriesWeeklyCard();
             SPEND_TAB_CATEGORIES.forEach(({ cat, suffix }) => renderSpendTrackerCard(cat, suffix));
+        }
+
+        function renderGroceriesWeeklyCard() {
+            const container = document.getElementById('groceriesWeeklyTable');
+            if (!container) return;
+
+            const selectedYear  = document.getElementById('yearFilter').value;
+            const selectedMonth = document.getElementById('monthFilter').value;
+
+            // Need a specific month selected
+            if (!selectedYear || selectedYear === 'all' || !selectedMonth || selectedMonth === 'all') {
+                container.innerHTML = '<p style="color:#718096;font-size:13px;">Select a specific month to see weekly breakdown.</p>';
+                return;
+            }
+
+            // Parse year/month numbers
+            const yearNum  = parseInt(selectedYear, 10);
+            const monthNum = parseInt(selectedMonth.split('-')[0], 10); // "09-September" → 9
+            const daysInMonth = new Date(yearNum, monthNum, 0).getDate();
+
+            // Week ranges: Wk1 1-7, Wk2 8-14, Wk3 15-21, Wk4 22-28, Wk5 29-end
+            const weeks = [
+                { label: 'Week 1', start: 1,  end: 7 },
+                { label: 'Week 2', start: 8,  end: 14 },
+                { label: 'Week 3', start: 15, end: 21 },
+                { label: 'Week 4', start: 22, end: 28 },
+            ];
+            if (daysInMonth > 28) weeks.push({ label: 'Week 5', start: 29, end: daysInMonth });
+
+            // Get Groceries low_budget for this month
+            const groceryBudgetRow = allBudgets.find(b =>
+                b.year === selectedYear && b.month === selectedMonth && b.category === 'Groceries'
+            );
+            const groceryLowBudget = (groceryBudgetRow?.low_budget != null)
+                ? groceryBudgetRow.low_budget
+                : (groceryBudgetRow?.budget ?? 0);
+
+            // Weekly budget: proportional by days (7 days per full week, remainder for wk5)
+            const dailyRate = groceryLowBudget / daysInMonth;
+            const weekBudgets = weeks.map(w => parseFloat(((w.end - w.start + 1) * dailyRate).toFixed(2)));
+
+            // Filter Groceries transactions for this month
+            const txns = filteredTransactions.filter(t => t.category === 'Groceries');
+
+            // Parse "Sep-1", "Oct-15" style dates into {monthAbbr, day} — same format used throughout the dashboard
+            const MONTH_ABB = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
+            function parseDashDate(dateStr) {
+                if (!dateStr) return null;
+                const parts = dateStr.split('-');
+                if (parts.length < 2) return null;
+                const mo = MONTH_ABB[parts[0]];
+                const dy = parseInt(parts[1], 10);
+                if (!mo || isNaN(dy)) return null;
+                return { mo, dy };
+            }
+
+            // Sum spending per week — match by month number and day range
+            const weekSpent = weeks.map(w => {
+                return txns.reduce((sum, t) => {
+                    const p = parseDashDate(t.date);
+                    if (!p) return sum;
+                    if (p.mo !== monthNum) return sum;
+                    if (p.dy >= w.start && p.dy <= w.end) return sum + (parseFloat(t.amount) || 0);
+                    return sum;
+                }, 0);
+            });
+
+            // Determine current week index (only if viewing current month)
+            const today = new Date();
+            let currentWeekIdx = -1;
+            if (today.getFullYear() === yearNum && (today.getMonth() + 1) === monthNum) {
+                const todayDay = today.getDate();
+                currentWeekIdx = weeks.findIndex(w => todayDay >= w.start && todayDay <= w.end);
+            }
+
+            // Build table — uses DOM so we can inject detail rows after
+            const fmt = v => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+            // Inject shared styles once
+            if (!document.getElementById('wk-styles')) {
+                const s = document.createElement('style');
+                s.id = 'wk-styles';
+                s.textContent = `
+                  #groceriesWeeklyTable table { width:100%; border-collapse:collapse; font-size:13px; }
+                  #groceriesWeeklyTable th { text-align:left; padding:6px 8px; border-bottom:2px solid #e2e8f0; color:#4a5568; font-weight:600; font-size:12px; }
+                  #groceriesWeeklyTable td { padding:7px 8px; border-bottom:1px solid #f0f0f0; vertical-align:middle; }
+                  #groceriesWeeklyTable tr.wk-data-row { cursor:pointer; }
+                  #groceriesWeeklyTable tr.wk-data-row:hover { background:#f7fafc; }
+                  #groceriesWeeklyTable tr.current-week { background:#ebf8ff; }
+                  #groceriesWeeklyTable tr.current-week:hover { background:#dbeafe; }
+                  #groceriesWeeklyTable tr.total-row td { border-top:2px solid #cbd5e0; font-weight:700; border-bottom:none; }
+                  .wk-bar-wrap { position:relative; background:#e2e8f0; border-radius:4px; height:10px; min-width:80px; overflow:hidden; }
+                  .wk-bar-fill { height:100%; border-radius:4px; }
+                  .wk-detail-row { display:none; }
+                  .wk-detail-row.open { display:table-row; }
+                  .wk-detail-cell { padding:0 !important; background:#f7fafc; border-bottom:2px solid #68d391; }
+                  .wk-detail-inner { padding:10px 16px; }
+                  .wk-toggle { display:inline-block; width:14px; font-size:10px; color:#3182ce; user-select:none; margin-right:5px; }
+                `;
+                document.head.appendChild(s);
+            }
+
+            const table = document.createElement('table');
+            const thead = table.createTHead();
+            const hRow  = thead.insertRow();
+            ['', 'Week', 'Days', 'Spent', 'Budget', 'Progress'].forEach((h, hi) => {
+                const th = document.createElement('th');
+                if (hi === 0) { th.style.width = '14px'; th.style.padding = '6px 2px 6px 8px'; }
+                if (hi === 3 || hi === 4) th.style.textAlign = 'right';
+                if (hi === 5) th.style.minWidth = '100px';
+                th.textContent = h;
+                hRow.appendChild(th);
+            });
+
+            const tbody = table.createTBody();
+            let totalSpent  = 0;
+            let totalBudget = 0;
+
+            // Store txns per week for detail toggle
+            const weekTxns = weeks.map((w) =>
+                txns.filter(t => {
+                    const p = parseDashDate(t.date);
+                    if (!p) return false;
+                    if (p.mo !== monthNum) return false;
+                    return p.dy >= w.start && p.dy <= w.end;
+                })
+            );
+
+            weeks.forEach((w, i) => {
+                const spent    = weekSpent[i];
+                const budget   = weekBudgets[i];
+                totalSpent    += spent;
+                totalBudget   += budget;
+                const pct      = budget > 0 ? Math.min((spent / budget) * 100, 100) : 0;
+                const over     = spent > budget;
+                const isCurrent = i === currentWeekIdx;
+                const detailId = 'wk-detail-' + i;
+
+                // Summary row
+                const tr = tbody.insertRow();
+                tr.className = 'wk-data-row' + (isCurrent ? ' current-week' : '');
+                tr.onclick = () => toggleWkDetail(detailId, i, weekTxns[i]);
+
+                // Toggle arrow cell
+                const tdTog = tr.insertCell(); tdTog.style.cssText = 'padding:7px 2px 7px 8px;';
+                tdTog.innerHTML = '<span class="wk-toggle" id="wk-tog-' + i + '">&#9658;</span>';
+
+                // Week label
+                const tdWk = tr.insertCell();
+                tdWk.innerHTML = '<strong>' + w.label + '</strong>' +
+                    (isCurrent ? ' <span style="font-size:10px;background:#3182ce;color:#fff;border-radius:3px;padding:1px 5px;margin-left:4px">today</span>' : '');
+
+                // Days
+                const tdDays = tr.insertCell();
+                tdDays.style.color = '#718096';
+                tdDays.textContent = w.start + '–' + w.end;
+
+                // Spent
+                const tdSpent = tr.insertCell();
+                tdSpent.style.cssText = 'text-align:right;font-weight:600;color:' + (over ? '#e53e3e' : '#2d3748');
+                tdSpent.textContent = fmt(spent);
+
+                // Budget
+                const tdBudget = tr.insertCell();
+                tdBudget.style.cssText = 'text-align:right;color:#4a5568';
+                tdBudget.textContent = fmt(budget);
+
+                // Progress
+                const tdProg = tr.insertCell();
+                tdProg.innerHTML = '<div class="wk-bar-wrap"><div class="wk-bar-fill" style="width:' + pct.toFixed(1) + '%;background:' + (over ? '#fc8181' : '#68d391') + '"></div></div>' +
+                    '<span style="font-size:10px;color:#718096">' + pct.toFixed(0) + '%</span>';
+
+                // Detail row (hidden by default)
+                const detailTr = tbody.insertRow();
+                detailTr.className = 'wk-detail-row';
+                detailTr.id = detailId;
+                const detailTd = detailTr.insertCell();
+                detailTd.className = 'wk-detail-cell';
+                detailTd.colSpan = 6;
+                detailTd.innerHTML = '<div class="wk-detail-inner"></div>';
+            });
+
+            // TOTAL row
+            const totalPct  = totalBudget > 0 ? Math.min((totalSpent / totalBudget) * 100, 100) : 0;
+            const totalOver = totalSpent > totalBudget;
+            const totalTr   = tbody.insertRow();
+            totalTr.className = 'total-row';
+            totalTr.insertCell(); // empty toggle cell
+            const totalLbl = totalTr.insertCell(); totalLbl.textContent = 'TOTAL';
+            const totalDays = totalTr.insertCell(); totalDays.style.color = '#718096'; totalDays.textContent = '1–' + daysInMonth;
+            const totalSpentTd = totalTr.insertCell();
+            totalSpentTd.style.cssText = 'text-align:right;color:' + (totalOver ? '#e53e3e' : '#2d3748');
+            totalSpentTd.textContent = fmt(totalSpent);
+            const totalBudgetTd = totalTr.insertCell();
+            totalBudgetTd.style.cssText = 'text-align:right;color:#4a5568';
+            totalBudgetTd.textContent = fmt(totalBudget);
+            const totalProgTd = totalTr.insertCell();
+            totalProgTd.innerHTML = '<div class="wk-bar-wrap"><div class="wk-bar-fill" style="width:' + totalPct.toFixed(1) + '%;background:' + (totalOver ? '#fc8181' : '#68d391') + '"></div></div>' +
+                '<span style="font-size:10px;color:#718096">' + totalPct.toFixed(0) + '%</span>';
+
+            // Sub-label
+            const subLabel = document.createElement('div');
+            subLabel.style.cssText = 'font-size:11px;margin-top:8px;' + ((groceryBudgetRow?.low_budget != null && groceryBudgetRow.low_budget !== groceryBudgetRow.budget) ? 'color:#3182ce' : 'color:#718096');
+            subLabel.textContent = (groceryBudgetRow?.low_budget != null && groceryBudgetRow.low_budget !== groceryBudgetRow.budget)
+                ? 'Budget based on low budget target: ' + fmt(groceryLowBudget)
+                : 'Budget: ' + fmt(groceryLowBudget) + ' (' + daysInMonth + ' days, ~' + fmt(dailyRate * 7) + '/wk)';
+
+            container.innerHTML = '';
+            container.appendChild(table);
+            container.appendChild(subLabel);
+        }
+
+        function toggleWkDetail(detailId, weekIdx, txns) {
+            const detailRow = document.getElementById(detailId);
+            const toggle    = document.getElementById('wk-tog-' + weekIdx);
+            if (!detailRow) return;
+
+            const isOpen = detailRow.classList.contains('open');
+            if (isOpen) {
+                detailRow.classList.remove('open');
+                toggle.innerHTML = '&#9658;';
+                return;
+            }
+            detailRow.classList.add('open');
+            toggle.innerHTML = '&#9660;';
+
+            const cell = detailRow.querySelector('.wk-detail-inner');
+            if (txns.length === 0) {
+                cell.innerHTML = '<em style="color:#a0aec0;font-size:13px;padding:4px 0;display:block;">No transactions this week</em>';
+                return;
+            }
+
+            // Sort by day
+            const mo = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
+            const dv = d => { const p=(d||'').split('-'); return (mo[p[0]]||0)*100+parseInt(p[1]||0); };
+            const sorted = [...txns].sort((a,b) => dv(a.date)-dv(b.date));
+
+            let html = '<table class="fundos-detail-table"><thead><tr>' +
+                '<th>Date</th><th>Account</th><th>Description</th>' +
+                '<th style="text-align:right">Amount</th><th>Notes</th>' +
+                '</tr></thead><tbody>';
+
+            sorted.forEach(t => {
+                const amt    = parseFloat(t.amount);
+                const absAmt = Math.abs(amt).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+                const amtStr = amt < 0 ? '($' + absAmt + ')' : '$' + absAmt;
+                const amtCls = amt < 0 ? 'color:#38a169' : 'color:#e53e3e';
+                html += '<tr>' +
+                    '<td style="white-space:nowrap;font-weight:600;">' + (t.date||'') + '</td>' +
+                    '<td style="color:#718096;font-size:12px;">' + (t.account||'') + '</td>' +
+                    '<td>' + (t.description||'') + '</td>' +
+                    '<td style="text-align:right;font-weight:700;' + amtCls + ';white-space:nowrap;">' + amtStr + '</td>' +
+                    '<td style="color:#718096;font-style:italic;font-size:12px;">' + (t.notes||'&mdash;') + '</td>' +
+                    '</tr>';
+            });
+            html += '</tbody></table>';
+            cell.innerHTML = html;
         }
 
         function updateCategoryFilter() {
