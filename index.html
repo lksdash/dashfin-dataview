@@ -1,10 +1,10 @@
-<!-- v5.53 -->
+<!-- v5.54 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Finance Dashboard v5.53</title>
+    <title>Personal Finance Dashboard v5.54</title>
     <style>
         * {
             margin: 0;
@@ -2903,6 +2903,10 @@
                 const pct      = budget > 0 ? Math.min((spent / budget) * 100, 100) : 0;
                 const over     = spent > budget;
                 const isCurrent = i === currentWeekIdx;
+                // Show remaining label for past/current rows.
+                // If viewing a different month (currentWeekIdx === -1 → all rows are "past"), show for all.
+                // If viewing current month, show for weeks up to and including currentWeekIdx.
+                const isPastOrCurrent = (currentWeekIdx === -1) ? true : (i <= currentWeekIdx);
                 const detailId = 'wk-detail-' + i;
 
                 // Summary row
@@ -2934,10 +2938,18 @@
                 tdBudget.style.cssText = 'text-align:right;color:#4a5568';
                 tdBudget.textContent = fmt(budget);
 
-                // Progress
+                // Progress bar + remaining label
                 const tdProg = tr.insertCell();
-                tdProg.innerHTML = '<div class="wk-bar-wrap"><div class="wk-bar-fill" style="width:' + pct.toFixed(1) + '%;background:' + (over ? '#fc8181' : '#68d391') + '"></div></div>' +
-                    '<span style="font-size:10px;color:#718096">' + pct.toFixed(0) + '%</span>';
+                const diff = budget - spent;
+                const remainHtml = isPastOrCurrent
+                    ? (diff >= 0
+                        ? '<div style="font-size:10px;color:#38a169;margin-top:3px">' + fmt(diff) + ' below</div>'
+                        : '<div style="font-size:10px;color:#e53e3e;margin-top:3px">' + fmt(Math.abs(diff)) + ' over</div>')
+                    : '';
+                tdProg.innerHTML =
+                    '<div class="wk-bar-wrap"><div class="wk-bar-fill" style="width:' + pct.toFixed(1) + '%;background:' + (over ? '#fc8181' : '#68d391') + '"></div></div>' +
+                    '<span style="font-size:10px;color:#718096">' + pct.toFixed(0) + '%</span>' +
+                    remainHtml;
 
                 // Detail row (hidden by default)
                 const detailTr = tbody.insertRow();
@@ -2964,7 +2976,19 @@
             totalBudgetTd.style.cssText = 'text-align:right;color:#4a5568';
             totalBudgetTd.textContent = fmt(totalBudget);
             const totalProgTd = totalTr.insertCell();
-            totalProgTd.innerHTML = '<div class="wk-bar-wrap"><div class="wk-bar-fill" style="width:' + totalPct.toFixed(1) + '%;background:' + (totalOver ? '#fc8181' : '#68d391') + '"></div></div>' +
+            // Build cumulative tick marks at each weekly budget boundary (skip the last at 100%)
+            let wkTickHtml = '';
+            let cumBudget = 0;
+            for (let ti = 0; ti < weekBudgets.length - 1; ti++) {
+                cumBudget += weekBudgets[ti];
+                const tickPct = totalBudget > 0 ? (cumBudget / totalBudget) * 100 : 0;
+                wkTickHtml += '<div style="position:absolute;left:' + tickPct.toFixed(2) + '%;top:0;width:2px;height:100%;background:rgba(0,0,0,0.25);z-index:1;pointer-events:none;"></div>';
+            }
+            totalProgTd.innerHTML =
+                '<div class="wk-bar-wrap" style="overflow:visible;">' +
+                    '<div class="wk-bar-fill" style="width:' + totalPct.toFixed(1) + '%;background:' + (totalOver ? '#fc8181' : '#68d391') + ';position:relative;z-index:0;overflow:hidden;border-radius:4px;"></div>' +
+                    wkTickHtml +
+                '</div>' +
                 '<span style="font-size:10px;color:#718096">' + totalPct.toFixed(0) + '%</span>';
 
             // Sub-label
@@ -3122,6 +3146,9 @@
                 const pct    = budget > 0 ? Math.min((spent / budget) * 100, 100) : 0;
                 const over   = spent > budget;
                 const isCurrent = i === currentClusterIdx;
+                // Show remaining label for past/current clusters.
+                // If no current cluster (viewing a past month), show for all rows.
+                const isPastOrCurrent = (currentClusterIdx === -1) ? true : (i <= currentClusterIdx);
                 const detailId  = 'sw-detail-' + i;
 
                 const tr = tbody.insertRow();
@@ -3148,10 +3175,18 @@
                 tdBudget.style.cssText = 'text-align:right;color:#4a5568';
                 tdBudget.textContent = fmt(budget);
 
-                // Progress
+                // Progress bar + remaining label
                 const tdProg = tr.insertCell();
-                tdProg.innerHTML = '<div class="wk-bar-wrap"><div class="wk-bar-fill" style="width:' + pct.toFixed(1) + '%;background:' + (over ? '#fc8181' : '#68d391') + '"></div></div>' +
-                    '<span style="font-size:10px;color:#718096">' + pct.toFixed(0) + '%</span>';
+                const diff = budget - spent;
+                const remainHtml = isPastOrCurrent
+                    ? (diff >= 0
+                        ? '<div style="font-size:10px;color:#38a169;margin-top:3px">' + fmt(diff) + ' below</div>'
+                        : '<div style="font-size:10px;color:#e53e3e;margin-top:3px">' + fmt(Math.abs(diff)) + ' over</div>')
+                    : '';
+                tdProg.innerHTML =
+                    '<div class="wk-bar-wrap"><div class="wk-bar-fill" style="width:' + pct.toFixed(1) + '%;background:' + (over ? '#fc8181' : '#68d391') + '"></div></div>' +
+                    '<span style="font-size:10px;color:#718096">' + pct.toFixed(0) + '%</span>' +
+                    remainHtml;
 
                 // Detail row
                 const detailTr = tbody.insertRow();
@@ -3177,7 +3212,17 @@
             buTd.style.cssText = 'text-align:right;color:#4a5568';
             buTd.textContent = fmt(totalBudget);
             const prTd = totalTr.insertCell();
-            prTd.innerHTML = '<div class="wk-bar-wrap"><div class="wk-bar-fill" style="width:' + totalPct.toFixed(1) + '%;background:' + (totalOver ? '#fc8181' : '#68d391') + '"></div></div>' +
+            // Build cumulative tick marks at each per-weekend budget boundary (skip the last at 100%)
+            let swTickHtml = '';
+            for (let ti = 1; ti < clusters.length; ti++) {
+                const tickPct = totalBudget > 0 ? ((perWeekendBudget * ti) / totalBudget) * 100 : 0;
+                swTickHtml += '<div style="position:absolute;left:' + tickPct.toFixed(2) + '%;top:0;width:2px;height:100%;background:rgba(0,0,0,0.25);z-index:1;pointer-events:none;"></div>';
+            }
+            prTd.innerHTML =
+                '<div class="wk-bar-wrap" style="overflow:visible;">' +
+                    '<div class="wk-bar-fill" style="width:' + totalPct.toFixed(1) + '%;background:' + (totalOver ? '#fc8181' : '#68d391') + ';position:relative;z-index:0;overflow:hidden;border-radius:4px;"></div>' +
+                    swTickHtml +
+                '</div>' +
                 '<span style="font-size:10px;color:#718096">' + totalPct.toFixed(0) + '%</span>';
 
             // Sub-label
