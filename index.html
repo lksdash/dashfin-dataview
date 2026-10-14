@@ -1,10 +1,10 @@
-<!-- v5.57 -->
+<!-- v5.59 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Finance Dashboard v5.57</title>
+    <title>Personal Finance Dashboard v5.59</title>
     <style>
         * {
             margin: 0;
@@ -1024,7 +1024,7 @@
     <div id="chartTooltip" class="chart-tooltip"></div>
     <div class="container">
         <div class="header">
-            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.57</span></h1>
+            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.59</span></h1>
             <div style="display: flex; gap: 15px; align-items: center; margin: 15px 0;">
                 <button class="refresh-btn" id="refreshBtn" onclick="loadData()">🔄 Refresh Data</button>
             </div>
@@ -1276,6 +1276,18 @@
                 <div id="groceriesWeeklyTable"></div>
             </div>
 
+            <!-- Saídas Weekend Breakdown card -->
+            <div id="spend-card-SaidasWeekendBreakdown" class="card">
+                <h2>🎉 Saídas - Weekend Breakdown</h2>
+                <div id="saidasWeekendTable"></div>
+            </div>
+
+            <!-- Saídas Mid-Week Breakdown card -->
+            <div id="spend-card-SaidasMidWeekBreakdown" class="card">
+                <h2>🍻 Saídas - Mid-Week Breakdown</h2>
+                <div id="saidasMidWeekTable"></div>
+            </div>
+
             <!-- Per-category tracker cards -->
             <div id="spend-card-Groceries" class="card">
                 <h2>🛒 Groceries</h2>
@@ -1327,12 +1339,6 @@
                 <div id="spendTrackerLegend-Carro" style="display:flex;gap:20px;margin-top:10px;font-size:13px;color:#4a5568;flex-wrap:wrap;"></div>
             </div>
 
-            <!-- Saídas Weekend Breakdown card -->
-            <div id="spend-card-SaidasWeekendBreakdown" class="card">
-                <h2>🎉 Saídas - Weekend Breakdown</h2>
-                <div id="saidasWeekendTable"></div>
-            </div>
-
             <div id="spend-card-Saidas-Weekend" class="card">
                 <h2>🎉 Saídas - Weekend</h2>
                 <div id="trackerPendingNotice-SaidasWeekend" style="display:none;margin-bottom:8px;"></div>
@@ -1382,6 +1388,7 @@
                 </div>
                 <div id="spendTrackerLegend-SaidasMidWeek" style="display:flex;gap:20px;margin-top:10px;font-size:13px;color:#4a5568;flex-wrap:wrap;"></div>
             </div>
+
 
         </div> <!-- end tab-spend -->
 
@@ -2571,6 +2578,30 @@
         }
 
         // Load data when page loads
+        function updateModeUI() {
+            const testBar   = document.getElementById('testModeBar');
+            const devFooter = document.getElementById('devFooter');
+            if (DEV_MODE) {
+                testBar.style.display   = 'flex';
+                devFooter.style.display = 'none';
+            } else {
+                testBar.style.display   = 'none';
+                devFooter.style.display = 'block';
+            }
+        }
+
+        function switchToTest() {
+            DEV_MODE = true;
+            updateModeUI();
+            loadData();
+        }
+
+        function switchToProd() {
+            DEV_MODE = false;
+            updateModeUI();
+            loadData();
+        }
+
         window.onload = function() {
             initCollapsibleCards();
             restoreApiKey();
@@ -2593,29 +2624,7 @@
                 if (qeBody)   qeBody.classList.add('collapsed');
                 if (qeToggle) qeToggle.classList.add('collapsed');
             }
-            function updateModeUI() {
-                const testBar  = document.getElementById('testModeBar');
-                const devFooter = document.getElementById('devFooter');
-                if (DEV_MODE) {
-                    testBar.style.display  = 'flex';
-                    devFooter.style.display = 'none';
-                } else {
-                    testBar.style.display  = 'none';
-                    devFooter.style.display = 'block';
-                }
-            }
-
-            function switchToTest() {
-                DEV_MODE = true;
-                updateModeUI();
-                loadData();
-            }
-
-            function switchToProd() {
-                DEV_MODE = false;
-                updateModeUI();
-                loadData();
-            }
+            // updateModeUI / switchToTest / switchToProd are defined at global scope above window.onload
 
             // Initialize UI
             updateModeUI();
@@ -2787,6 +2796,7 @@
         function renderAllSpendCards() {
             renderGroceriesWeeklyCard();
             renderSaidasWeekendBreakdownCard();
+            renderSaidasMidWeekBreakdownCard();
             SPEND_TAB_CATEGORIES.forEach(({ cat, suffix }) => renderSpendTrackerCard(cat, suffix));
         }
 
@@ -3005,12 +3015,22 @@
                 const tickPct = totalBudget > 0 ? (cumBudget / totalBudget) * 100 : 0;
                 wkTickHtml += '<div style="position:absolute;left:' + tickPct.toFixed(2) + '%;top:0;width:2px;height:100%;background:rgba(0,0,0,0.25);z-index:1;pointer-events:none;"></div>';
             }
+            // Over/under so far: compare total spent against cumulative budget through current week
+            const wkBudgetSoFar = currentWeekIdx >= 0
+                ? weekBudgets.slice(0, currentWeekIdx + 1).reduce((s, b) => s + b, 0)
+                : totalBudget;
+            const wkDiffSoFar = wkBudgetSoFar - totalSpent;
+            const wkSoFarHtml = wkDiffSoFar >= 0
+                ? '<div style="font-size:10px;color:#38a169;margin-top:3px">' + fmt(wkDiffSoFar) + ' under so far</div>'
+                : '<div style="font-size:10px;color:#e53e3e;margin-top:3px">' + fmt(Math.abs(wkDiffSoFar)) + ' over so far</div>';
+
             totalProgTd.innerHTML =
                 '<div class="wk-bar-wrap" style="overflow:visible;">' +
                     '<div class="wk-bar-fill" style="width:' + totalPct.toFixed(1) + '%;background:' + (totalOver ? '#fc8181' : '#68d391') + ';position:relative;z-index:0;overflow:hidden;border-radius:4px;"></div>' +
                     wkTickHtml +
                 '</div>' +
-                '<span style="font-size:10px;color:#718096">' + totalPct.toFixed(0) + '%</span>';
+                '<span style="font-size:10px;color:#718096">' + totalPct.toFixed(0) + '%</span>' +
+                wkSoFarHtml;
 
             // Sub-label
             const subLabel = document.createElement('div');
@@ -3239,12 +3259,22 @@
                 const tickPct = totalBudget > 0 ? ((perWeekendBudget * ti) / totalBudget) * 100 : 0;
                 swTickHtml += '<div style="position:absolute;left:' + tickPct.toFixed(2) + '%;top:0;width:2px;height:100%;background:rgba(0,0,0,0.25);z-index:1;pointer-events:none;"></div>';
             }
+            // Over/under so far: compare total spent against cumulative budget through current cluster
+            const swBudgetSoFar = currentClusterIdx >= 0
+                ? perWeekendBudget * (currentClusterIdx + 1)
+                : totalBudget;
+            const swDiffSoFar = swBudgetSoFar - grandSpent;
+            const swSoFarHtml = swDiffSoFar >= 0
+                ? '<div style="font-size:10px;color:#38a169;margin-top:3px">' + fmt(swDiffSoFar) + ' under so far</div>'
+                : '<div style="font-size:10px;color:#e53e3e;margin-top:3px">' + fmt(Math.abs(swDiffSoFar)) + ' over so far</div>';
+
             prTd.innerHTML =
                 '<div class="wk-bar-wrap" style="overflow:visible;">' +
                     '<div class="wk-bar-fill" style="width:' + totalPct.toFixed(1) + '%;background:' + (totalOver ? '#fc8181' : '#68d391') + ';position:relative;z-index:0;overflow:hidden;border-radius:4px;"></div>' +
                     swTickHtml +
                 '</div>' +
-                '<span style="font-size:10px;color:#718096">' + totalPct.toFixed(0) + '%</span>';
+                '<span style="font-size:10px;color:#718096">' + totalPct.toFixed(0) + '%</span>' +
+                swSoFarHtml;
 
             // Sub-label
             const subLabel = document.createElement('div');
@@ -3286,6 +3316,292 @@
                 '<th>Date</th><th>Account</th><th>Description</th>' +
                 '<th style="text-align:right">Amount</th><th>Notes</th>' +
                 '</tr></thead><tbody>';
+            sorted.forEach(t => {
+                const amt    = parseFloat(t.amount);
+                const absAmt = Math.abs(amt).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+                const amtStr = amt < 0 ? '($' + absAmt + ')' : '$' + absAmt;
+                const amtCls = amt < 0 ? 'color:#38a169' : 'color:#e53e3e';
+                html += '<tr>' +
+                    '<td style="white-space:nowrap;font-weight:600;">' + (t.date||'') + '</td>' +
+                    '<td style="color:#718096;font-size:12px;">' + (t.account||'') + '</td>' +
+                    '<td>' + (t.description||'') + '</td>' +
+                    '<td style="text-align:right;font-weight:700;' + amtCls + ';white-space:nowrap;">' + amtStr + '</td>' +
+                    '<td style="color:#718096;font-style:italic;font-size:12px;">' + (t.notes||'&mdash;') + '</td>' +
+                    '</tr>';
+            });
+            html += '</tbody></table>';
+            cell.innerHTML = html;
+        }
+
+        function renderSaidasMidWeekBreakdownCard() {
+            const container = document.getElementById('saidasMidWeekTable');
+            if (!container) return;
+
+            const selectedYear  = document.getElementById('yearFilter').value;
+            const selectedMonth = document.getElementById('monthFilter').value;
+
+            // Need a specific month selected
+            if (!selectedYear || selectedYear === 'all' || !selectedMonth || selectedMonth === 'all') {
+                container.innerHTML = '<p style="color:#718096;font-size:13px;">Select a specific month to see weekly breakdown.</p>';
+                return;
+            }
+
+            // Parse year/month numbers
+            const yearNum  = parseInt(selectedYear, 10);
+            const monthNum = parseInt(selectedMonth.split('-')[0], 10); // "09-September" → 9
+            const daysInMonth = new Date(yearNum, monthNum, 0).getDate();
+
+            // Week ranges: Wk1 1-7, Wk2 8-14, Wk3 15-21, Wk4 22-28, Wk5 29-end
+            const weeks = [
+                { label: 'Week 1', start: 1,  end: 7 },
+                { label: 'Week 2', start: 8,  end: 14 },
+                { label: 'Week 3', start: 15, end: 21 },
+                { label: 'Week 4', start: 22, end: 28 },
+            ];
+            if (daysInMonth > 28) weeks.push({ label: 'Week 5', start: 29, end: daysInMonth });
+
+            // Get Saídas - Mid-Week budget for this month
+            const smwBudgetRow = allBudgets.find(b =>
+                b.year === selectedYear && b.month === selectedMonth && b.category === 'Saídas - Mid-Week'
+            );
+            const smwLowBudget = (smwBudgetRow?.low_budget != null)
+                ? smwBudgetRow.low_budget
+                : (smwBudgetRow?.budget ?? 0);
+
+            // Weekly budget: proportional by days (7 days per full week, remainder for wk5)
+            const dailyRate = smwLowBudget / daysInMonth;
+            const weekBudgets = weeks.map(w => parseFloat(((w.end - w.start + 1) * dailyRate).toFixed(2)));
+
+            // Filter Saídas - Mid-Week transactions for this month
+            const txns = filteredTransactions.filter(t => t.category === 'Saídas - Mid-Week');
+
+            // Parse "Sep-1", "Oct-15" style dates into {mo, dy}
+            const MONTH_ABB = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
+            function parseDashDateSmw(dateStr) {
+                if (!dateStr) return null;
+                const parts = dateStr.split('-');
+                if (parts.length < 2) return null;
+                const mo = MONTH_ABB[parts[0]];
+                const dy = parseInt(parts[1], 10);
+                if (!mo || isNaN(dy)) return null;
+                return { mo, dy };
+            }
+
+            // Sum spending per week
+            const weekSpent = weeks.map(w => {
+                return txns.reduce((sum, t) => {
+                    const p = parseDashDateSmw(t.date);
+                    if (!p) return sum;
+                    if (p.mo !== monthNum) return sum;
+                    if (p.dy >= w.start && p.dy <= w.end) return sum + (parseFloat(t.amount) || 0);
+                    return sum;
+                }, 0);
+            });
+
+            // Determine current week index (only if viewing current month)
+            const today = new Date();
+            let currentWeekIdx = -1;
+            if (today.getFullYear() === yearNum && (today.getMonth() + 1) === monthNum) {
+                const todayDay = today.getDate();
+                currentWeekIdx = weeks.findIndex(w => todayDay >= w.start && todayDay <= w.end);
+            }
+
+            const fmt = v => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+            // Inject shared styles once (smw- prefix)
+            if (!document.getElementById('smw-styles')) {
+                const s = document.createElement('style');
+                s.id = 'smw-styles';
+                s.textContent = `
+                  #saidasMidWeekTable table { width:100%; border-collapse:collapse; font-size:13px; }
+                  #saidasMidWeekTable th { text-align:left; padding:6px 8px; border-bottom:2px solid #e2e8f0; color:#4a5568; font-weight:600; font-size:12px; }
+                  #saidasMidWeekTable td { padding:7px 8px; border-bottom:1px solid #f0f0f0; vertical-align:middle; }
+                  #saidasMidWeekTable tr.smw-data-row { cursor:pointer; }
+                  #saidasMidWeekTable tr.smw-data-row:hover { background:#f7fafc; }
+                  #saidasMidWeekTable tr.smw-current-week { background:#ebfff4; }
+                  #saidasMidWeekTable tr.smw-current-week:hover { background:#d4f5e5; }
+                  #saidasMidWeekTable tr.smw-total-row td { border-top:2px solid #cbd5e0; font-weight:700; border-bottom:none; }
+                  .smw-detail-row { display:none; }
+                  .smw-detail-row.open { display:table-row; }
+                  .smw-detail-cell { padding:0 !important; background:#f7fafc; border-bottom:2px solid #68d391; }
+                  .smw-detail-inner { padding:10px 16px; }
+                  .smw-toggle { display:inline-block; width:14px; font-size:10px; color:#3182ce; user-select:none; margin-right:5px; }
+                `;
+                document.head.appendChild(s);
+            }
+
+            const table = document.createElement('table');
+            const thead = table.createTHead();
+            const hRow  = thead.insertRow();
+            ['', 'Week', 'Days', 'Spent', 'Budget', 'Progress'].forEach((h, hi) => {
+                const th = document.createElement('th');
+                if (hi === 0) { th.style.width = '14px'; th.style.padding = '6px 2px 6px 8px'; }
+                if (hi === 3 || hi === 4) th.style.textAlign = 'right';
+                if (hi === 5) th.style.minWidth = '100px';
+                th.textContent = h;
+                hRow.appendChild(th);
+            });
+
+            const tbody = table.createTBody();
+            let totalSpent  = 0;
+            let totalBudget = 0;
+
+            // Store txns per week for detail toggle
+            const weekTxns = weeks.map((w) =>
+                txns.filter(t => {
+                    const p = parseDashDateSmw(t.date);
+                    if (!p) return false;
+                    if (p.mo !== monthNum) return false;
+                    return p.dy >= w.start && p.dy <= w.end;
+                })
+            );
+
+            weeks.forEach((w, i) => {
+                const spent    = weekSpent[i];
+                const budget   = weekBudgets[i];
+                totalSpent    += spent;
+                totalBudget   += budget;
+                const pct      = budget > 0 ? Math.min((spent / budget) * 100, 100) : 0;
+                const over     = spent > budget;
+                const isCurrent = i === currentWeekIdx;
+                const isPastOrCurrent = (currentWeekIdx === -1) ? true : (i <= currentWeekIdx);
+                const detailId = 'smw-detail-' + i;
+
+                // Summary row
+                const tr = tbody.insertRow();
+                tr.className = 'smw-data-row' + (isCurrent ? ' smw-current-week' : '');
+                tr.onclick = () => toggleSmwDetail(detailId, i, weekTxns[i]);
+
+                // Toggle arrow cell
+                const tdTog = tr.insertCell(); tdTog.style.cssText = 'padding:7px 2px 7px 8px;';
+                tdTog.innerHTML = '<span class="smw-toggle" id="smw-tog-' + i + '">&#9658;</span>';
+
+                // Week label
+                const tdWk = tr.insertCell();
+                tdWk.innerHTML = '<strong>' + w.label + '</strong>' +
+                    (isCurrent ? ' <span style="font-size:10px;background:#3182ce;color:#fff;border-radius:3px;padding:1px 5px;margin-left:4px">today</span>' : '');
+
+                // Days
+                const tdDays = tr.insertCell();
+                tdDays.style.color = '#718096';
+                tdDays.textContent = w.start + '–' + w.end;
+
+                // Spent
+                const tdSpent = tr.insertCell();
+                tdSpent.style.cssText = 'text-align:right;font-weight:600;color:' + (over ? '#e53e3e' : '#2d3748');
+                tdSpent.textContent = fmt(spent);
+
+                // Budget
+                const tdBudget = tr.insertCell();
+                tdBudget.style.cssText = 'text-align:right;color:#4a5568';
+                tdBudget.textContent = fmt(budget);
+
+                // Progress bar + remaining label
+                const tdProg = tr.insertCell();
+                const diff = budget - spent;
+                const remainHtml = isPastOrCurrent
+                    ? (diff >= 0
+                        ? '<div style="font-size:10px;color:#38a169;margin-top:3px">' + fmt(diff) + ' below</div>'
+                        : '<div style="font-size:10px;color:#e53e3e;margin-top:3px">' + fmt(Math.abs(diff)) + ' over</div>')
+                    : '';
+                tdProg.innerHTML =
+                    '<div class="wk-bar-wrap"><div class="wk-bar-fill" style="width:' + pct.toFixed(1) + '%;background:' + (over ? '#fc8181' : '#68d391') + '"></div></div>' +
+                    '<span style="font-size:10px;color:#718096">' + pct.toFixed(0) + '%</span>' +
+                    remainHtml;
+
+                // Detail row (hidden by default)
+                const detailTr = tbody.insertRow();
+                detailTr.className = 'smw-detail-row';
+                detailTr.id = detailId;
+                const detailTd = detailTr.insertCell();
+                detailTd.className = 'smw-detail-cell';
+                detailTd.colSpan = 6;
+                detailTd.innerHTML = '<div class="smw-detail-inner"></div>';
+            });
+
+            // TOTAL row
+            const totalPct  = totalBudget > 0 ? Math.min((totalSpent / totalBudget) * 100, 100) : 0;
+            const totalOver = totalSpent > totalBudget;
+            const totalTr   = tbody.insertRow();
+            totalTr.className = 'smw-total-row';
+            totalTr.insertCell(); // empty toggle cell
+            const totalLbl = totalTr.insertCell(); totalLbl.textContent = 'TOTAL';
+            const totalDays = totalTr.insertCell(); totalDays.style.color = '#718096'; totalDays.textContent = '1–' + daysInMonth;
+            const totalSpentTd = totalTr.insertCell();
+            totalSpentTd.style.cssText = 'text-align:right;color:' + (totalOver ? '#e53e3e' : '#2d3748');
+            totalSpentTd.textContent = fmt(totalSpent);
+            const totalBudgetTd = totalTr.insertCell();
+            totalBudgetTd.style.cssText = 'text-align:right;color:#4a5568';
+            totalBudgetTd.textContent = fmt(totalBudget);
+            const totalProgTd = totalTr.insertCell();
+            // Cumulative tick marks at each weekly budget boundary
+            let smwTickHtml = '';
+            let cumBudget = 0;
+            for (let ti = 0; ti < weekBudgets.length - 1; ti++) {
+                cumBudget += weekBudgets[ti];
+                const tickPct = totalBudget > 0 ? (cumBudget / totalBudget) * 100 : 0;
+                smwTickHtml += '<div style="position:absolute;left:' + tickPct.toFixed(2) + '%;top:0;width:2px;height:100%;background:rgba(0,0,0,0.25);z-index:1;pointer-events:none;"></div>';
+            }
+            // Over/under so far: compare total spent against cumulative budget through current week
+            const smwBudgetSoFar = currentWeekIdx >= 0
+                ? weekBudgets.slice(0, currentWeekIdx + 1).reduce((s, b) => s + b, 0)
+                : totalBudget;
+            const smwDiffSoFar = smwBudgetSoFar - totalSpent;
+            const smwSoFarHtml = smwDiffSoFar >= 0
+                ? '<div style="font-size:10px;color:#38a169;margin-top:3px">' + fmt(smwDiffSoFar) + ' under so far</div>'
+                : '<div style="font-size:10px;color:#e53e3e;margin-top:3px">' + fmt(Math.abs(smwDiffSoFar)) + ' over so far</div>';
+
+            totalProgTd.innerHTML =
+                '<div class="wk-bar-wrap" style="overflow:visible;">' +
+                    '<div class="wk-bar-fill" style="width:' + totalPct.toFixed(1) + '%;background:' + (totalOver ? '#fc8181' : '#68d391') + ';position:relative;z-index:0;overflow:hidden;border-radius:4px;"></div>' +
+                    smwTickHtml +
+                '</div>' +
+                '<span style="font-size:10px;color:#718096">' + totalPct.toFixed(0) + '%</span>' +
+                smwSoFarHtml;
+
+            // Sub-label
+            const subLabel = document.createElement('div');
+            const isLowBudget = smwBudgetRow?.low_budget != null && smwBudgetRow.low_budget !== smwBudgetRow.budget;
+            subLabel.style.cssText = 'font-size:11px;margin-top:8px;' + (isLowBudget ? 'color:#3182ce' : 'color:#718096');
+            subLabel.textContent = isLowBudget
+                ? 'Budget based on low budget target: ' + fmt(smwLowBudget)
+                : 'Budget: ' + fmt(smwLowBudget) + ' (' + daysInMonth + ' days, ~' + fmt(dailyRate * 7) + '/wk)';
+
+            container.innerHTML = '';
+            container.appendChild(table);
+            container.appendChild(subLabel);
+        }
+
+        function toggleSmwDetail(detailId, weekIdx, txns) {
+            const detailRow = document.getElementById(detailId);
+            const toggle    = document.getElementById('smw-tog-' + weekIdx);
+            if (!detailRow) return;
+
+            const isOpen = detailRow.classList.contains('open');
+            if (isOpen) {
+                detailRow.classList.remove('open');
+                toggle.innerHTML = '&#9658;';
+                return;
+            }
+            detailRow.classList.add('open');
+            toggle.innerHTML = '&#9660;';
+
+            const cell = detailRow.querySelector('.smw-detail-inner');
+            if (txns.length === 0) {
+                cell.innerHTML = '<em style="color:#a0aec0;font-size:13px;padding:4px 0;display:block;">No transactions this week</em>';
+                return;
+            }
+
+            // Sort by day
+            const mo = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
+            const dv = d => { const p=(d||'').split('-'); return (mo[p[0]]||0)*100+parseInt(p[1]||0); };
+            const sorted = [...txns].sort((a,b) => dv(a.date)-dv(b.date));
+
+            let html = '<table class="fundos-detail-table"><thead><tr>' +
+                '<th>Date</th><th>Account</th><th>Description</th>' +
+                '<th style="text-align:right">Amount</th><th>Notes</th>' +
+                '</tr></thead><tbody>';
+
             sorted.forEach(t => {
                 const amt    = parseFloat(t.amount);
                 const absAmt = Math.abs(amt).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -6167,4 +6483,4 @@
     </script>
 </body>
 </html>
-<!-- v5.57 -->
+<!-- v5.59 -->
