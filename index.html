@@ -1,10 +1,10 @@
-<!-- v5.54 -->
+<!-- v5.57 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Finance Dashboard v5.54</title>
+    <title>Personal Finance Dashboard v5.57</title>
     <style>
         * {
             margin: 0;
@@ -277,39 +277,50 @@
             }
         }
         
-        .mode-toggle {
-            display: flex;
-            gap: 0;
-            border: 2px solid #667eea;
-            border-radius: 8px;
-            overflow: hidden;
+        /* ===================== DEV FOOTER / TEST BAR ===================== */
+        .dev-footer {
+            text-align: right;
+            padding: 10px 4px 2px;
         }
-        
-        .mode-btn {
-            padding: 10px 20px;
-            border: none;
-            background: white;
-            color: #667eea;
-            font-weight: 600;
-            font-size: 14px;
+        .dev-footer-link {
+            font-size: 11px;
+            color: #cbd5e0;
+            text-decoration: none;
             cursor: pointer;
-            transition: all 0.3s ease;
-            border-right: 1px solid #667eea;
+            background: none;
+            border: none;
+            padding: 0;
+            font-family: inherit;
         }
-        
-        .mode-btn:last-child {
-            border-right: none;
+        .dev-footer-link:hover { color: #a0aec0; }
+
+        .test-mode-bar {
+            display: none;
+            background: #fffbeb;
+            border: 1px solid #f6ad55;
+            border-radius: 8px;
+            padding: 10px 16px;
+            margin-top: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #c05621;
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
-        
-        .mode-btn:hover {
-            background: #f0f4ff;
+        .test-mode-bar a {
+            color: #667eea;
+            cursor: pointer;
+            text-decoration: underline;
+            background: none;
+            border: none;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: inherit;
+            padding: 0;
         }
-        
-        .mode-btn.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        
+        .test-mode-bar a:hover { color: #5a67d8; }
+
         .refresh-btn {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -338,15 +349,6 @@
         }
         
         @media (max-width: 768px) {
-            .mode-toggle {
-                flex-direction: row;
-            }
-            
-            .mode-btn {
-                padding: 8px 16px;
-                font-size: 12px;
-            }
-            
             .refresh-btn {
                 padding: 8px 16px;
                 font-size: 12px;
@@ -969,12 +971,25 @@
         }
         .ai-thinking.visible { display: inline; }
 
-        /* ===================== PENDING CHIP ===================== */
+        /* ===================== PENDING / DUP CHIPS ===================== */
         .pending-chip {
             display: inline-block;
             background: #fffbeb;
             border: 1px solid #f6ad55;
             color: #c05621;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 8px;
+            margin-left: 6px;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+        .dup-chip {
+            display: inline-block;
+            background: #fff1f0;
+            border: 1px solid #fca5a5;
+            color: #b91c1c;
             font-size: 10px;
             font-weight: 700;
             padding: 1px 6px;
@@ -993,20 +1008,28 @@
             margin-top: 6px;
             display: inline-block;
         }
+        .dup-notice {
+            font-size: 12px;
+            color: #b91c1c;
+            background: #fff1f0;
+            border: 1px solid #fca5a5;
+            border-radius: 8px;
+            padding: 5px 10px;
+            margin-top: 6px;
+            display: inline-block;
+        }
     </style>
 </head>
 <body>
     <div id="chartTooltip" class="chart-tooltip"></div>
     <div class="container">
         <div class="header">
-            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.44</span></h1>
+            <h1>💰 Personal Finance Dashboard <span style="font-size:14px;font-weight:600;background:#667eea;color:white;padding:3px 10px;border-radius:12px;vertical-align:middle;margin-left:8px;">v5.57</span></h1>
             <div style="display: flex; gap: 15px; align-items: center; margin: 15px 0;">
-                <div class="mode-toggle">
-                    <button id="testModeBtn" class="mode-btn active">🔧 TEST</button>
-                    <button id="prodModeBtn" class="mode-btn">✅ PROD</button>
-                </div>
                 <button class="refresh-btn" id="refreshBtn" onclick="loadData()">🔄 Refresh Data</button>
-                <p id="modeIndicator" style="margin: 0; font-size: 14px; color: #666;">Connected to Google Sheets</p>
+            </div>
+            <div id="testModeBar" class="test-mode-bar" style="display:none;">
+                ⚠️ TEST MODE — using embedded data · <a onclick="switchToProd()">Switch to Production</a>
             </div>
             <div class="last-updated" id="lastUpdated"></div>
 
@@ -1686,6 +1709,11 @@
 
         </div> <!-- end tab-invest -->
 
+        <!-- Dev mode footer -->
+        <div class="dev-footer" id="devFooter">
+            <button class="dev-footer-link" onclick="switchToTest()" title="Switch to Test Mode">🔧 Dev</button>
+        </div>
+
     </div> <!-- end container -->
 
     <script>
@@ -1695,8 +1723,18 @@
         // Set to true for local testing with hardcoded data
         // Set to false for production (GitHub) to use Google Sheets API
         // Can be toggled via UI
-        let DEV_MODE = true;
-        
+        let DEV_MODE = false;
+
+        // ============================================
+        // HELPERS
+        // ============================================
+        function isPending(t) {
+            return t.account === '[Pending]' || t.warnings === 'Pending';
+        }
+        function isDup(t) {
+            return t.warnings === 'Dup';
+        }
+
         // ============================================
         // GOOGLE SHEETS CONFIGURATION
         // ============================================
@@ -1935,7 +1973,8 @@
                     amount: cells[5]?.v || 0,          // Column F: amount
                     category: cells[6]?.v || '',       // Column G: category
                     notes: cells[7]?.v || '',          // Column H: notes
-                    categoriaFundos: cells[9]?.v || ''  // Column J: Categoria Fundos
+                    warnings: cells[8]?.v || '',       // Column I: warnings
+                    categoriaFundos: cells[9]?.v || '' // Column J: Categoria Fundos
                 };
                 
                 transactions.push(transaction);
@@ -2321,11 +2360,15 @@
                 // Category
                 const tdCategory = document.createElement('td');
                 tdCategory.className = 'budget-category';
-                const pendingTxns = transactions.filter(t => t.category === row.category && t.account === '[Pending]');
+                const pendingTxns = transactions.filter(t => t.category === row.category && isPending(t));
                 const pendingChip = pendingTxns.length > 0
                     ? '<span class="pending-chip">⏳ ' + pendingTxns.length + ' pending</span>'
                     : '';
-                tdCategory.innerHTML = '<span class="mensal-cat-toggle" id="tog-' + rowId + '">&#9658;</span>' + row.category + pendingChip;
+                const dupTxns = transactions.filter(t => t.category === row.category && isDup(t));
+                const dupChip = dupTxns.length > 0
+                    ? '<span class="dup-chip">⚠️ ' + dupTxns.length + ' duplicate</span>'
+                    : '';
+                tdCategory.innerHTML = '<span class="mensal-cat-toggle" id="tog-' + rowId + '">&#9658;</span>' + row.category + pendingChip + dupChip;
                 tr.appendChild(tdCategory);
                 
                 // Budget
@@ -2550,52 +2593,30 @@
                 if (qeBody)   qeBody.classList.add('collapsed');
                 if (qeToggle) qeToggle.classList.add('collapsed');
             }
-            // Check for saved mode preference
-            const savedMode = localStorage.getItem('devMode');
-            if (savedMode !== null) {
-                DEV_MODE = savedMode === 'true';
-            }
-            
-            // Set up mode toggle buttons
-            const testModeBtn = document.getElementById('testModeBtn');
-            const prodModeBtn = document.getElementById('prodModeBtn');
-            
             function updateModeUI() {
-                const modeIndicator = document.getElementById('modeIndicator');
-                
+                const testBar  = document.getElementById('testModeBar');
+                const devFooter = document.getElementById('devFooter');
                 if (DEV_MODE) {
-                    testModeBtn.classList.add('active');
-                    prodModeBtn.classList.remove('active');
-                    modeIndicator.textContent = '🔧 TEST MODE - Using Embedded Data';
-                    modeIndicator.style.color = '#ff9800';
-                    modeIndicator.style.fontWeight = 'bold';
+                    testBar.style.display  = 'flex';
+                    devFooter.style.display = 'none';
                 } else {
-                    testModeBtn.classList.remove('active');
-                    prodModeBtn.classList.add('active');
-                    modeIndicator.textContent = '✅ PRODUCTION - Connected to Google Sheets';
-                    modeIndicator.style.color = '#38a169';
-                    modeIndicator.style.fontWeight = 'bold';
+                    testBar.style.display  = 'none';
+                    devFooter.style.display = 'block';
                 }
             }
-            
-            testModeBtn.onclick = function() {
-                if (!DEV_MODE) {
-                    DEV_MODE = true;
-                    localStorage.setItem('devMode', 'true');
-                    updateModeUI();
-                    loadData();
-                }
-            };
-            
-            prodModeBtn.onclick = function() {
-                if (DEV_MODE) {
-                    DEV_MODE = false;
-                    localStorage.setItem('devMode', 'false');
-                    updateModeUI();
-                    loadData();
-                }
-            };
-            
+
+            function switchToTest() {
+                DEV_MODE = true;
+                updateModeUI();
+                loadData();
+            }
+
+            function switchToProd() {
+                DEV_MODE = false;
+                updateModeUI();
+                loadData();
+            }
+
             // Initialize UI
             updateModeUI();
             
@@ -3624,11 +3645,15 @@
 
                 const tdC = document.createElement('td');
                 tdC.className = 'budget-category';
-                const fPending = transactions.filter(t => t.categoriaFundos === row.category && t.account === '[Pending]');
+                const fPending = transactions.filter(t => t.categoriaFundos === row.category && isPending(t));
                 const fChip = fPending.length > 0
                     ? '<span class="pending-chip">⏳ ' + fPending.length + ' pending</span>'
                     : '';
-                tdC.innerHTML = '<span class="fundos-cat-toggle" id="tog-' + rowId + '">&#9658;</span>' + row.category + fChip;
+                const fDup = transactions.filter(t => t.categoriaFundos === row.category && isDup(t));
+                const fDupChip = fDup.length > 0
+                    ? '<span class="dup-chip">⚠️ ' + fDup.length + ' duplicate</span>'
+                    : '';
+                tdC.innerHTML = '<span class="fundos-cat-toggle" id="tog-' + rowId + '">&#9658;</span>' + row.category + fChip + fDupChip;
                 tr.appendChild(tdC);
 
                 const tdB = document.createElement('td'); tdB.className = 'budget-amount'; tdB.style.textAlign = 'right';
@@ -5637,19 +5662,30 @@
 
             const fmtT = v => '$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 
-            // Pending notice
-            const pendingInCat = filteredTransactions.filter(t => t.category === cat && t.account === '[Pending]');
+            // Pending + dup notices
+            const pendingInCat = filteredTransactions.filter(t => t.category === cat && isPending(t));
+            const dupInCat     = filteredTransactions.filter(t => t.category === cat && isDup(t));
             const pendingNoticeEl = document.getElementById('trackerPendingNotice-' + suffix);
             if (pendingNoticeEl) {
+                const parts = [];
                 if (pendingInCat.length > 0) {
                     const pendingTotal = pendingInCat.reduce((s,t) => s+(parseFloat(t.amount)||0), 0);
-                    pendingNoticeEl.style.display = 'block';
-                    pendingNoticeEl.innerHTML = '<span class="pending-notice">⏳ ' + pendingInCat.length +
+                    parts.push('<span class="pending-notice">⏳ ' + pendingInCat.length +
                         ' pending transaction' + (pendingInCat.length > 1 ? 's' : '') +
                         ' totalling ' + fmtT(pendingTotal) +
-                        ' — numbers may change once confirmed</span>';
+                        ' — numbers may change once confirmed</span>');
+                }
+                if (dupInCat.length > 0) {
+                    parts.push('<span class="dup-notice">⚠️ ' + dupInCat.length +
+                        ' duplicated entr' + (dupInCat.length > 1 ? 'ies' : 'y') +
+                        ' — please review</span>');
+                }
+                if (parts.length > 0) {
+                    pendingNoticeEl.style.display = 'block';
+                    pendingNoticeEl.innerHTML = parts.join(' ');
                 } else {
                     pendingNoticeEl.style.display = 'none';
+                    pendingNoticeEl.innerHTML = '';
                 }
             }
 
@@ -6131,4 +6167,4 @@
     </script>
 </body>
 </html>
-<!-- v5.44 -->
+<!-- v5.57 -->
